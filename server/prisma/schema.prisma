@@ -1,0 +1,743 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- THE CORE OF MULTI-TENANCY ---
+
+model Company {
+  id           String @id @default(uuid())
+  name         String
+  workspaceUrl String @unique
+  industry     String?
+  otherIndustry String?
+  country      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  ownerId String? @unique // ID of the user who created the company (optional for initial creation)
+  owner   User?   @relation("CompanyOwner", fields: [ownerId], references: [id])
+  users   User[] @relation("CompanyUsers") // All users belonging to this company
+
+  // All business data models link back to this Company
+  products            Product[]
+  productCategories   ProductCategory[]
+  brands              Brand[]
+  warehouses          Warehouse[]
+  billers             Biller[]
+  customers           Customer[]
+  suppliers           Supplier[]
+  sales               Sale[]
+  purchaseOrders      PurchaseOrder[]
+  quotations          Quotation[]
+  salesReturns        SalesReturn[]
+  purchaseReturns     PurchaseReturn[]
+  expenses            Expense[]
+  expenseCategories   ExpenseCategory[]
+  stockAdjustments    StockAdjustment[]
+  deliveries          Delivery[]
+
+  @@map("companies")
+}
+
+// --- MODIFIED USER & CONTACT MODELS ---
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String
+  name          String
+  role          UserRole @default(STAFF) // Role *within* the company
+  emailVerified DateTime? // Null means not verified; set to timestamp when verified
+  image         String?  // Optional profile image
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // MODIFIED: User now belongs to a Company
+  companyId String
+  company   Company @relation("CompanyUsers", fields: [companyId], references: [id])
+
+  // Relations
+  ownedCompany      Company?          @relation("CompanyOwner")
+  expenses          Expense[]
+  purchaseOrders    PurchaseOrder[]
+  quotations        Quotation[]
+  sales             Sale[]
+  salesReturns      SalesReturn[]
+  purchaseReturns   PurchaseReturn[]
+  stockAdjustments  StockAdjustment[]
+  
+  // Better Auth Relations
+  accounts Account[]
+  sessions Session[]
+  
+  // Auth Token Relations
+  authTokens AuthToken[]
+
+  @@map("users")
+}
+
+// Better Auth Models
+model Account {
+  id                    String    @id @default(uuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("accounts")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Multi-tenant session fields
+  companyId String
+  role      String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Verification {
+  id         String   @id @default(uuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verifications")
+}
+
+model AuthToken {
+  id        String    @id @default(uuid())
+  token     String    @unique
+  type      TokenType
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  // Link to the user
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("auth_tokens")
+}
+
+model Biller {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   // Unique identifier like "MO-001", "DB-002"
+  address   String?
+  phone     String?
+  email     String?
+  status    BillerStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // NEW: Link to Company
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // Relations - Billers can be associated with sales and invoices
+  sales Sale[]
+
+  @@unique([companyId, code]) // Code unique per company
+  @@map("billers")
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // NEW: Link to Company
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // Relations
+  quotations Quotation[]
+  sales      Sale[]
+
+  @@unique([companyId, email]) // Email unique per company
+  @@map("customers")
+}
+
+model Supplier {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // NEW: Link to Company
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // Relations
+  purchaseOrders   PurchaseOrder[]
+  purchaseReturns  PurchaseReturn[]
+
+  @@unique([companyId, email]) // Email unique per company
+  @@map("suppliers")
+}
+
+
+// --- MODIFIED PRODUCT & INVENTORY MODELS ---
+
+model Product {
+  id           String        @id @default(uuid())
+  name         String
+  sku          String        // SKU should be unique *per company*
+  description  String?
+  salePrice    Decimal       @db.Decimal(10, 2)
+  costPrice    Decimal       @db.Decimal(10, 2)
+  reorderLevel Int           @default(0)
+  status       ProductStatus @default(ACTIVE)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // NEW: Link to Company
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // Relations
+  categoryId           String
+  category             ProductCategory       @relation(fields: [categoryId], references: [id])
+  brandId              String?
+  brand                Brand?                @relation(fields: [brandId], references: [id])
+  inventory            Inventory[]
+  purchaseOrderItems   PurchaseOrderItem[]
+  quotationItems       QuotationItem[]
+  saleItems            SaleItem[]
+  salesReturnItems     SalesReturnItem[]
+  purchaseReturnItems  PurchaseReturnItem[]
+  stockAdjustmentItems StockAdjustmentItem[]
+
+  @@unique([companyId, sku]) // Ensures SKU is unique only within a company
+  @@map("products")
+}
+
+model ProductCategory {
+  id   String @id @default(uuid())
+  name String
+
+  // NEW: Link to Company
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // Relations
+  products Product[]
+
+  @@unique([companyId, name]) // Category names unique per company
+  @@map("product_categories")
+}
+
+model Brand {
+  id   String @id @default(uuid())
+  name String
+
+  // NEW: Link to Company
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // Relations
+  products Product[]
+
+  @@unique([companyId, name]) // Brand names unique per company
+  @@map("brands")
+}
+
+model Warehouse {
+  id        String   @id @default(uuid())
+  name      String
+  location  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // NEW: Link to Company
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // Relations
+  inventory            Inventory[]
+  stockAdjustmentItems StockAdjustmentItem[]
+  salesReturns         SalesReturn[]
+  purchaseReturns      PurchaseReturn[]
+  sales                Sale[]
+  purchases            PurchaseOrder[]
+
+  @@map("warehouses")
+}
+
+model Inventory {
+  productId   String
+  warehouseId String
+  quantity    Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  product     Product   @relation(fields: [productId], references: [id])
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@id([productId, warehouseId])
+  @@map("inventory")
+}
+
+model StockAdjustment {
+  id              String   @id @default(uuid())
+  referenceNumber String
+  adjustmentDate  DateTime @default(now())
+  notes           String?
+  totalItems      Int      @default(0)
+  netChange       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // NEW: Link to Company
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // Relations
+  userId String
+  user   User                 @relation(fields: [userId], references: [id])
+  items  StockAdjustmentItem[]
+
+  @@unique([companyId, referenceNumber]) // Reference number unique per company
+  @@map("stock_adjustments")
+}
+
+model StockAdjustmentItem {
+  id                String          @id @default(uuid())
+  previousQuantity  Int
+  newQuantity       Int
+  difference        Int
+  stockAdjustmentId String
+  productId         String
+  warehouseId       String
+  stockAdjustment   StockAdjustment @relation(fields: [stockAdjustmentId], references: [id], onDelete: Cascade)
+  product           Product         @relation(fields: [productId], references: [id])
+  warehouse         Warehouse       @relation(fields: [warehouseId], references: [id])
+
+  @@map("stock_adjustment_items")
+}
+
+
+// --- MODIFIED TRANSACTION & EXPENSE MODELS ---
+
+model Expense {
+  id          String    @id @default(uuid())
+  reference   String
+  amount      Decimal   @db.Decimal(10, 2)
+  expenseDate DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  description String?   // Renamed from 'notes'
+  vendor      String    // New field for the vendor name
+  status      ExpenseStatus   @default(PENDING) // New status field
+  paymentMethod PaymentMethod?  // New field for payment method
+
+  // NEW: Link to Company
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // Foreign Keys
+  categoryId String
+  userId     String
+
+  // Relations
+  category    ExpenseCategory     @relation(fields: [categoryId], references: [id])
+  user        User                @relation(fields: [userId], references: [id])
+  attachments ExpenseAttachment[] // Relation to new attachments model
+
+  @@map("expenses")
+}
+
+model ExpenseAttachment {
+  id        String   @id @default(uuid())
+  url       String 
+  fileName  String
+  fileType  String
+  createdAt DateTime @default(now())
+
+  // Relation to Expense
+  expenseId String
+  expense   Expense @relation(fields: [expenseId], references: [id])
+
+  @@map("expense_attachments")
+}
+
+model ExpenseCategory {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+
+  // NEW: Link to Company
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // Relations
+  expenses Expense[]
+
+  @@unique([companyId, name]) // Category names unique per company
+  @@map("expense_categories")
+}
+
+// --- OTHER TRANSACTION MODELS ---
+
+model Sale {
+  id            String         @id @default(uuid())
+  invoiceNumber String
+  subtotal      Decimal        @db.Decimal(10, 2)
+  tax           Decimal        @db.Decimal(10, 2) @default(0)
+  discount      Decimal        @db.Decimal(10, 2) @default(0)
+  totalAmount   Decimal        @db.Decimal(10, 2)
+  status        OrderStatus    @default(PENDING)
+  paymentStatus PaymentStatus  @default(PENDING)
+  paymentMethod PaymentMethod?
+  saleDate      DateTime       @default(now())
+  dueDate       DateTime
+  notes         String?
+  shippingAddress String?
+  sourceQuotationId String?    // Track which quotation this sale was created from
+  hasReturns    Boolean        @default(false)  // Track if any items have been returned
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  customerEmail String?
+
+  // NEW: Link to Company
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // Foreign Keys
+  customerId String
+  userId     String
+  billerId   String?
+  warehouseId String?
+
+  // Relations
+  items    SaleItem[]
+  customer Customer @relation(fields: [customerId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+  biller   Biller?  @relation(fields: [billerId], references: [id])
+  warehouse Warehouse? @relation(fields: [warehouseId], references: [id])
+  delivery Delivery?
+  returns  SalesReturn[]  // Track returns for this sale
+
+  @@unique([companyId, invoiceNumber]) // Invoice number unique per company
+  @@map("sales")
+}
+
+model SaleItem {
+  id        String  @id @default(uuid())
+  quantity  Int
+  returnedQuantity Int @default(0)  // Track how many items have been returned
+  unitPrice Decimal @db.Decimal(10, 2)
+  saleId    String
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  returnedItems SalesReturnItem[]  // Track returns for this item
+
+  @@map("sale_items")
+}
+
+model Delivery {
+  id              String          @id @default(uuid())
+  status          DeliveryStatus  @default(PENDING)
+  trackingNumber  String?
+  deliveryAddress String          // Copied from the sale for historical accuracy
+  dispatchDate    DateTime?
+  deliveredDate   DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // --- Relations ---
+  saleId    String   @unique // Creates a one-to-one relationship
+  sale      Sale     @relation(fields: [saleId], references: [id])
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+
+  @@map("deliveries")
+}
+
+model PurchaseOrder {
+  id              String              @id @default(uuid())
+  referenceNumber String
+  totalAmount     Decimal             @db.Decimal(10, 2)
+  status          OrderStatus         @default(PENDING)
+  orderDate       DateTime            @default(now())
+  hasReturns      Boolean             @default(false)  // Track if any items have been returned
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  // NEW: Link to Company
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // Foreign Keys
+  supplierId String
+  userId     String
+  warehouseId String?
+
+  // Relations
+  items    PurchaseOrderItem[]
+  supplier Supplier            @relation(fields: [supplierId], references: [id])
+  user     User                @relation(fields: [userId], references: [id])
+  warehouse Warehouse?         @relation(fields: [warehouseId], references: [id])
+  returns  PurchaseReturn[]    // Track returns for this purchase
+
+  @@unique([companyId, referenceNumber]) // Reference number unique per company
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(uuid())
+  quantity        Int
+  returnedQuantity Int          @default(0)  // Track how many items have been returned
+  unitCost        Decimal       @db.Decimal(10, 2)
+  purchaseOrderId String
+  productId       String
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  returnedItems   PurchaseReturnItem[]  // Track returns for this item
+
+  @@map("purchase_order_items")
+}
+
+model Quotation {
+  id              String          @id @default(uuid())
+  referenceNumber String
+  totalAmount     Decimal         @db.Decimal(10, 2)
+  status          OrderStatus     @default(PENDING)
+  quoteDate       DateTime        @default(now())
+  expiryDate      DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // NEW: Link to Company
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // Foreign Keys
+  customerId String
+  userId     String
+
+  // Relations
+  items    QuotationItem[]
+  customer Customer        @relation(fields: [customerId], references: [id])
+  user     User            @relation(fields: [userId], references: [id])
+
+  @@unique([companyId, referenceNumber]) // Reference number unique per company
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id          String    @id @default(uuid())
+  quantity    Int
+  unitPrice   Decimal   @db.Decimal(10, 2)
+  quotationId String
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@map("quotation_items")
+}
+
+model SalesReturn {
+  id              String       @id @default(uuid())
+  referenceNumber String
+  totalAmount     Decimal      @db.Decimal(10, 2)
+  reason          String?
+  status          ReturnStatus @default(PENDING)
+  warehouseId     String
+  returnDate      DateTime     @default(now())
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // NEW: Link to Company
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // Optional: Link to original Sale
+  saleId String?
+  sale   Sale?   @relation(fields: [saleId], references: [id])
+
+  // Foreign Keys
+  userId String
+
+  // Relations
+  items     SalesReturnItem[]
+  user      User              @relation(fields: [userId], references: [id])
+  warehouse Warehouse         @relation(fields: [warehouseId], references: [id])
+
+  @@unique([companyId, referenceNumber]) // Reference number unique per company
+  @@map("sales_returns")
+}
+
+model SalesReturnItem {
+  id            String      @id @default(uuid())
+  quantity      Int
+  unitPrice     Decimal     @db.Decimal(10, 2)
+  salesReturnId String
+  productId     String
+  
+  // Optional: Link to original SaleItem for tracking
+  saleItemId String?
+  saleItem   SaleItem? @relation(fields: [saleItemId], references: [id])
+  
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  salesReturn   SalesReturn @relation(fields: [salesReturnId], references: [id], onDelete: Cascade)
+
+  @@map("sales_return_items")
+}
+
+model PurchaseReturn {
+  id              String              @id @default(uuid())
+  referenceNumber String
+  totalAmount     Decimal             @db.Decimal(10, 2)
+  reason          String?
+  status          ReturnStatus        @default(PENDING)
+  warehouseId     String
+  supplierId      String
+  returnDate      DateTime            @default(now())
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  // Link to Company
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // Optional: Link to original PurchaseOrder
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+
+  // Foreign Keys
+  userId String
+
+  // Relations
+  items     PurchaseReturnItem[]
+  user      User                 @relation(fields: [userId], references: [id])
+  warehouse Warehouse            @relation(fields: [warehouseId], references: [id])
+  supplier  Supplier             @relation(fields: [supplierId], references: [id])
+
+  @@unique([companyId, referenceNumber])
+  @@map("purchase_returns")
+}
+
+model PurchaseReturnItem {
+  id               String         @id @default(uuid())
+  quantity         Int
+  unitPrice        Decimal        @db.Decimal(10, 2)
+  purchaseReturnId String
+  productId        String
+  
+  // Optional: Link to original PurchaseOrderItem for tracking
+  purchaseOrderItemId String?
+  purchaseOrderItem   PurchaseOrderItem? @relation(fields: [purchaseOrderItemId], references: [id])
+  
+  product          Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  purchaseReturn   PurchaseReturn @relation(fields: [purchaseReturnId], references: [id], onDelete: Cascade)
+
+  @@map("purchase_return_items")
+}
+
+// --- ENUMS ---
+
+enum ReturnStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+}
+
+enum UserRole {
+  OWNER   // NEW: Add OWNER role for the company creator
+  ADMIN
+  MANAGER
+  STAFF
+}
+
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  MAGIC_LINK_LOGIN
+}
+
+enum OrderStatus {
+  DRAFT
+  PENDING
+  COMPLETED
+  CANCELLED
+  RECEIVED
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+  PARTIAL
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+}
+
+// NEW: Enum for Expense Status
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+}
+
+// NEW: Enum for Payment Methods
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  BANK_TRANSFER
+  CHECK
+}
+
+// NEW: Enum for Biller Status
+enum BillerStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// NEW: Enum for Delivery Status
+enum DeliveryStatus {
+  PENDING
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}

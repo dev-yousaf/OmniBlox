@@ -1,0 +1,713 @@
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import {
+  CreateWarehouseDto,
+  UpdateWarehouseDto,
+  InventoryQueryDto,
+  UpdateInventoryDto,
+  StockTransferDto,
+  CreateStockAdjustmentDto,
+  InventoryStatsDto,
+  InventoryItemDto,
+  WarehouseInventoryDto,
+} from './dto/inventory.dto';
+
+@Injectable()
+export class InventoryService {
+  constructor(private prisma: PrismaService) {}
+
+  // === WAREHOUSE MANAGEMENT ===
+  async createWarehouse(companyId: string, dto: CreateWarehouseDto) {
+    return this.prisma.warehouse.create({
+      data: {
+        ...dto,
+        companyId,
+      },
+    });
+  }
+
+  async getWarehouses(companyId: string) {
+    return this.prisma.warehouse.findMany({
+      where: { companyId },
+      include: {
+        _count: {
+          select: {
+            inventory: true,
+          },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async getWarehouse(companyId: string, id: string) {
+    const warehouse = await this.prisma.warehouse.findFirst({
+      where: { id, companyId },
+      include: {
+        inventory: {
+          include: {
+            product: {
+              include: {
+                category: true,
+                brand: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!warehouse) {
+      throw new NotFoundException('Warehouse not found');
+    }
+
+    return warehouse;
+  }
+
+  async updateWarehouse(
+    companyId: string,
+    id: string,
+    dto: UpdateWarehouseDto,
+  ) {
+    const warehouse = await this.prisma.warehouse.findFirst({
+      where: { id, companyId },
+    });
+
+    if (!warehouse) {
+      throw new NotFoundException('Warehouse not found');
+    }
+
+    return this.prisma.warehouse.update({
+      where: { id },
+      data: dto,
+    });
+  }
+
+  async deleteWarehouse(companyId: string, id: string) {
+    const warehouse = await this.prisma.warehouse.findFirst({
+      where: { id, companyId },
+      include: {
+        inventory: true,
+      },
+    });
+
+    if (!warehouse) {
+      throw new NotFoundException('Warehouse not found');
+    }
+
+    if (warehouse.inventory.length > 0) {
+      throw new BadRequestException(
+        'Cannot delete warehouse with existing inventory',
+      );
+    }
+
+    await this.prisma.warehouse.delete({
+      where: { id },
+    });
+
+    return { message: 'Warehouse deleted successfully' };
+  }
+
+  // === INVENTORY MANAGEMENT ===
+  async getInventory(companyId: string, query: InventoryQueryDto) {
+    const { page = 1, limit = 10, search, warehouseId, filter } = query;
+    const skip = (page - 1) * limit;
+
+    // Build where clause
+    const where: any = {
+      product: {
+        companyId,
+      },
+    };
+
+    if (warehouseId) {
+      where.warehouseId = warehouseId;
+    }
+
+    if (search) {
+      where.OR = [
+        {
+          product: {
+            name: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        },
+        {
+          product: {
+            sku: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        },
+      ];
+    }
+
+    // Apply filter conditions
+    if (filter === 'low_stock') {
+      where.AND = [
+        {
+          quantity: {
+            gt: 0,
+          },
+        },
+        {
+          product: {
+            reorderLevel: {
+              gt: 0,
+            },
+          },
+        },
+      ];
+      // Add a custom condition for low stock in the query
+    } else if (filter === 'out_of_stock') {
+      where.quantity = 0;
+    }
+
+    const [inventory, total] = await Promise.all([
+      this.prisma.inventory.findMany({
+        where,
+        include: {
+          product: {
+            include: {
+              category: true,
+              brand: true,
+            },
+          },
+          warehouse: true,
+        },
+        skip,
+        take: limit,
+        orderBy: [{ product: { name: 'asc' } }, { warehouse: { name: 'asc' } }],
+      }),
+      this.prisma.inventory.count({ where }),
+    ]);
+
+    // Filter low stock items if needed (since Prisma doesn't support complex comparisons easily)
+    let filteredInventory = inventory;
+    if (filter === 'low_stock') {
+      filteredInventory = inventory.filter(
+        (item) =>
+          item.quantity > 0 &&
+          item.product.reorderLevel > 0 &&
+          item.quantity <= item.product.reorderLevel,
+      );
+    }
+
+    const items: InventoryItemDto[] = filteredInventory.map((item) => ({
+      productId: item.productId,
+      productName: item.product.name,
+      productSku: item.product.sku,
+      warehouseId: item.warehouseId,
+      warehouseName: item.warehouse.name,
+      quantity: item.quantity,
+      salePrice: Number(item.product.salePrice),
+      costPrice: Number(item.product.costPrice),
+      reorderLevel: item.product.reorderLevel,
+      stockValue: item.quantity * Number(item.product.costPrice),
+      status: this.getStockStatus(item.quantity, item.product.reorderLevel),
+      category: item.product.category.name,
+      brand: item.product.brand?.name,
+    }));
+
+    return {
+      inventory: items,
+      total: filter === 'low_stock' ? filteredInventory.length : total,
+      pages: Math.ceil(
+        (filter === 'low_stock' ? filteredInventory.length : total) / limit,
+      ),
+    };
+  }
+
+  async getProductInventory(
+    companyId: string,
+    productId: string,
+  ): Promise<InventoryItemDto[]> {
+    // Verify product belongs to company
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, companyId },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    const inventory = await this.prisma.inventory.findMany({
+      where: {
+        productId,
+        warehouse: {
+          companyId,
+        },
+      },
+      include: {
+        product: {
+          include: {
+            category: true,
+            brand: true,
+          },
+        },
+        warehouse: true,
+      },
+      orderBy: { warehouse: { name: 'asc' } },
+    });
+
+    return inventory.map((item) => ({
+      productId: item.productId,
+      productName: item.product.name,
+      productSku: item.product.sku,
+      warehouseId: item.warehouseId,
+      warehouseName: item.warehouse.name,
+      quantity: item.quantity,
+      salePrice: Number(item.product.salePrice),
+      costPrice: Number(item.product.costPrice),
+      reorderLevel: item.product.reorderLevel,
+      stockValue: item.quantity * Number(item.product.costPrice),
+      status: this.getStockStatus(item.quantity, item.product.reorderLevel),
+      category: item.product.category.name,
+      brand: item.product.brand?.name,
+    }));
+  }
+
+  async getWarehouseInventory(
+    companyId: string,
+    warehouseId: string,
+  ): Promise<WarehouseInventoryDto> {
+    const warehouse = await this.prisma.warehouse.findFirst({
+      where: { id: warehouseId, companyId },
+      include: {
+        inventory: {
+          include: {
+            product: {
+              include: {
+                category: true,
+                brand: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!warehouse) {
+      throw new NotFoundException('Warehouse not found');
+    }
+
+    const inventory: InventoryItemDto[] = warehouse.inventory.map((item) => ({
+      productId: item.productId,
+      productName: item.product.name,
+      productSku: item.product.sku,
+      warehouseId: item.warehouseId,
+      warehouseName: warehouse.name,
+      quantity: item.quantity,
+      salePrice: Number(item.product.salePrice),
+      costPrice: Number(item.product.costPrice),
+      reorderLevel: item.product.reorderLevel,
+      stockValue: item.quantity * Number(item.product.costPrice),
+      status: this.getStockStatus(item.quantity, item.product.reorderLevel),
+      category: item.product.category.name,
+      brand: item.product.brand?.name,
+    }));
+
+    const totalStockValue = inventory.reduce(
+      (sum, item) => sum + item.stockValue,
+      0,
+    );
+    const lowStockCount = inventory.filter(
+      (item) => item.status === 'low_stock',
+    ).length;
+    const outOfStockCount = inventory.filter(
+      (item) => item.status === 'out_of_stock',
+    ).length;
+
+    return {
+      warehouseId: warehouse.id,
+      warehouseName: warehouse.name,
+      location: warehouse.location,
+      totalProducts: inventory.length,
+      totalStockValue,
+      lowStockCount,
+      outOfStockCount,
+      inventory,
+    };
+  }
+
+  async updateInventory(
+    companyId: string,
+    productId: string,
+    warehouseId: string,
+    dto: UpdateInventoryDto,
+  ) {
+    // Verify product belongs to company
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, companyId },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    // Verify warehouse belongs to company
+    const warehouse = await this.prisma.warehouse.findFirst({
+      where: { id: warehouseId, companyId },
+    });
+
+    if (!warehouse) {
+      throw new NotFoundException('Warehouse not found');
+    }
+
+    return this.prisma.inventory.upsert({
+      where: {
+        productId_warehouseId: {
+          productId,
+          warehouseId,
+        },
+      },
+      update: {
+        quantity: dto.quantity,
+      },
+      create: {
+        productId,
+        warehouseId,
+        quantity: dto.quantity,
+      },
+    });
+  }
+
+  // === STOCK TRANSFERS ===
+  async transferStock(
+    companyId: string,
+    userId: string,
+    dto: StockTransferDto,
+  ) {
+    const { productId, fromWarehouseId, toWarehouseId, quantity, notes } = dto;
+
+    if (fromWarehouseId === toWarehouseId) {
+      throw new BadRequestException('Cannot transfer to the same warehouse');
+    }
+
+    // Verify product and warehouses belong to company
+    const [product, fromWarehouse, toWarehouse] = await Promise.all([
+      this.prisma.product.findFirst({ where: { id: productId, companyId } }),
+      this.prisma.warehouse.findFirst({
+        where: { id: fromWarehouseId, companyId },
+      }),
+      this.prisma.warehouse.findFirst({
+        where: { id: toWarehouseId, companyId },
+      }),
+    ]);
+
+    if (!product) throw new NotFoundException('Product not found');
+    if (!fromWarehouse)
+      throw new NotFoundException('Source warehouse not found');
+    if (!toWarehouse)
+      throw new NotFoundException('Destination warehouse not found');
+
+    // Check source inventory
+    const sourceInventory = await this.prisma.inventory.findUnique({
+      where: {
+        productId_warehouseId: {
+          productId,
+          warehouseId: fromWarehouseId,
+        },
+      },
+    });
+
+    if (!sourceInventory || sourceInventory.quantity < quantity) {
+      throw new BadRequestException('Insufficient stock in source warehouse');
+    }
+
+    // Create stock adjustment for transfer
+    const referenceNumber = `TRF-${Date.now()}`;
+
+    return this.prisma.$transaction(async (prisma) => {
+      // Create stock adjustment record
+      const stockAdjustment = await prisma.stockAdjustment.create({
+        data: {
+          referenceNumber,
+          adjustmentDate: new Date(),
+          notes:
+            notes ||
+            `Transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
+          totalItems: 2, // From and To entries
+          netChange: 0, // Net change is 0 for transfers
+          companyId,
+          userId,
+        },
+      });
+
+      // Update source inventory (decrease)
+      await prisma.inventory.update({
+        where: {
+          productId_warehouseId: {
+            productId,
+            warehouseId: fromWarehouseId,
+          },
+        },
+        data: {
+          quantity: {
+            decrement: quantity,
+          },
+        },
+      });
+
+      // Update destination inventory (increase or create)
+      await prisma.inventory.upsert({
+        where: {
+          productId_warehouseId: {
+            productId,
+            warehouseId: toWarehouseId,
+          },
+        },
+        update: {
+          quantity: {
+            increment: quantity,
+          },
+        },
+        create: {
+          productId,
+          warehouseId: toWarehouseId,
+          quantity,
+        },
+      });
+
+      // Create adjustment items
+      await prisma.stockAdjustmentItem.createMany({
+        data: [
+          {
+            stockAdjustmentId: stockAdjustment.id,
+            productId,
+            warehouseId: fromWarehouseId,
+            previousQuantity: sourceInventory.quantity,
+            newQuantity: sourceInventory.quantity - quantity,
+            difference: -quantity,
+          },
+          {
+            stockAdjustmentId: stockAdjustment.id,
+            productId,
+            warehouseId: toWarehouseId,
+            previousQuantity: 0, // We'll update this if destination inventory exists
+            newQuantity: quantity,
+            difference: quantity,
+          },
+        ],
+      });
+
+      return stockAdjustment;
+    });
+  }
+
+  // === STOCK ADJUSTMENTS ===
+  async createStockAdjustment(
+    companyId: string,
+    userId: string,
+    dto: CreateStockAdjustmentDto,
+  ) {
+    const referenceNumber = `ADJ-${Date.now()}`;
+
+    return this.prisma.$transaction(async (prisma) => {
+      let totalItems = 0;
+      let netChange = 0;
+
+      // Validate all products and warehouses first
+      for (const item of dto.adjustmentItems) {
+        const product = await prisma.product.findFirst({
+          where: { id: item.productId, companyId },
+        });
+
+        if (!product) {
+          throw new NotFoundException(`Product ${item.productId} not found`);
+        }
+
+        const warehouse = await prisma.warehouse.findFirst({
+          where: { id: item.warehouseId, companyId },
+        });
+
+        if (!warehouse) {
+          throw new NotFoundException(
+            `Warehouse ${item.warehouseId} not found`,
+          );
+        }
+      }
+
+      // Create stock adjustment record
+      const stockAdjustment = await prisma.stockAdjustment.create({
+        data: {
+          referenceNumber,
+          adjustmentDate: new Date(),
+          notes: dto.notes,
+          totalItems: dto.adjustmentItems.length,
+          netChange: 0, // Will be updated after processing items
+          companyId,
+          userId,
+        },
+      });
+
+      // Process each adjustment item
+      for (const item of dto.adjustmentItems) {
+        const currentInventory = await prisma.inventory.findUnique({
+          where: {
+            productId_warehouseId: {
+              productId: item.productId,
+              warehouseId: item.warehouseId,
+            },
+          },
+        });
+
+        const previousQuantity = currentInventory?.quantity || 0;
+        const difference = item.newQuantity - previousQuantity;
+        netChange += difference;
+
+        // Update or create inventory
+        await prisma.inventory.upsert({
+          where: {
+            productId_warehouseId: {
+              productId: item.productId,
+              warehouseId: item.warehouseId,
+            },
+          },
+          update: {
+            quantity: item.newQuantity,
+          },
+          create: {
+            productId: item.productId,
+            warehouseId: item.warehouseId,
+            quantity: item.newQuantity,
+          },
+        });
+
+        // Create adjustment item record
+        await prisma.stockAdjustmentItem.create({
+          data: {
+            stockAdjustmentId: stockAdjustment.id,
+            productId: item.productId,
+            warehouseId: item.warehouseId,
+            previousQuantity,
+            newQuantity: item.newQuantity,
+            difference,
+          },
+        });
+      }
+
+      // Update stock adjustment with final totals
+      await prisma.stockAdjustment.update({
+        where: { id: stockAdjustment.id },
+        data: { netChange },
+      });
+
+      return stockAdjustment;
+    });
+  }
+
+  async getStockAdjustments(companyId: string, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+
+    const [adjustments, total] = await Promise.all([
+      this.prisma.stockAdjustment.findMany({
+        where: { companyId },
+        include: {
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+          items: {
+            include: {
+              product: {
+                select: {
+                  name: true,
+                  sku: true,
+                },
+              },
+              warehouse: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+        skip,
+        take: limit,
+        orderBy: { adjustmentDate: 'desc' },
+      }),
+      this.prisma.stockAdjustment.count({ where: { companyId } }),
+    ]);
+
+    return {
+      adjustments,
+      total,
+      pages: Math.ceil(total / limit),
+    };
+  }
+
+  // === INVENTORY STATISTICS ===
+  async getInventoryStats(companyId: string): Promise<InventoryStatsDto> {
+    const [totalProducts, totalWarehouses, allInventory, recentAdjustments] =
+      await Promise.all([
+        this.prisma.product.count({ where: { companyId } }),
+        this.prisma.warehouse.count({ where: { companyId } }),
+        this.prisma.inventory.findMany({
+          where: {
+            product: {
+              companyId,
+            },
+          },
+          include: {
+            product: true,
+          },
+        }),
+        this.prisma.stockAdjustment.count({
+          where: {
+            companyId,
+            adjustmentDate: {
+              gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
+            },
+          },
+        }),
+      ]);
+
+    let lowStockProducts = 0;
+    let outOfStockProducts = 0;
+    let totalStockValue = 0;
+
+    allInventory.forEach((item) => {
+      const stockValue = item.quantity * Number(item.product.costPrice);
+      totalStockValue += stockValue;
+
+      if (item.quantity === 0) {
+        outOfStockProducts++;
+      } else if (
+        item.product.reorderLevel > 0 &&
+        item.quantity <= item.product.reorderLevel
+      ) {
+        lowStockProducts++;
+      }
+    });
+
+    return {
+      totalProducts,
+      totalWarehouses,
+      lowStockProducts,
+      outOfStockProducts,
+      totalStockValue,
+      recentAdjustments,
+    };
+  }
+
+  private getStockStatus(
+    quantity: number,
+    reorderLevel: number,
+  ): 'in_stock' | 'low_stock' | 'out_of_stock' {
+    if (quantity === 0) return 'out_of_stock';
+    if (reorderLevel > 0 && quantity <= reorderLevel) return 'low_stock';
+    return 'in_stock';
+  }
+}
