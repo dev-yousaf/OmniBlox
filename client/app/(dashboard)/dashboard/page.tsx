@@ -60,15 +60,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-        <p className="font-semibold text-gray-900">{`Month: ${label}`}</p>
-        <p className="text-blue-600">
+      <div className="bg-card p-3 border border-border rounded-lg shadow-lg">
+        <p className="font-semibold text-card-foreground">{`Month: ${label}`}</p>
+        <p className="text-primary">
           {`Sales: $${Number(data.sales).toLocaleString("en-US", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           })}`}
         </p>
-        <p className="text-orange-600">
+        <p className="text-accent">
           {`Purchases: $${Number(data.purchases).toLocaleString("en-US", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
@@ -330,15 +330,15 @@ export default function DashboardPage() {
       {/* Analytics Charts */}
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         {/* Monthly Sales Chart */}
-        <Card className="border border-gray-200">
-          <CardHeader className="border-b border-gray-200">
+        <Card className="border border-border">
+          <CardHeader className="border-b border-border">
             <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-gray-600" />
-              <CardTitle className="text-gray-900">
+              <BarChart3 className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-card-foreground">
                 Monthly Sales Trend
               </CardTitle>
             </div>
-            <CardDescription className="text-gray-600">
+            <CardDescription className="text-muted-foreground">
               Revenue, purchases, and profit over time
             </CardDescription>
           </CardHeader>
@@ -351,13 +351,13 @@ export default function DashboardPage() {
             ) : (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={monthlySalesData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
+                  <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                  <XAxis dataKey="month" axisLine={{ stroke: 'var(--color-border)' }} tick={{ fill: 'var(--color-muted-foreground)' }} />
+                  <YAxis axisLine={{ stroke: 'var(--color-border)' }} tick={{ fill: 'var(--color-muted-foreground)' }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend />
-                  <Bar dataKey="sales" fill="#3b82f6" name="Sales" />
-                  <Bar dataKey="purchases" fill="#f59e0b" name="Purchases" />
+                  <Bar dataKey="sales" fill="var(--color-chart-1)" name="Sales" />
+                  <Bar dataKey="purchases" fill="var(--color-chart-5)" name="Purchases" />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -365,13 +365,13 @@ export default function DashboardPage() {
         </Card>
 
         {/* Stock Overview Chart */}
-        <Card className="border border-gray-200">
-          <CardHeader className="border-b border-gray-200">
+        <Card className="border border-border">
+          <CardHeader className="border-b border-border">
             <div className="flex items-center gap-2">
-              <PieChart className="h-5 w-5 text-gray-600" />
-              <CardTitle className="text-gray-900">Stock Overview</CardTitle>
+              <PieChart className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-card-foreground">Stock Overview</CardTitle>
             </div>
-            <CardDescription className="text-gray-600">
+            <CardDescription className="text-muted-foreground">
               Stock distribution by category
             </CardDescription>
           </CardHeader>
@@ -385,20 +385,20 @@ export default function DashboardPage() {
               <>
                 <ResponsiveContainer width="100%" height={300}>
                   <RechartsPieChart>
-                    <Pie
-                      data={stockOverviewData}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {stockOverviewData.map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </RechartsPieChart>
+                      <Pie
+                        data={stockOverviewData}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        dataKey="value"
+                        stroke="var(--color-background)"
+                      >
+                        {stockOverviewData.map((entry: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </RechartsPieChart>
                 </ResponsiveContainer>
                 {/* Legend */}
                 <div className="flex flex-wrap justify-center gap-4 mt-4">
@@ -408,7 +408,7 @@ export default function DashboardPage() {
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: entry.color }}
                       />
-                      <span className="text-sm text-gray-700">
+                      <span className="text-sm text-muted-foreground">
                         {entry.name}: {entry.value}
                       </span>
                     </div>
@@ -422,13 +422,13 @@ export default function DashboardPage() {
 
       {/* Top 5 Section with Tabs */}
       <div className="mt-8">
-        <Card className="border border-gray-200">
-          <CardHeader className="border-b border-gray-200">
+        <Card className="border border-border">
+          <CardHeader className="border-b border-border">
             <div className="flex items-center gap-2">
-              <Star className="h-5 w-5 text-gray-600" />
-              <CardTitle className="text-gray-900">Top Performers</CardTitle>
+              <Star className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-card-foreground">Top Performers</CardTitle>
             </div>
-            <CardDescription className="text-gray-600">
+            <CardDescription className="text-muted-foreground">
               Best performing entities across different categories
             </CardDescription>
           </CardHeader>
@@ -446,7 +446,7 @@ export default function DashboardPage() {
                     {Array.from({ length: 5 }).map((_, i) => (
                       <div
                         key={i}
-                        className="flex items-center justify-between p-4 rounded-lg bg-gray-50 border border-gray-200"
+                        className="flex items-center justify-between p-4 rounded-lg bg-card border border-border"
                       >
                         <div className="flex items-center gap-3">
                           <Skeleton className="w-8 h-8 rounded-full" />
@@ -464,23 +464,23 @@ export default function DashboardPage() {
                     {topCustomers.map((customer, index) => (
                       <div
                         key={index}
-                        className="flex items-center justify-between p-4 rounded-lg bg-gray-50 border border-gray-200"
+                        className="flex items-center justify-between p-4 rounded-lg bg-card border border-border"
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold">
                             {index + 1}
                           </div>
                           <div>
-                            <p className="font-semibold text-gray-800">
+                            <p className="font-semibold text-card-foreground">
                               {customer.name}
                             </p>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-muted-foreground">
                               {customer.orders} orders
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-gray-900">
+                          <p className="font-bold text-card-foreground">
                             {customer.purchases}
                           </p>
                         </div>
@@ -496,7 +496,7 @@ export default function DashboardPage() {
                     {Array.from({ length: 5 }).map((_, i) => (
                       <div
                         key={i}
-                        className="flex items-center justify-between p-4 rounded-lg bg-gray-50 border border-gray-200"
+                        className="flex items-center justify-between p-4 rounded-lg bg-card border border-border"
                       >
                         <div className="flex items-center gap-3">
                           <Skeleton className="w-8 h-8 rounded-full" />
@@ -514,23 +514,23 @@ export default function DashboardPage() {
                     {topSuppliers.map((supplier, index) => (
                       <div
                         key={index}
-                        className="flex items-center justify-between p-4 rounded-lg bg-gray-50 border border-gray-200"
+                        className="flex items-center justify-between p-4 rounded-lg bg-card border border-border"
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold">
                             {index + 1}
                           </div>
                           <div>
-                            <p className="font-semibold text-gray-800">
+                            <p className="font-semibold text-card-foreground">
                               {supplier.name}
                             </p>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-muted-foreground">
                               {supplier.orders} orders
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-gray-900">
+                          <p className="font-bold text-card-foreground">
                             {supplier.supplies}
                           </p>
                         </div>
@@ -546,7 +546,7 @@ export default function DashboardPage() {
                     {Array.from({ length: 5 }).map((_, i) => (
                       <div
                         key={i}
-                        className="flex items-center justify-between p-4 rounded-lg bg-gray-50 border border-gray-200"
+                        className="flex items-center justify-between p-4 rounded-lg bg-card border border-border"
                       >
                         <div className="flex items-center gap-3">
                           <Skeleton className="w-8 h-8 rounded-full" />
@@ -567,7 +567,7 @@ export default function DashboardPage() {
                     {bestSellers.map((product: any) => (
                       <div
                         key={product.rank}
-                        className="flex items-center justify-between p-4 rounded-lg bg-gray-50 border border-gray-200"
+                        className="flex items-center justify-between p-4 rounded-lg bg-card border border-border"
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold">
@@ -576,7 +576,7 @@ export default function DashboardPage() {
                           <div>
                             <TooltipUI>
                               <TooltipTrigger asChild>
-                                <p className="font-semibold text-gray-800 truncate w-48">
+                                <p className="font-semibold text-card-foreground truncate w-48">
                                   {product.product}
                                 </p>
                               </TooltipTrigger>
@@ -586,16 +586,16 @@ export default function DashboardPage() {
                                 </span>
                               </TooltipContent>
                             </TooltipUI>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-muted-foreground">
                               {product.sku} • {product.sales} sold
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-gray-900">
+                          <p className="font-bold text-card-foreground">
                             {product.revenue}
                           </p>
-                          <p className="text-xs text-gray-600">
+                          <p className="text-xs text-muted-foreground">
                             {product.growth}
                           </p>
                         </div>
@@ -611,47 +611,47 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <div className="mt-8">
-        <Card className="border border-gray-200">
-          <CardHeader className="border-b border-gray-200">
-            <CardTitle className="text-gray-900">Quick Actions</CardTitle>
-            <CardDescription className="text-gray-600">
+        <Card className="border border-border">
+          <CardHeader className="border-b border-border">
+            <CardTitle className="text-card-foreground">Quick Actions</CardTitle>
+            <CardDescription className="text-muted-foreground">
               Common tasks and shortcuts
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Link href="/products/new">
-                <button className="p-4 text-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors w-full">
-                  <Package className="h-8 w-8 mx-auto mb-2 text-gray-600" />
-                  <div className="font-semibold text-gray-900">Add Product</div>
-                  <div className="text-xs text-gray-600">New inventory</div>
+                <button className="p-4 text-center rounded-lg border border-border bg-card transition-colors w-full">
+                  <Package className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                  <div className="font-semibold text-card-foreground">Add Product</div>
+                  <div className="text-xs text-muted-foreground">New inventory</div>
                 </button>
               </Link>
               <Link href="/sales/new">
-                <button className="p-4 text-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors w-full">
-                  <FileText className="h-8 w-8 mx-auto mb-2 text-gray-600" />
-                  <div className="font-semibold text-gray-900">
+                <button className="p-4 text-center rounded-lg border border-border bg-card transition-colors w-full">
+                  <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                  <div className="font-semibold text-card-foreground">
                     Create Invoice
                   </div>
-                  <div className="text-xs text-gray-600">New sale</div>
+                  <div className="text-xs text-muted-foreground">New sale</div>
                 </button>
               </Link>
               <Link href="/people/customers/new">
-                <button className="p-4 text-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors w-full">
-                  <Users className="h-8 w-8 mx-auto mb-2 text-gray-600" />
-                  <div className="font-semibold text-gray-900">
+                <button className="p-4 text-center rounded-lg border border-border bg-card transition-colors w-full">
+                  <Users className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                  <div className="font-semibold text-card-foreground">
                     Add Customer
                   </div>
-                  <div className="text-xs text-gray-600">New client</div>
+                  <div className="text-xs text-muted-foreground">New client</div>
                 </button>
               </Link>
               <Link href="/reports">
-                <button className="p-4 text-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors w-full">
-                  <BarChart3 className="h-8 w-8 mx-auto mb-2 text-gray-600" />
-                  <div className="font-semibold text-gray-900">
+                <button className="p-4 text-center rounded-lg border border-border bg-card transition-colors w-full">
+                  <BarChart3 className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                  <div className="font-semibold text-card-foreground">
                     View Reports
                   </div>
-                  <div className="text-xs text-gray-600">Analytics</div>
+                  <div className="text-xs text-muted-foreground">Analytics</div>
                 </button>
               </Link>
             </div>
