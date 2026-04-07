@@ -1,12 +1,24 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { GeistSans } from "geist/font/sans";
-import { GeistMono } from "geist/font/mono";
+import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { Suspense } from "react";
 import { AuthProvider } from "@/contexts";
 import { ThemeProvider } from "@/lib/theme-provider";
+import { GlobalRouteProgressBar } from "@/components/ui/global-route-progress-bar";
+
+const geistSans = Geist({
+  subsets: ["latin"],
+  variable: "--font-geist-sans",
+  display: "swap",
+});
+
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "OmniBlox 2.0",
@@ -20,10 +32,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}
-      >
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${geistSans.variable} ${geistMono.variable}`}
+    >
+      <body className="font-sans antialiased">
+        <GlobalRouteProgressBar />
         <Suspense fallback={null}>
           <ThemeProvider>
             <AuthProvider>{children}</AuthProvider>
