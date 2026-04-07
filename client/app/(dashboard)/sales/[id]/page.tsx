@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   ArrowLeft,
   Edit,
@@ -68,14 +69,7 @@ export default function SaleDetailPage() {
   }
 
   if (loading) {
-    return (
-      <div className="p-6">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Loading sale...</span>
-        </div>
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   if (!sale) {
@@ -351,3 +345,6 @@ export default function SaleDetailPage() {
     </div>
   );
 }
+
+
+

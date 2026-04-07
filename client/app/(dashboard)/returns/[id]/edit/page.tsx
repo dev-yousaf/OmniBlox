@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -261,11 +262,7 @@ export default function EditReturnPage() {
   };
 
   if (loading) {
-    return (
-      <div className="p-6 flex items-center justify-center min-h-[40vh]">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   if (error || !data) {
@@ -498,3 +495,6 @@ export default function EditReturnPage() {
     </div>
   );
 }
+
+
+

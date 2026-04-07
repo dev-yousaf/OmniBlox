@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   Card,
   CardContent,
@@ -143,11 +144,7 @@ export default function WarehousesPage() {
   );
 
   if (loading) {
-    return (
-      <div className="p-6">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   return (
@@ -348,3 +345,7 @@ export default function WarehousesPage() {
     </div>
   );
 }
+
+
+
+

@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -47,16 +48,7 @@ export default function ExpenseCategoryDetailPage() {
   };
 
   if (loading) {
-    return (
-      <div className="space-y-6 p-6">
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading category details...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   if (!category) {
@@ -126,3 +118,6 @@ export default function ExpenseCategoryDetailPage() {
     </div>
   );
 }
+
+
+

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   useExpensesApi,
   type CreateExpenseDto,
@@ -130,13 +131,7 @@ export default function NewExpensePage() {
   };
 
   if (loading) {
-    return (
-      <div className="container mx-auto py-6">
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   return (
@@ -286,3 +281,7 @@ export default function NewExpensePage() {
     </div>
   );
 }
+
+
+
+

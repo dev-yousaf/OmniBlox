@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -94,11 +95,7 @@ export default function ReturnsPage() {
   const supplierReturns = returns.filter((r) => r.type === "supplier").length;
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   if (error) {
@@ -302,3 +299,7 @@ export default function ReturnsPage() {
     </div>
   );
 }
+
+
+
+

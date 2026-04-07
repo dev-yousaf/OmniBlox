@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { TableLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { ArrowLeft, Printer, Download } from "lucide-react";
 import Link from "next/link";
 import { useProductApi } from "@/hooks/use-product-api";
@@ -88,9 +89,7 @@ export default function BarcodesPage() {
           <CardContent>
             <div className="space-y-4">
               {loading && (
-                <div className="text-sm text-muted-foreground">
-                  Loading products...
-                </div>
+                <TableLoadingSkeleton rows={6} />
               )}
               {!loading && error && (
                 <div className="text-sm text-destructive">{error}</div>

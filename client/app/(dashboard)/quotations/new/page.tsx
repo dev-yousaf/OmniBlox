@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -204,11 +205,7 @@ export default function NewQuotationPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   return (
@@ -517,3 +514,7 @@ export default function NewQuotationPage() {
     </div>
   );
 }
+
+
+
+

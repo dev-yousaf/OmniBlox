@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { ProductForm } from "@/components/products/product-form";
 import { useProductApi } from "@/hooks/use-product-api";
 import { useToast } from "@/hooks/use-toast";
@@ -15,7 +16,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { use } from "react";
 
 export default function EditProductPage({
   params,
@@ -56,11 +56,7 @@ export default function EditProductPage({
   };
 
   if (loading) {
-    return (
-      <div className="p-6 space-y-6">
-        <div className="text-center py-8">Loading product...</div>
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   if (!productData) {
@@ -125,3 +121,6 @@ export default function EditProductPage({
     </div>
   );
 }
+
+
+

@@ -43,6 +43,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { TableLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { Plus, Edit, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -199,9 +200,7 @@ export default function ExpenseCategoriesPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
+            <TableLoadingSkeleton rows={6} />
           ) : categories.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No expense categories found. Create one to get started.

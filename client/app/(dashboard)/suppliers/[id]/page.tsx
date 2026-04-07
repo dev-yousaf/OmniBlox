@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   ArrowLeft,
   Edit,
@@ -82,16 +83,7 @@ export default function SupplierDetailPage() {
   };
 
   if (loading) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading supplier details...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   if (!supplier) {
@@ -375,3 +367,6 @@ export default function SupplierDetailPage() {
     </div>
   );
 }
+
+
+

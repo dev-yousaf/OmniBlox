@@ -4,6 +4,7 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -344,14 +345,7 @@ export default function EditSalePage() {
   }
 
   if (loading) {
-    return (
-      <div className="p-6">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Loading sale...</span>
-        </div>
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   if (!sale) {
@@ -801,3 +795,6 @@ export default function EditSalePage() {
     </div>
   );
 }
+
+
+

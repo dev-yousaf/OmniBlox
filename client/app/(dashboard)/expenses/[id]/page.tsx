@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   useExpensesApi,
   type Expense,
@@ -169,14 +170,7 @@ export default function EditExpensePage() {
   };
 
   if (loading || !expense) {
-    return (
-      // Use a centered max-width wrapper without Tailwind `container` padding
-      <div className="w-full max-w-7xl mx-auto">
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   const formatCurrency = (amount: number) => {
@@ -447,3 +441,6 @@ export default function EditExpensePage() {
     </div>
   );
 }
+
+
+

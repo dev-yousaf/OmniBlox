@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   Card,
   CardContent,
@@ -28,7 +29,6 @@ import { useProductApi } from "@/hooks/use-product-api";
 import { useInventoryApi, type InventoryItem } from "@/hooks/use-inventory-api";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@/lib/types";
-import { use } from "react";
 
 export default function ProductDetailPage({
   params,
@@ -96,11 +96,7 @@ export default function ProductDetailPage({
   };
 
   if (loading) {
-    return (
-      <div className="p-6 space-y-6">
-        <div className="text-center py-8">Loading product details...</div>
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   if (!product) {
@@ -386,3 +382,6 @@ export default function ProductDetailPage({
     </div>
   );
 }
+
+
+

@@ -19,6 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TableBodyLoadingRows } from "@/components/ui/page-loading-skeleton";
 import {
   AlertCircle,
   Package,
@@ -182,16 +183,7 @@ export function InventoryOverview() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {loading && (
-                      <TableRow>
-                        <TableCell
-                          colSpan={7}
-                          className="text-center text-sm text-muted-foreground"
-                        >
-                          Loading inventory...
-                        </TableCell>
-                      </TableRow>
-                    )}
+                    {loading && <TableBodyLoadingRows columns={7} rows={6} />}
                     {!loading && error && (
                       <TableRow>
                         <TableCell
@@ -319,16 +311,7 @@ export function InventoryOverview() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {loading && (
-                      <TableRow>
-                        <TableCell
-                          colSpan={6}
-                          className="text-center text-sm text-muted-foreground"
-                        >
-                          Loading adjustments...
-                        </TableCell>
-                      </TableRow>
-                    )}
+                    {loading && <TableBodyLoadingRows columns={6} rows={5} />}
                     {!loading && adjustments.length === 0 && (
                       <TableRow>
                         <TableCell

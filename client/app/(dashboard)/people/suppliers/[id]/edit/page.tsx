@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -90,11 +91,7 @@ export default function EditSupplierPage() {
   };
 
   if (loading || !supplier) {
-    return (
-      <div className="p-6">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   return (
@@ -198,3 +195,6 @@ export default function EditSupplierPage() {
     </div>
   );
 }
+
+
+

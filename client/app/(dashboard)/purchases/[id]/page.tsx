@@ -1,7 +1,9 @@
 "use client";
 
+import type React from "react";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { usePurchasesApi, type PurchaseOrder } from "@/hooks/use-purchases-api";
 import {
   Card,
@@ -100,11 +102,7 @@ export default function PurchaseDetailPage() {
   };
 
   if (loading) {
-    return (
-      <div className="p-6">
-        <div className="text-sm text-muted-foreground">Loading...</div>
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   if (error || !purchase) {
@@ -323,3 +321,6 @@ export default function PurchaseDetailPage() {
     </div>
   );
 }
+
+
+

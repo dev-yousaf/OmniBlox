@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   Card,
   CardContent,
@@ -146,13 +147,7 @@ export default function ProductsPage() {
   );
 
   if (loading) {
-    return (
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   return (
@@ -383,3 +378,7 @@ export default function ProductsPage() {
     </div>
   );
 }
+
+
+
+

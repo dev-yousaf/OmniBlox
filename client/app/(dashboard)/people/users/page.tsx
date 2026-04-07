@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { TableLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   Plus,
   Search,
@@ -183,9 +184,7 @@ export default function UsersPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-muted-foreground">Loading users...</div>
-            </div>
+            <TableLoadingSkeleton rows={6} />
           ) : filteredUsers.length === 0 ? (
             <div className="flex items-center justify-center py-8">
               <div className="text-muted-foreground">

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -132,14 +133,7 @@ export default function EditDeliveryPage() {
   }
 
   if (loading) {
-    return (
-      <div className="p-6">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Loading delivery...</span>
-        </div>
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   if (!delivery) {
@@ -309,3 +303,6 @@ export default function EditDeliveryPage() {
     </div>
   );
 }
+
+
+

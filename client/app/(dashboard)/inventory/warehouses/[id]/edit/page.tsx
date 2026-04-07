@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -84,16 +85,7 @@ export default function WarehouseEditPage() {
   }
 
   if (loading) {
-    return (
-      <div className="space-y-6 p-6">
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading warehouse...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   return (
@@ -160,3 +152,6 @@ export default function WarehouseEditPage() {
     </div>
   );
 }
+
+
+

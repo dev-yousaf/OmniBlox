@@ -43,6 +43,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { TableLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { useProductApi } from "@/hooks/use-product-api";
 import type { Product } from "@/lib/types";
 
@@ -462,9 +463,7 @@ export function ReportsDashboard() {
             <CardContent>
               <div className="space-y-4">
                 {loading && (
-                  <div className="text-sm text-muted-foreground">
-                    Loading products...
-                  </div>
+                  <TableLoadingSkeleton rows={4} />
                 )}
                 {!loading && error && (
                   <div className="text-sm text-destructive">{error}</div>
@@ -568,9 +567,7 @@ export function ReportsDashboard() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {loading && (
-                  <div className="text-sm text-muted-foreground">
-                    Loading products...
-                  </div>
+                  <TableLoadingSkeleton rows={5} />
                 )}
                 {!loading &&
                   !error &&

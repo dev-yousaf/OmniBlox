@@ -8,6 +8,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { AppSidebar } from "./app-sidebar";
 import { AppHeader } from "./app-header";
 import { CommandMenuProvider } from "./command-menu-provider";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -29,8 +30,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="min-h-screen bg-background px-6 py-6">
+        <PageLoadingSkeleton />
       </div>
     );
   }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Edit, Loader2, Package, Trash2, Truck } from "lucide-react";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -122,14 +123,7 @@ export default function DeliveryDetailPage() {
   }
 
   if (loading) {
-    return (
-      <div className="p-6">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Loading delivery...</span>
-        </div>
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   if (error || !delivery) {
@@ -408,3 +402,6 @@ export default function DeliveryDetailPage() {
     </div>
   );
 }
+
+
+
