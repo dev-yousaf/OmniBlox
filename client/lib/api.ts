@@ -45,7 +45,7 @@ class ApiClient {
       // Use Next.js rewrite to proxy to the API during development
       this.baseUrl = `${window.location.origin}/api`;
     } else {
-      this.baseUrl = "http://localhost:5000";
+      this.baseUrl = "http://localhost:5005";
     }
   }
 
