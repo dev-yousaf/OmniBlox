@@ -12,6 +12,11 @@ import { OverallInfo } from "@/components/dashboard/overall-info";
 import { TopSellingProducts } from "@/components/dashboard/top-selling-products";
 import { LowStockProducts } from "@/components/dashboard/low-stock-products";
 import { RecentSales } from "@/components/dashboard/recent-sales";
+import { SalesStatistics } from "@/components/dashboard/sales-statistics";
+import { RecentTransactions } from "@/components/dashboard/recent-transactions";
+import { TopCustomers } from "@/components/dashboard/top-customers";
+import { TopCategories } from "@/components/dashboard/top-categories";
+import { OrderStatistics } from "@/components/dashboard/order-statistics";
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -110,6 +115,27 @@ export default function DashboardPage() {
           </div>
           <div className="col-span-4">
             <RecentSales sales={data?.recentSales ?? []} loading={loading} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-12 gap-6">
+          <div className="col-span-7">
+            <SalesStatistics />
+          </div>
+          <div className="col-span-5">
+            <RecentTransactions />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-12 gap-6">
+          <div className="col-span-4">
+            <TopCustomers />
+          </div>
+          <div className="col-span-4">
+            <TopCategories />
+          </div>
+          <div className="col-span-4">
+            <OrderStatistics />
           </div>
         </div>
 
