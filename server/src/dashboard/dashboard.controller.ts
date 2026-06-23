@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { AuthGuard } from '@thallesp/nestjs-better-auth';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -11,13 +11,12 @@ import { UserRole } from '@prisma/client';
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
-  /**
-   * GET /dashboard/stats
-   * Accessible to OBSERVER and above
-   */
-  @Get('stats')
+  @Get()
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
-  async getStats(@CompanyId() companyId: string) {
-    return this.dashboardService.getStats(companyId);
+  async getDashboard(
+    @CompanyId() companyId: string,
+    @Query('period') period?: string,
+  ) {
+    return this.dashboardService.getData(companyId, period || '1Y');
   }
 }

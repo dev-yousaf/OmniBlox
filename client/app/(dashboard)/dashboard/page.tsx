@@ -1,42 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Package,
-  FileText,
-  Warehouse,
-  TrendingUp,
-  BarChart3,
-  PieChart,
-  Users,
-  ShoppingCart,
-  Star,
-} from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+
 import {
   BarChart,
   Bar,
-  LineChart,
-  Line,
   PieChart as RechartsPieChart,
   Pie,
   Cell,
@@ -44,619 +19,799 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
-import { Skeleton } from "@/components/ui/skeleton";
+
 import {
-  Tooltip as TooltipUI,
-  TooltipTrigger,
-  TooltipContent,
-} from "@/components/ui/tooltip";
+  DollarSign,
+  ArrowDownUp,
+  ShoppingBag,
+  RefreshCcw,
+  TrendingUp,
+  FileText,
+  Receipt,
+  Banknote,
+  BarChart3,
+  Info,
+  X,
+  Truck,
+  Users,
+  ClipboardList,
+  Box,
+  AlertTriangle,
+  CalendarDays,
+  ChevronDown,
+  CircleDot,
+} from "lucide-react";
 
-const palette = ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ef4444"];
+interface TopSellingProduct {
+  productId: string;
+  name: string;
+  imageUrl: string;
+  salePrice: number;
+  salesCount: number;
+  totalRevenue: number;
+}
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    return (
-      <div className="bg-card p-3 border border-border rounded-lg shadow-lg">
-        <p className="font-semibold text-card-foreground">{`Month: ${label}`}</p>
-        <p className="text-primary">
-          {`Sales: $${Number(data.sales).toLocaleString("en-US", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}`}
-        </p>
-        <p className="text-accent">
-          {`Purchases: $${Number(data.purchases).toLocaleString("en-US", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}`}
-        </p>
-        <p
-          className={`font-semibold ${
-            data.profit >= 0 ? "text-green-600" : "text-red-600"
-          }`}
-        >
-          {`Profit: $${Number(data.profit).toLocaleString("en-US", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}`}
-        </p>
-      </div>
-    );
-  }
-  return null;
+interface LowStockProduct {
+  productId: string;
+  name: string;
+  sku: string;
+  imageUrl: string;
+  stockQuantity: number;
+  alertQuantity: number;
+}
+
+interface SalesPurchaseChartItem {
+  month: string;
+  purchase: number;
+  sales: number;
+}
+
+interface DashboardData {
+  totalSales: number;
+  salesChange: number;
+  totalSalesReturn: number;
+  salesReturnChange: number;
+  totalPurchase: number;
+  purchaseChange: number;
+  totalPurchaseReturn: number;
+  purchaseReturnChange: number;
+  profit: number;
+  profitLabel: string;
+  profitChange: number;
+  invoiceDue: number;
+  invoiceDueLabel: string;
+  invoiceDueChange: number;
+  totalExpenses: number;
+  expensesLabel: string;
+  expensesChange: number;
+  totalPaymentReturns: number;
+  paymentReturnsLabel: string;
+  paymentReturnsChange: number;
+  salesPurchaseChart: SalesPurchaseChartItem[];
+  totalSalesAmount: number;
+  totalPurchaseAmount: number;
+  suppliersCount: number;
+  customersCount: number;
+  ordersCount: number;
+  firstTimeCustomers: number;
+  firstTimeCustomersPercent: number;
+  returnCustomers: number;
+  returnCustomersPercent: number;
+  topSellingProducts: TopSellingProduct[];
+  lowStockProducts: LowStockProduct[];
+}
+
+interface UserProfile {
+  _id: string;
+  name: string;
+  email: string;
+  company?: { name: string };
+}
+
+const formatCurrency = (value: number) =>
+  `$${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const formatCompactCurrency = (value: number) => {
+  if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`;
+  return `$${value.toFixed(0)}`;
 };
 
+const PERIODS = ["1D", "1W", "1M", "3M", "6M", "1Y"];
+
+interface SummaryCard {
+  title: string;
+  amount: number;
+  change: number;
+  icon: typeof DollarSign;
+  iconBg: string;
+  iconColor: string;
+}
+
+interface FinancialCard {
+  title: string;
+  amount: number;
+  change: number;
+  label: string;
+  icon: typeof TrendingUp;
+}
+
 export default function DashboardPage() {
-  const [dashboard, setDashboard] = useState<any | null>(null);
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    let mounted = true;
+  const [period, setPeriod] = useState("1Y");
+  const [notificationVisible, setNotificationVisible] = useState(true);
+
+  const fetchData = useCallback(async () => {
     setLoading(true);
-    api
-      .get("/dashboard/stats")
-      .then((d) => {
-        if (mounted) setDashboard(d);
-      })
-      .catch((err) => {
-        // Keep static fallbacks on error; log for debugging
-        console.warn("Failed to load dashboard stats:", err);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    try {
+      const [dashboardRes, userRes] = await Promise.all([
+        api.get<DashboardData>(`/dashboard?period=${period}`),
+        api.get<UserProfile>("/auth/me"),
+      ]);
+      setData(dashboardRes);
+      setUser(userRes);
+    } catch (err) {
+      console.warn("Failed to load dashboard data:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [period]);
 
-  // Sales data for monthly chart (use API monthlySeries when available,
-  // fall back to static sample data). Normalize the API shape to the
-  // chart fields (sales/purchases/profit) so the chart works either way.
-  const rawMonthlySeries = dashboard?.sales?.monthlySeries ?? [];
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-  // If purchases are produced separately by the backend (dashboard.purchases.monthlySeries),
-  // build a quick lookup keyed by month so we can populate the purchases column in the
-  // combined monthly chart.
-  const purchasesSeries = dashboard?.purchases?.monthlySeries ?? null;
-  const purchasesLookup: Record<string, number> = purchasesSeries
-    ? purchasesSeries.reduce((acc: Record<string, number>, item: any) => {
-        const m = item.month || item.label || "";
-        acc[m] = Number(
-          item.total ?? item.purchases ?? item.amount ?? item.value ?? 0
-        );
-        return acc;
-      }, {})
-    : {};
-
-  const monthlySalesData = rawMonthlySeries.map((e: any) => {
-    // Server monthlySeries may use different keys (e.g. { month, invoices, revenue })
-    const month = e.month || e.label || "";
-    const sales = Number(e.revenue ?? e.sales ?? e.invoices ?? 0);
-    // prefer purchases on the sales series, otherwise consult purchasesLookup
-    const purchases = Number(e.purchases ?? purchasesLookup[month] ?? 0);
-    const profit = Number(e.profit ?? sales - purchases);
-    return { month, sales, purchases, profit };
-  });
-
-  // Stock overview data for pie chart (from API)
-  const stockOverviewData =
-    dashboard?.products?.stockOverviewByCategory?.map((c: any, i: number) => ({
-      name: c.categoryName || c.name || "Uncategorized",
-      value: c.totalQuantity || c.quantity || c.value || 0,
-      color: palette[i % palette.length],
-    })) ?? [];
-
-  // Best sellers mapped from API or fallback
-  const num = (v: any) => {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : 0;
-  };
-  const formatCurrency = (v: any) => {
-    const n = Number(v);
-    if (!Number.isFinite(n)) return String(v ?? "$0");
-    return `$${n.toLocaleString()}`;
-  };
-
-  const bestSellers =
-    dashboard?.products?.bestSellers?.map((b: any, idx: number) => ({
-      rank: idx + 1,
-      product: b.name ?? b.productName ?? b.productId,
-      sku: b.sku ?? b.product?.sku ?? "",
-      // accept multiple possible fields from API
-      sales: num(
-        b.quantitySold ??
-          b.sold ??
-          b.totalSold ??
-          b.qty ??
-          b.quantity ??
-          b.sales
-      ),
-      revenue: formatCurrency(
-        b.revenue ?? b.totalRevenue ?? b.total ?? b.amount
-      ),
-      growth: b.growth ?? b.change ?? "",
-    })) ?? [];
-
-  // Top customers, suppliers, etc.
-  interface TopCustomer {
-    name: string;
-    purchases: string;
-    orders: number;
-  }
-
-  const topCustomers: TopCustomer[] =
-    dashboard?.sales?.topCustomers?.map((c: any) => ({
-      name: c.name || c.customerName || "Unknown",
-      purchases: formatCurrency(
-        c.total ?? c.totalAmount ?? c.totalSpent ?? c.amount ?? c.revenue
-      ),
-      orders: num(
-        c.count ?? c.orders ?? c.orderCount ?? c.ordersCount ?? c.numOrders
-      ),
-    })) ?? [];
-  interface TopSupplier {
-    name: string;
-    supplies: string;
-    orders: number;
-  }
-
-  const topSuppliers: TopSupplier[] =
-    dashboard?.purchases?.topSuppliers?.map((s: any) => ({
-      name: s.name || "Unknown",
-      supplies: formatCurrency(
-        s.total ?? s.totalAmount ?? s.totalSupplied ?? s.amount
-      ),
-      orders: num(s.count ?? s.orders ?? s.orderCount ?? s.numOrders),
-    })) ?? [];
-  // helper to format percent change and select color
-  const formatChange = (
-    prev: number | null | undefined,
-    curr: number | null | undefined
-  ) => {
-    if (prev == null || curr == null)
-      return { text: "—", className: "text-gray-600" };
-    if (prev === 0) return { text: "—", className: "text-gray-600" };
-    const diff = curr - prev;
-    const pct = (diff / prev) * 100;
-    const rounded = Math.abs(Number(pct.toFixed(1)));
-    const sign = pct >= 0 ? "+" : "-";
-    const className = pct >= 0 ? "text-green-600" : "text-red-600";
-    return { text: `${sign}${rounded}%`, className };
-  };
-
-  const invoicesThisMonth = Number(
-    dashboard?.sales?.invoicesThisMonth ?? monthlySalesData.at(-1)?.sales ?? 0
-  );
-  const prevInvoices = dashboard?.sales?.previousMonth?.invoices ?? null;
-  const invoicesChange = formatChange(prevInvoices, invoicesThisMonth);
-
-  const totalRevenue = Number(
-    dashboard?.sales?.totalRevenue ?? monthlySalesData.at(-1)?.sales ?? 0
-  );
-  const prevRevenue = dashboard?.sales?.previousMonth?.revenue ?? null;
-  const revenueChange = formatChange(prevRevenue, totalRevenue);
-
-  const totalProducts = Number(dashboard?.products?.totalProducts ?? 0);
-  const prevProducts =
-    dashboard?.products?.previousMonth?.totalProducts ?? null;
-  const productsChange = formatChange(prevProducts, totalProducts);
-
-  const lowStock = Number(dashboard?.products?.lowStockCount ?? 0);
-  const prevLowStock =
-    dashboard?.products?.previousMonth?.lowStockCount ?? null;
-  const lowStockChange = formatChange(prevLowStock, lowStock);
-
-  const stats = [
+  const summaryCards: SummaryCard[] = [
     {
-      title: "Total Products",
-      value: String(dashboard?.products?.totalProducts ?? 0),
-      changeText: productsChange.text,
-      changeClass: productsChange.className,
-      icon: Package,
+      title: "Total Sales",
+      amount: data?.totalSales ?? 0,
+      change: data?.salesChange ?? 0,
+      icon: DollarSign,
+      iconBg: "bg-green-100",
+      iconColor: "text-green-600",
     },
     {
-      title: "Invoices This Month",
-      value: String(dashboard?.sales?.invoicesThisMonth ?? 0),
-      changeText: invoicesChange.text,
-      changeClass: invoicesChange.className,
-      icon: FileText,
+      title: "Total Sales Return",
+      amount: data?.totalSalesReturn ?? 0,
+      change: data?.salesReturnChange ?? 0,
+      icon: ArrowDownUp,
+      iconBg: "bg-red-100",
+      iconColor: "text-red-600",
     },
     {
-      title: "Low Stock Items",
-      value: String(dashboard?.products?.lowStockCount ?? 0),
-      changeText: lowStockChange.text,
-      changeClass: lowStockChange.className,
-      icon: Warehouse,
+      title: "Total Purchase",
+      amount: data?.totalPurchase ?? 0,
+      change: data?.purchaseChange ?? 0,
+      icon: ShoppingBag,
+      iconBg: "bg-blue-100",
+      iconColor: "text-blue-600",
     },
     {
-      title: "Revenue",
-      value:
-        dashboard?.sales?.totalRevenue != null
-          ? `$${Number(dashboard.sales.totalRevenue).toLocaleString()}`
-          : "$0",
-      changeText: revenueChange.text,
-      changeClass: revenueChange.className,
-      icon: TrendingUp,
+      title: "Total Purchase Return",
+      amount: data?.totalPurchaseReturn ?? 0,
+      change: data?.purchaseReturnChange ?? 0,
+      icon: RefreshCcw,
+      iconBg: "bg-yellow-100",
+      iconColor: "text-yellow-600",
     },
   ];
 
+  const financialCards: FinancialCard[] = [
+    {
+      title: "Profit",
+      amount: data?.profit ?? 0,
+      change: data?.profitChange ?? 0,
+      label: data?.profitLabel ?? "% from last month",
+      icon: TrendingUp,
+    },
+    {
+      title: "Invoice Due",
+      amount: data?.invoiceDue ?? 0,
+      change: data?.invoiceDueChange ?? 0,
+      label: data?.invoiceDueLabel ?? "% from last month",
+      icon: FileText,
+    },
+    {
+      title: "Total Expenses",
+      amount: data?.totalExpenses ?? 0,
+      change: data?.expensesChange ?? 0,
+      label: data?.expensesLabel ?? "% from last month",
+      icon: Receipt,
+    },
+    {
+      title: "Total Payment Returns",
+      amount: data?.totalPaymentReturns ?? 0,
+      change: data?.paymentReturnsChange ?? 0,
+      label: data?.paymentReturnsLabel ?? "% from last month",
+      icon: Banknote,
+    },
+  ];
+
+  const chartData = data?.salesPurchaseChart ?? [];
+
+  const topProducts = data?.topSellingProducts ?? [];
+  const lowStockProducts = data?.lowStockProducts ?? [];
+
+  const pieData = [
+    { name: "First Time Customers", value: data?.firstTimeCustomers ?? 0, color: "#3B82F6" },
+    { name: "Return Customers", value: data?.returnCustomers ?? 0, color: "#10B981" },
+  ];
+
+  const chartTicks = [0, 10000, 20000, 30000, 40000, 50000, 60000];
+
   return (
-    <div className="space-y-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Welcome back! Here's an overview of your business.
-        </p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={stat.title}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {stat.title}
-                </CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <>
-                    <Skeleton className="h-8 w-20 mb-2" />
-                    <Skeleton className="h-4 w-16" />
-                  </>
-                ) : (
-                  <>
-                    <div className="text-2xl font-bold">{stat.value}</div>
-                    <p className="text-xs text-muted-foreground">
-                      <span className={stat.changeClass}>
-                        {stat.changeText}
-                      </span>{" "}
-                      from last month
-                    </p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Analytics Charts */}
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        {/* Monthly Sales Chart */}
-        <Card className="border border-border">
-          <CardHeader className="border-b border-border">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-muted-foreground" />
-              <CardTitle className="text-card-foreground">
-                Monthly Sales Trend
-              </CardTitle>
-            </div>
-            <CardDescription className="text-muted-foreground">
-              Revenue, purchases, and profit over time
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            {loading || monthlySalesData.length === 0 ? (
-              <div className="space-y-4">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-64 w-full" />
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={monthlySalesData}>
-                  <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                  <XAxis dataKey="month" axisLine={{ stroke: 'var(--color-border)' }} tick={{ fill: 'var(--color-muted-foreground)' }} />
-                  <YAxis axisLine={{ stroke: 'var(--color-border)' }} tick={{ fill: 'var(--color-muted-foreground)' }} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Bar dataKey="sales" fill="var(--color-chart-1)" name="Sales" />
-                  <Bar dataKey="purchases" fill="var(--color-chart-5)" name="Purchases" />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Stock Overview Chart */}
-        <Card className="border border-border">
-          <CardHeader className="border-b border-border">
-            <div className="flex items-center gap-2">
-              <PieChart className="h-5 w-5 text-muted-foreground" />
-              <CardTitle className="text-card-foreground">Stock Overview</CardTitle>
-            </div>
-            <CardDescription className="text-muted-foreground">
-              Stock distribution by category
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            {loading || stockOverviewData.length === 0 ? (
-              <div className="space-y-4">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-64 w-full rounded-full" />
+    <div className="min-h-screen bg-gray-50/50">
+      <div className="max-w-[1440px] mx-auto px-6">
+        {/* Header */}
+        <div className="pt-6 pb-0 flex items-center justify-between">
+          <div>
+            {loading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-7 w-64" />
+                <Skeleton className="h-4 w-72" />
               </div>
             ) : (
               <>
-                <ResponsiveContainer width="100%" height={300}>
-                  <RechartsPieChart>
-                      <Pie
-                        data={stockOverviewData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        dataKey="value"
-                        stroke="var(--color-background)"
-                      >
-                        {stockOverviewData.map((entry: any, index: number) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </RechartsPieChart>
-                </ResponsiveContainer>
-                {/* Legend */}
-                <div className="flex flex-wrap justify-center gap-4 mt-4">
-                  {stockOverviewData.map((entry: any, index: number) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: entry.color }}
-                      />
-                      <span className="text-sm text-muted-foreground">
-                        {entry.name}: {entry.value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Good morning, {user?.name?.split(" ")[0] ?? "User"}
+                </h1>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Here&apos;s what&apos;s happening with your store today
+                </p>
               </>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg bg-white text-sm text-gray-700">
+            <CalendarDays className="h-4 w-4 text-gray-400" />
+            <span>Jun 10 - Jun 23, 2026</span>
+          </div>
+        </div>
 
-      {/* Top 5 Section with Tabs */}
-      <div className="mt-8">
-        <Card className="border border-border">
-          <CardHeader className="border-b border-border">
-            <div className="flex items-center gap-2">
-              <Star className="h-5 w-5 text-muted-foreground" />
-              <CardTitle className="text-card-foreground">Top Performers</CardTitle>
+        {/* Notification Bar */}
+        {notificationVisible && (
+          <div className="mt-6 flex items-center justify-between bg-blue-50 border border-blue-100 rounded-full px-5 py-3">
+            <div className="flex items-center gap-3">
+              <Info className="h-4 w-4 text-blue-600 shrink-0" />
+              <p className="text-sm text-blue-800">
+                From April 1, 2025, we have updated our{" "}
+                <span className="font-semibold">Privacy Policy</span> and{" "}
+                <span className="font-semibold">Terms of Service</span>. Please
+                review the updated documents.
+              </p>
             </div>
-            <CardDescription className="text-muted-foreground">
-              Best performing entities across different categories
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            <Tabs defaultValue="customers" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="customers">Top Customers</TabsTrigger>
-                <TabsTrigger value="suppliers">Top Suppliers</TabsTrigger>
-                <TabsTrigger value="products">Best Sellers</TabsTrigger>
-              </TabsList>
+            <button
+              onClick={() => setNotificationVisible(false)}
+              className="shrink-0 ml-4 p-1 rounded-full hover:bg-blue-100 transition-colors"
+            >
+              <X className="h-4 w-4 text-blue-600" />
+            </button>
+          </div>
+        )}
 
-              <TabsContent value="customers" className="mt-6">
-                {loading || topCustomers.length === 0 ? (
-                  <div className="space-y-4">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between p-4 rounded-lg bg-card border border-border"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Skeleton className="w-8 h-8 rounded-full" />
-                          <div className="space-y-2">
-                            <Skeleton className="h-4 w-32" />
-                            <Skeleton className="h-3 w-16" />
-                          </div>
-                        </div>
-                        <Skeleton className="h-6 w-20" />
-                      </div>
-                    ))}
+        {/* Summary Cards */}
+        <div className="mt-6 grid grid-cols-4 gap-6">
+          {summaryCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <Card key={card.title} className="rounded-xl border shadow-sm">
+                <CardContent className="p-5">
+                  <div className="flex items-start gap-4">
+                    <div
+                      className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${card.iconBg}`}
+                    >
+                      <Icon className={`h-5 w-5 ${card.iconColor}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-500">{card.title}</p>
+                      {loading ? (
+                        <Skeleton className="h-7 w-24 mt-1" />
+                      ) : (
+                        <p className="text-2xl font-bold text-gray-900 mt-0.5">
+                          {formatCurrency(card.amount)}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {topCustomers.map((customer, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-4 rounded-lg bg-card border border-border"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold">
-                            {index + 1}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-card-foreground">
-                              {customer.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {customer.orders} orders
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-card-foreground">
-                            {customer.purchases}
+                  <div className="mt-3">
+                    <Badge
+                      variant="outline"
+                      className={`text-xs font-medium ${
+                        card.change >= 0
+                          ? "text-green-600 border-green-200 bg-green-50"
+                          : "text-red-600 border-red-200 bg-red-50"
+                      }`}
+                    >
+                      {card.change >= 0 ? "+" : ""}{card.change}%
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Financial Summary */}
+        <div className="mt-6 grid grid-cols-4 gap-6">
+          {financialCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <Card key={card.title} className="rounded-xl border shadow-sm">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      {loading ? (
+                        <>
+                          <Skeleton className="h-7 w-24" />
+                          <Skeleton className="h-4 w-16 mt-1" />
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-[27px] font-bold text-gray-900 leading-none">
+                            {formatCompactCurrency(card.amount)}
                           </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="suppliers" className="mt-6">
-                {loading || topSuppliers.length === 0 ? (
-                  <div className="space-y-4">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between p-4 rounded-lg bg-card border border-border"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Skeleton className="w-8 h-8 rounded-full" />
-                          <div className="space-y-2">
-                            <Skeleton className="h-4 w-32" />
-                            <Skeleton className="h-3 w-16" />
-                          </div>
-                        </div>
-                        <Skeleton className="h-6 w-20" />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {topSuppliers.map((supplier, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-4 rounded-lg bg-card border border-border"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold">
-                            {index + 1}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-card-foreground">
-                              {supplier.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {supplier.orders} orders
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-card-foreground">
-                            {supplier.supplies}
+                          <p className="text-sm text-gray-500 mt-1.5">
+                            {card.title}
                           </p>
-                        </div>
-                      </div>
-                    ))}
+                        </>
+                      )}
+                    </div>
+                    <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
+                      <Icon className="h-5 w-5 text-orange-500" />
+                    </div>
                   </div>
-                )}
-              </TabsContent>
+                  <Separator className="my-3" />
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-500">
+                      <span
+                        className={`font-medium ${
+                          card.change >= 0 ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
+                        {card.change >= 0 ? "+" : ""}{card.change}%
+                      </span>{" "}
+                      {card.label}
+                    </p>
+                    <Link
+                      href="/reports"
+                      className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                    >
+                      View All
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
 
-              <TabsContent value="products" className="mt-6">
-                {loading || bestSellers.length === 0 ? (
-                  <div className="space-y-4">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between p-4 rounded-lg bg-card border border-border"
+        {/* Sales & Purchase + Overall Info */}
+        <div className="mt-6 grid grid-cols-12 gap-6">
+          {/* Sales & Purchase Chart */}
+          <div className="col-span-8">
+            <Card className="rounded-xl border shadow-sm h-full">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-gray-500" />
+                    <h3 className="text-base font-semibold text-gray-900">
+                      Sales & Purchase
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {PERIODS.map((tab) => (
+                      <button
+                        key={tab}
+                        onClick={() => setPeriod(tab)}
+                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                          tab === period
+                            ? "bg-blue-600 text-white"
+                            : "text-gray-500 hover:bg-gray-100"
+                        }`}
                       >
-                        <div className="flex items-center gap-3">
-                          <Skeleton className="w-8 h-8 rounded-full" />
-                          <div className="space-y-2">
-                            <Skeleton className="h-4 w-32" />
-                            <Skeleton className="h-3 w-16" />
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <Skeleton className="h-6 w-20" />
-                          <Skeleton className="h-3 w-12" />
-                        </div>
-                      </div>
+                        {tab}
+                      </button>
                     ))}
                   </div>
+                </div>
+
+                {/* Legend amounts */}
+                <div className="flex items-center gap-6 mt-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <CircleDot className="h-3 w-3 text-blue-500 fill-blue-500" />
+                    <span className="text-sm text-gray-500">Total Purchase</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {loading ? (
+                        <Skeleton className="h-4 w-16 inline-block" />
+                      ) : (
+                        formatCompactCurrency(data?.totalPurchaseAmount ?? 0)
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CircleDot className="h-3 w-3 text-green-500 fill-green-500" />
+                    <span className="text-sm text-gray-500">Total Sales</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {loading ? (
+                        <Skeleton className="h-4 w-16 inline-block" />
+                      ) : (
+                        formatCompactCurrency(data?.totalSalesAmount ?? 0)
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Chart */}
+                {loading ? (
+                  <Skeleton className="h-[300px] w-full" />
                 ) : (
-                  <div className="space-y-4">
-                    {bestSellers.map((product: any) => (
-                      <div
-                        key={product.rank}
-                        className="flex items-center justify-between p-4 rounded-lg bg-card border border-border"
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={chartData} barGap={4} barCategoryGap="20%">
+                      <CartesianGrid
+                        stroke="#E5E7EB"
+                        strokeDasharray="3 3"
+                        vertical={false}
+                      />
+                      <XAxis
+                        dataKey="month"
+                        axisLine={{ stroke: "#E5E7EB" }}
+                        tickLine={false}
+                        tick={{ fill: "#9CA3AF", fontSize: 12 }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: "#9CA3AF", fontSize: 12 }}
+                        ticks={chartTicks}
+                        tickFormatter={(v: number) => formatCompactCurrency(v)}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          borderRadius: "8px",
+                          border: "1px solid #E5E7EB",
+                          boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
+                        }}
+                        formatter={(value: number, name: string) => [
+                          formatCurrency(value),
+                          name === "purchase" ? "Total Purchase" : "Total Sales",
+                        ]}
+                        labelStyle={{ fontWeight: 600, marginBottom: 4 }}
+                      />
+                      <Bar
+                        dataKey="purchase"
+                        fill="#3B82F6"
+                        radius={[4, 4, 0, 0]}
+                        name="purchase"
+                        maxBarSize={32}
+                      />
+                      <Bar
+                        dataKey="sales"
+                        fill="#22C55E"
+                        radius={[4, 4, 0, 0]}
+                        name="sales"
+                        maxBarSize={32}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Overall Information */}
+          <div className="col-span-4">
+            <Card className="rounded-xl border shadow-sm h-full">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Info className="h-5 w-5 text-gray-500" />
+                  <h3 className="text-base font-semibold text-gray-900">
+                    Overall Information
+                  </h3>
+                </div>
+
+                {/* Three stat cards */}
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  {loading ? (
+                    <>
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="text-center p-3 rounded-lg bg-gray-50">
+                          <Skeleton className="h-8 w-8 mx-auto rounded-full" />
+                          <Skeleton className="h-5 w-10 mx-auto mt-2" />
+                          <Skeleton className="h-3 w-12 mx-auto mt-1" />
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-center p-3 rounded-lg bg-gray-50">
+                        <div className="w-8 h-8 mx-auto rounded-full bg-blue-100 flex items-center justify-center">
+                          <Truck className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <p className="text-lg font-bold text-gray-900 mt-1.5">
+                          {data?.suppliersCount ?? 0}
+                        </p>
+                        <p className="text-xs text-gray-500">Suppliers</p>
+                      </div>
+                      <div className="text-center p-3 rounded-lg bg-gray-50">
+                        <div className="w-8 h-8 mx-auto rounded-full bg-green-100 flex items-center justify-center">
+                          <Users className="h-4 w-4 text-green-600" />
+                        </div>
+                        <p className="text-lg font-bold text-gray-900 mt-1.5">
+                          {data?.customersCount ?? 0}
+                        </p>
+                        <p className="text-xs text-gray-500">Customers</p>
+                      </div>
+                      <div className="text-center p-3 rounded-lg bg-gray-50">
+                        <div className="w-8 h-8 mx-auto rounded-full bg-purple-100 flex items-center justify-center">
+                          <ClipboardList className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <p className="text-lg font-bold text-gray-900 mt-1.5">
+                          {data?.ordersCount ?? 0}
+                        </p>
+                        <p className="text-xs text-gray-500">Orders</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Customer Overview */}
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-gray-900">
+                    Customer Overview
+                  </h4>
+                  <div className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 rounded-md px-2 py-1">
+                    <span>Today</span>
+                    <ChevronDown className="h-3 w-3" />
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  {loading ? (
+                    <Skeleton className="h-[100px] w-[100px] rounded-full" />
+                  ) : (
+                    <div className="shrink-0">
+                      <ResponsiveContainer width={100} height={100}>
+                        <RechartsPieChart>
+                          <Pie
+                            data={pieData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={28}
+                            outerRadius={44}
+                            dataKey="value"
+                            stroke="none"
+                          >
+                            {pieData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                        </RechartsPieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500">
+                        First Time Customers
+                      </span>
+                      {loading ? (
+                        <Skeleton className="h-4 w-16" />
+                      ) : (
+                        <span className="text-sm font-semibold text-gray-900">
+                          {data?.firstTimeCustomers ?? 0}
+                        </span>
+                      )}
+                    </div>
+                    {loading ? (
+                      <Skeleton className="h-5 w-16" />
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="text-xs font-medium text-blue-600 border-blue-200 bg-blue-50 mb-2"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-gray-800 text-white flex items-center justify-center font-bold">
-                            {product.rank}
+                        +{data?.firstTimeCustomersPercent ?? 0}% Today
+                      </Badge>
+                    )}
+
+                    <Separator />
+
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-xs text-gray-500">
+                        Return Customers
+                      </span>
+                      {loading ? (
+                        <Skeleton className="h-4 w-16" />
+                      ) : (
+                        <span className="text-sm font-semibold text-gray-900">
+                          {data?.returnCustomers ?? 0}
+                        </span>
+                      )}
+                    </div>
+                    {loading ? (
+                      <Skeleton className="h-5 w-16" />
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="text-xs font-medium text-green-600 border-green-200 bg-green-50"
+                      >
+                        +{data?.returnCustomersPercent ?? 0}% Today
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Top Selling Products + Low Stock Products */}
+        <div className="mt-6 grid grid-cols-12 gap-6">
+          {/* Top Selling Products */}
+          <div className="col-span-4">
+            <Card className="rounded-xl border shadow-sm h-full">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Box className="h-5 w-5 text-gray-500" />
+                    <h3 className="text-base font-semibold text-gray-900">
+                      Top Selling Products
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 rounded-md px-2 py-1">
+                    <span>Today</span>
+                    <ChevronDown className="h-3 w-3" />
+                  </div>
+                </div>
+
+                <div className="space-y-0">
+                  {loading
+                    ? Array.from({ length: 5 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between py-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="w-12 h-12 rounded-lg" />
+                            <div className="space-y-1.5">
+                              <Skeleton className="h-4 w-28" />
+                              <Skeleton className="h-3 w-20" />
+                            </div>
                           </div>
-                          <div>
-                            <TooltipUI>
-                              <TooltipTrigger asChild>
-                                <p className="font-semibold text-card-foreground truncate w-48">
-                                  {product.product}
+                          <Skeleton className="h-5 w-14" />
+                        </div>
+                      ))
+                    : topProducts.length > 0
+                    ? topProducts.map((product, index) => (
+                        <div key={product.productId}>
+                          <div className="flex items-center justify-between py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-blue-700 font-bold text-sm shrink-0">
+                                {product.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold text-gray-900">
+                                  {product.name}
                                 </p>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <span className="max-w-xs break-words">
-                                  {product.product}
-                                </span>
-                              </TooltipContent>
-                            </TooltipUI>
-                            <p className="text-sm text-muted-foreground">
-                              {product.sku} • {product.sales} sold
+                                <p className="text-xs text-gray-500">
+                                  {formatCurrency(product.salePrice)}
+                                  <span className="mx-1.5">&bull;</span>
+                                  {product.salesCount} Sales
+                                </p>
+                              </div>
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className="text-xs font-medium text-gray-600 border-gray-200"
+                            >
+                              #{index + 1}
+                            </Badge>
+                          </div>
+                          {index < topProducts.length - 1 && (
+                            <Separator />
+                          )}
+                        </div>
+                      ))
+                    : (
+                      <p className="text-sm text-gray-400 py-8 text-center">
+                        No products found
+                      </p>
+                    )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Low Stock Products */}
+          <div className="col-span-4">
+            <Card className="rounded-xl border shadow-sm h-full">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-gray-500" />
+                    <h3 className="text-base font-semibold text-gray-900">
+                      Low Stock Products
+                    </h3>
+                  </div>
+                  <Link
+                    href="/products"
+                    className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                  >
+                    View All
+                  </Link>
+                </div>
+
+                <div className="space-y-0">
+                  {loading
+                    ? Array.from({ length: 5 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between py-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="w-12 h-12 rounded-lg" />
+                            <div className="space-y-1.5">
+                              <Skeleton className="h-4 w-28" />
+                              <Skeleton className="h-3 w-16" />
+                            </div>
+                          </div>
+                          <div className="text-right space-y-1">
+                            <Skeleton className="h-3 w-16" />
+                            <Skeleton className="h-4 w-8 ml-auto" />
+                          </div>
+                        </div>
+                      ))
+                    : lowStockProducts.length > 0
+                    ? lowStockProducts.map((product) => (
+                        <div
+                          key={product.productId}
+                          className="flex items-center justify-between py-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center text-red-700 font-bold text-sm shrink-0">
+                              {product.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-gray-900">
+                                {product.name}
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                SKU: {product.sku}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs font-medium text-red-500">
+                              Low Stock
+                            </p>
+                            <p className="text-sm font-bold text-gray-900">
+                              {product.stockQuantity}
                             </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-bold text-card-foreground">
-                            {product.revenue}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {product.growth}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
+                      ))
+                    : (
+                      <p className="text-sm text-gray-400 py-8 text-center">
+                        No low stock items
+                      </p>
+                    )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-      {/* Quick Actions */}
-      <div className="mt-8">
-        <Card className="border border-border">
-          <CardHeader className="border-b border-border">
-            <CardTitle className="text-card-foreground">Quick Actions</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Common tasks and shortcuts
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Link href="/products/new">
-                <button className="p-4 text-center rounded-lg border border-border bg-card transition-colors w-full">
-                  <Package className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <div className="font-semibold text-card-foreground">Add Product</div>
-                  <div className="text-xs text-muted-foreground">New inventory</div>
-                </button>
-              </Link>
-              <Link href="/sales/new">
-                <button className="p-4 text-center rounded-lg border border-border bg-card transition-colors w-full">
-                  <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <div className="font-semibold text-card-foreground">
-                    Create Invoice
-                  </div>
-                  <div className="text-xs text-muted-foreground">New sale</div>
-                </button>
-              </Link>
-              <Link href="/people/customers/new">
-                <button className="p-4 text-center rounded-lg border border-border bg-card transition-colors w-full">
-                  <Users className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <div className="font-semibold text-card-foreground">
-                    Add Customer
-                  </div>
-                  <div className="text-xs text-muted-foreground">New client</div>
-                </button>
-              </Link>
-              <Link href="/reports">
-                <button className="p-4 text-center rounded-lg border border-border bg-card transition-colors w-full">
-                  <BarChart3 className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <div className="font-semibold text-card-foreground">
-                    View Reports
-                  </div>
-                  <div className="text-xs text-muted-foreground">Analytics</div>
-                </button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Empty spacer to match layout */}
+          <div className="col-span-4" />
+        </div>
+
+        {/* Footer */}
+        <div className="mt-6 py-4 border-t border-gray-200">
+          <p className="text-xs text-gray-400 text-center">
+            &copy; {new Date().getFullYear()} OmniBlox. All rights reserved.
+          </p>
+        </div>
       </div>
     </div>
   );
