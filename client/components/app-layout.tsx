@@ -54,12 +54,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             collapsed={sidebarCollapsed}
             onCollapsedChange={setSidebarCollapsed}
           />
-          <main className="flex-1 overflow-y-auto">
+          <div className="flex flex-1 flex-col overflow-hidden">
             <AppHeader />
-            <div className="px-6 py-6">
+            <main className="flex-1 overflow-y-auto p-6">
               <PageError type="forbidden" />
-            </div>
-          </main>
+            </main>
+          </div>
         </div>
       </CommandMenuProvider>
     );
@@ -72,12 +72,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             collapsed={sidebarCollapsed}
             onCollapsedChange={setSidebarCollapsed}
           />
-          <main className="flex-1 overflow-y-auto">
+          <div className="flex flex-1 flex-col overflow-hidden">
             <AppHeader />
-            <div className="px-6 py-6">
+            <main className="flex-1 overflow-y-auto p-6">
               {children}
-            </div>
-          </main>
+            </main>
+          </div>
         </div>
     </CommandMenuProvider>
   );
