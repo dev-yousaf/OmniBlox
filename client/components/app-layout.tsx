@@ -49,17 +49,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   if (isMutating && userRole === "OBSERVER") {
     return (
       <CommandMenuProvider>
-        <div className="flex h-screen w-screen overflow-hidden bg-background">
+        <div className="flex h-screen overflow-hidden bg-background">
           <AppSidebar
             collapsed={sidebarCollapsed}
             onCollapsedChange={setSidebarCollapsed}
           />
-          <div className="flex flex-1 flex-col h-full">
+          <main className="flex-1 overflow-y-auto">
             <AppHeader />
-            <main className="flex-1 h-full overflow-y-auto px-6 py-6">
+            <div className="px-6 py-6">
               <PageError type="forbidden" />
-            </main>
-          </div>
+            </div>
+          </main>
         </div>
       </CommandMenuProvider>
     );
@@ -67,17 +67,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <CommandMenuProvider>
-        <div className="flex h-screen w-screen overflow-hidden bg-background">
+        <div className="flex h-screen overflow-hidden bg-background">
           <AppSidebar
             collapsed={sidebarCollapsed}
             onCollapsedChange={setSidebarCollapsed}
           />
-          <div className="flex flex-1 flex-col h-full">
+          <main className="flex-1 overflow-y-auto">
             <AppHeader />
-            <main className="flex-1 h-full overflow-y-auto px-6 py-6">
+            <div className="px-6 py-6">
               {children}
-            </main>
-          </div>
+            </div>
+          </main>
         </div>
     </CommandMenuProvider>
   );
