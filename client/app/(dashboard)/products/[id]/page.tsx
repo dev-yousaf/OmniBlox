@@ -1277,21 +1277,21 @@ export default function ProductDetailPage({
 										</TableRow>
 									</TableHeader>
 									<TableBody>
-										{sales.map((sale) => (
+										{sales.map((sale: any) => (
 											<TableRow key={sale.id}>
 												<TableCell>
-													{new Date(sale.date).toLocaleDateString()}
+													{new Date(sale.saleDate ?? sale.date).toLocaleDateString()}
 												</TableCell>
 												<TableCell className="font-mono text-xs">
-													{sale.reference}
+													{sale.invoiceNumber ?? sale.reference}
 												</TableCell>
-												<TableCell>{sale.customer}</TableCell>
+												<TableCell>{sale.customerName ?? sale.customer}</TableCell>
 												<TableCell>{sale.quantity}</TableCell>
 												<TableCell>
-													${sale.unitPrice.toFixed(2)}
+													${(sale.unitPrice ?? 0).toFixed(2)}
 												</TableCell>
 												<TableCell className="font-medium">
-													${sale.total.toFixed(2)}
+													${(sale.totalPrice ?? sale.total ?? 0).toFixed(2)}
 												</TableCell>
 											</TableRow>
 										))}
@@ -1344,24 +1344,24 @@ export default function ProductDetailPage({
 										</TableRow>
 									</TableHeader>
 									<TableBody>
-										{quotations.map((q) => (
+										{quotations.map((q: any) => (
 											<TableRow key={q.id}>
 												<TableCell>
-													{new Date(q.date).toLocaleDateString()}
+													{new Date(q.quoteDate ?? q.date).toLocaleDateString()}
 												</TableCell>
 												<TableCell className="font-mono text-xs">
-													{q.reference}
+													{q.referenceNumber ?? q.reference}
 												</TableCell>
-												<TableCell>{q.customer}</TableCell>
+												<TableCell>{q.customerName ?? q.customer}</TableCell>
 												<TableCell>{q.quantity}</TableCell>
 												<TableCell>
-													${q.unitPrice.toFixed(2)}
+													${(q.unitPrice ?? 0).toFixed(2)}
 												</TableCell>
 												<TableCell className="font-medium">
-													${q.total.toFixed(2)}
+													${(q.totalPrice ?? q.total ?? 0).toFixed(2)}
 												</TableCell>
 												<TableCell>
-													<Badge variant="outline">{q.status}</Badge>
+													<Badge variant="outline">{q.status ?? "-"}</Badge>
 												</TableCell>
 											</TableRow>
 										))}
@@ -1408,30 +1408,30 @@ export default function ProductDetailPage({
 											<TableHead>Reference</TableHead>
 											<TableHead>Supplier</TableHead>
 											<TableHead>Quantity</TableHead>
-											<TableHead>Unit Price</TableHead>
+											<TableHead>Unit Cost</TableHead>
 											<TableHead>Total</TableHead>
 											<TableHead>Status</TableHead>
 										</TableRow>
 									</TableHeader>
 									<TableBody>
-										{purchases.map((p) => (
+										{purchases.map((p: any) => (
 											<TableRow key={p.id}>
 												<TableCell>
-													{new Date(p.date).toLocaleDateString()}
+													{new Date(p.orderDate ?? p.date).toLocaleDateString()}
 												</TableCell>
 												<TableCell className="font-mono text-xs">
-													{p.reference}
+													{p.referenceNumber ?? p.reference}
 												</TableCell>
-												<TableCell>{p.supplier}</TableCell>
+												<TableCell>{p.supplierName ?? p.supplier}</TableCell>
 												<TableCell>{p.quantity}</TableCell>
 												<TableCell>
-													${p.unitPrice.toFixed(2)}
+													${(p.unitCost ?? p.unitPrice ?? 0).toFixed(2)}
 												</TableCell>
 												<TableCell className="font-medium">
-													${p.total.toFixed(2)}
+													${(p.totalCost ?? p.total ?? 0).toFixed(2)}
 												</TableCell>
 												<TableCell>
-													<Badge variant="outline">{p.status}</Badge>
+													<Badge variant="outline">{p.status ?? "-"}</Badge>
 												</TableCell>
 											</TableRow>
 										))}
