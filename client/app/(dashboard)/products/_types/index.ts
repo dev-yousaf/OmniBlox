@@ -1,13 +1,11 @@
-﻿// Re-export types from lib for consistency
-import type { Product } from "@/lib/types"
+﻿import type { Product } from "@/lib/types"
 export type { Product }
 
-export type ProductStatus = 
+export type ProductStatus = "ACTIVE" | "INACTIVE" | "DISCONTINUED"
 
 export type ProductStats = {
   totalProducts: number
   activeProducts: number
-  // Add more stats as needed
 }
 
 export type ProductFilters = {
