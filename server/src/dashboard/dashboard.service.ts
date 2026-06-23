@@ -81,12 +81,12 @@ export class DashboardService {
       }),
       // Total expenses current period
       this.prisma.expense.aggregate({
-        where: { companyId, expenseDate: { gte: range.start, lte: range.end }, status: { not: 'CANCELLED' } },
+        where: { companyId, expenseDate: { gte: range.start, lte: range.end }, status: { not: 'REJECTED' } },
         _sum: { amount: true },
       }),
       // Total expenses previous period
       this.prisma.expense.aggregate({
-        where: { companyId, expenseDate: { gte: prevRange.start, lte: prevRange.end }, status: { not: 'CANCELLED' } },
+        where: { companyId, expenseDate: { gte: prevRange.start, lte: prevRange.end }, status: { not: 'REJECTED' } },
         _sum: { amount: true },
       }),
       // Payment returns (this is simplified — total amount of cancelled/pending payment sales that were returned)
