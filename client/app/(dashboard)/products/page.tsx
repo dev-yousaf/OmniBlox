@@ -20,6 +20,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
+import {
   Table,
   TableBody,
   TableCell,
@@ -241,12 +246,22 @@ export default function ProductsPage() {
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-[1px]">
-            <button className="flex items-center justify-center w-5 h-5 text-red-500 hover:text-red-600" onClick={handleExportCsv} title="Export PDF">
-              <FileText className="w-full h-full" />
-            </button>
-            <button className="flex items-center justify-center w-5 h-5 text-green-600 hover:text-green-700" onClick={handleExportExcel} title="Export Excel">
-              <FileSpreadsheet className="w-full h-full" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="flex items-center justify-center w-5 h-5 text-red-500 hover:text-red-600" onClick={handleExportCsv}>
+                  <FileText className="w-full h-full" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Export PDF</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="flex items-center justify-center w-5 h-5 text-green-600 hover:text-green-700" onClick={handleExportExcel}>
+                  <FileSpreadsheet className="w-full h-full" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Export Excel</TooltipContent>
+            </Tooltip>
           </div>
           <div className="flex items-center gap-[1px]">
             <button className="flex items-center justify-center w-4 h-4 text-muted-foreground hover:text-foreground" onClick={loadProducts} title="Refresh">
