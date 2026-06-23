@@ -47,7 +47,7 @@ const sections: SidebarSection[] = [
     label: "Main",
     items: [
       { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { name: "Super Admin", href: "/people/users", icon: UserCog },
+      { name: "Super Admin", href: "/superadmin", icon: UserCog },
     ],
   },
   {

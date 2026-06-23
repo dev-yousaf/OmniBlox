@@ -25,6 +25,7 @@ import { QuotationsModule } from './quotations/quotations.module';
 import { SalesReturnsModule } from './sales-returns/sales-returns.module';
 import { PurchaseReturnsModule } from './purchase-returns/purchase-returns.module';
 import { ReturnsModule } from './returns/returns.module';
+import { SuperadminModule } from './superadmin/superadmin.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { ReturnsModule } from './returns/returns.module';
     SalesReturnsModule,
     PurchaseReturnsModule,
     ReturnsModule,
+    SuperadminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -16,7 +16,7 @@ export function LowStockProducts({ products, loading }: LowStockProductsProps) {
       <div className="p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-muted-foreground" />
+            <AlertTriangle className="h-5 w-5 text-red-500" />
             <h3 className="text-base font-semibold text-card-foreground">
               Low Stock Products
             </h3>
