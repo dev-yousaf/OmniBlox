@@ -60,7 +60,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useProductApi, type ProductStats } from "@/hooks/use-product-api";
+import { useProductApi } from "@/hooks/use-product-api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import type { Product } from "@/lib/types";
