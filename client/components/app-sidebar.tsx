@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Package,
+  PackageX,
   DollarSign,
   ShoppingCart,
   FileQuestion,
@@ -18,13 +19,19 @@ import {
   FileText,
   AlertTriangle,
   FolderTree,
+  FolderOpen,
   Barcode,
+  QrCode,
   ArrowUpDown,
   ArrowLeftRight,
   ShoppingBag,
   ChevronRight,
   ChevronLeft,
   UserCog,
+  Tag,
+  Ruler,
+  ListChecks,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -55,9 +62,16 @@ const sections: SidebarSection[] = [
     items: [
       { name: "Products", href: "/products", icon: Package },
       { name: "Create Product", href: "/products/new", icon: Package, mutationOnly: true },
+      { name: "Expired Products", href: "/products?status=expired", icon: PackageX },
       { name: "Low Stocks", href: "/products", icon: AlertTriangle },
       { name: "Category", href: "/settings/categories", icon: FolderTree },
+      { name: "Sub Category", href: "/settings/sub-categories", icon: FolderOpen },
+      { name: "Brands", href: "/settings/brands", icon: Tag },
+      { name: "Units", href: "/settings/units", icon: Ruler },
+      { name: "Variant Attributes", href: "/settings/variant-attributes", icon: ListChecks },
+      { name: "Warranties", href: "/settings/warranties", icon: ShieldCheck },
       { name: "Print Barcode", href: "/products/barcodes", icon: Barcode },
+      { name: "Print QR Code", href: "/products/qrcodes", icon: QrCode },
     ],
   },
   {
