@@ -3,14 +3,18 @@
 import {
   Search,
   Command,
-  Calculator,
-  Calendar,
+  ChevronDown,
   Globe,
+  Maximize2,
+  Bell,
+  Settings,
+  LogOut,
   Moon,
   Sun,
-  WifiOff,
-  DollarSign,
-  LogOut,
+  Plus,
+  Monitor,
+  PanelLeftClose,
+  Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,210 +29,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/auth-context";
 
 type AppHeaderProps = {
   sidebarCollapsed: boolean;
+  onToggleSidebar?: () => void;
 };
 
-export function AppHeader({ sidebarCollapsed }: AppHeaderProps) {
-  const { setOpen } = useCommandMenu();
-  const { logout } = useAuth();
-  const [isOnline, setIsOnline] = useState(true);
-  const [showCalculator, setShowCalculator] = useState(false);
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [calculatorValue, setCalculatorValue] = useState("");
-  const [todaysProfit, setTodaysProfit] = useState(2847.5);
-
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
-
-  const handleCalculatorClick = (value: string) => {
-    if (value === "=") {
-      try {
-        setCalculatorValue(eval(calculatorValue).toString());
-      } catch {
-        setCalculatorValue("Error");
-      }
-    } else if (value === "C") {
-      setCalculatorValue("");
-    } else {
-      setCalculatorValue(calculatorValue + value);
-    }
-  };
-
-  return (
-    <>
-      <header className="flex h-14 items-center justify-between border-b border-border bg-card px-6">
-        <div className="flex flex-1 items-center gap-4">
-          <div className="relative w-96">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search or press Cmd+K..."
-              className="pl-9 pr-12"
-              onClick={() => setOpen(true)}
-              readOnly
-            />
-            <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1">
-              <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-xs font-medium text-muted-foreground">
-                <Command className="h-3 w-3" />K
-              </kbd>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Today's Profit Display */}
-          <div className="flex items-center gap-2 rounded-md bg-success/10 px-3 py-1.5 text-sm font-medium text-success">
-            <DollarSign className="h-4 w-4" />
-            <span>Today: ${todaysProfit.toFixed(2)}</span>
-          </div>
-
-          {/* Offline Indicator */}
-          {!isOnline && (
-            <div className="flex items-center gap-2 rounded-md bg-warning/10 px-3 py-1.5 text-sm font-medium text-warning">
-              <WifiOff className="h-4 w-4" />
-              <span>Offline</span>
-            </div>
-          )}
-
-          {/* Calculator */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowCalculator(true)}
-            title="Calculator"
-          >
-            <Calculator className="h-4 w-4" />
-          </Button>
-
-          {/* Calendar */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowCalendar(true)}
-            title="Calendar"
-          >
-            <Calendar className="h-4 w-4" />
-          </Button>
-
-          {/* Language Selector */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" title="Language">
-                <Globe className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Select Language</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>English</DropdownMenuItem>
-              <DropdownMenuItem>Spanish</DropdownMenuItem>
-              <DropdownMenuItem>French</DropdownMenuItem>
-              <DropdownMenuItem>German</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Theme Switcher */}
-          <ThemeToggle />
-
-          {/* Logout */}
-          <Button variant="ghost" size="icon" onClick={logout} title="Logout">
-            <LogOut className="h-4 w-4" />
-          </Button>
-        </div>
-      </header>
-
-      <Dialog open={showCalculator} onOpenChange={setShowCalculator}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Calculator</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Input
-              value={calculatorValue}
-              readOnly
-              className="text-right text-2xl font-mono"
-            />
-            <div className="grid grid-cols-4 gap-2">
-              {[
-                "7",
-                "8",
-                "9",
-                "/",
-                "4",
-                "5",
-                "6",
-                "*",
-                "1",
-                "2",
-                "3",
-                "-",
-                "0",
-                ".",
-                "=",
-                "+",
-              ].map((btn) => (
-                <Button
-                  key={btn}
-                  variant="outline"
-                  onClick={() => handleCalculatorClick(btn)}
-                >
-                  {btn}
-                </Button>
-              ))}
-              <Button
-                variant="destructive"
-                className="col-span-4"
-                onClick={() => handleCalculatorClick("C")}
-              >
-                Clear
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showCalendar} onOpenChange={setShowCalendar}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Calendar</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Calendar integration coming soon...
-            </p>
-            <div className="rounded-md border border-border p-4">
-              <p className="text-center text-sm font-medium">
-                {new Date().toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-}
-
-function ThemeToggle() {
-  const [mounted, setMounted] = useState(false);
+function ThemeToggleIcon() {
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -236,24 +46,160 @@ function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <Button variant="ghost" size="icon">
+      <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-header-icon-bg text-header-icon-color">
         <Sun className="h-4 w-4" />
-      </Button>
+      </div>
     );
   }
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
+    <div
+      className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-header-icon-bg text-header-icon-color cursor-pointer"
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      title="Toggle theme"
     >
-      {theme === "dark" ? (
-        <Sun className="h-4 w-4" />
-      ) : (
-        <Moon className="h-4 w-4" />
-      )}
-    </Button>
+      {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+    </div>
+  );
+}
+
+export function AppHeader({ sidebarCollapsed, onToggleSidebar }: AppHeaderProps) {
+  const { setOpen } = useCommandMenu();
+  const { logout } = useAuth();
+
+  return (
+    <header className="flex h-[65px] items-center gap-3 border-b border-header-border bg-header-bg px-6 relative">
+      {/* Sidebar Toggle */}
+      <div className="absolute left-[-10px] top-1/2 -translate-y-1/2 z-10">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-5 w-5 rounded-full bg-header-primary text-header-primary-text hover:bg-header-primary/90 p-0.5"
+          onClick={onToggleSidebar}
+        >
+          <PanelLeftClose className="h-3 w-3" />
+        </Button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="flex items-center gap-2 border border-header-search-border bg-header-search-bg rounded-lg px-3 py-2 w-[229px]">
+        <Search className="h-3.5 w-3.5 text-header-search-placeholder shrink-0" />
+        <Input
+          placeholder="Search"
+          className="h-auto border-none bg-transparent p-0 text-[13px] text-header-dropdown-text placeholder:text-header-search-placeholder shadow-none focus-visible:ring-0"
+          onClick={() => setOpen(true)}
+          readOnly
+        />
+        <div className="flex items-center gap-1 bg-header-search-kbd-bg rounded-[5px] px-1.5 py-1 shrink-0">
+          <Command className="h-2.5 w-2.5 text-header-search-kbd-text" />
+          <span className="text-[10px] font-medium text-header-search-kbd-text leading-[15px]">
+            K
+          </span>
+        </div>
+      </div>
+
+      {/* Right side */}
+      <div className="flex flex-1 items-center justify-end gap-3">
+        {/* Store Selector */}
+        <div className="flex items-center gap-2 border border-header-dropdown-border bg-header-dropdown-bg rounded-lg px-3 py-1.5 h-[34px]">
+          <div className="flex h-4 w-4 items-center justify-center rounded-[4px] bg-header-primary text-header-primary-text text-[9px] font-bold">
+            O
+          </div>
+          <span className="text-sm text-header-dropdown-text">
+            OmniBlox
+          </span>
+          <ChevronDown className="h-3 w-3 text-header-icon-color" />
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-header-primary rounded-[5px] px-3 py-1.5 cursor-pointer">
+            <Plus className="h-3.5 w-3.5 text-header-primary-text" />
+            <span className="text-[13px] font-medium text-header-primary-text leading-[19.5px]">
+              Add New
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-header-secondary rounded-[5px] px-3 py-1.5 cursor-pointer">
+            <Monitor className="h-3.5 w-3.5 text-header-secondary-text" />
+            <span className="text-[13px] font-medium text-header-secondary-text leading-[19.5px]">
+              POS
+            </span>
+          </div>
+        </div>
+
+        {/* Vertical Divider */}
+        <div className="h-[34px] w-px bg-header-border" />
+
+        {/* Icon Group */}
+        <div className="flex items-center gap-2">
+          {/* Language */}
+          <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-header-icon-bg text-header-icon-color">
+            <Globe className="h-4 w-4" />
+          </div>
+
+          {/* Fullscreen */}
+          <div
+            className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-header-icon-bg text-header-icon-color cursor-pointer"
+            onClick={() => {
+              if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+              } else {
+                document.exitFullscreen();
+              }
+            }}
+          >
+            <Maximize2 className="h-4 w-4" />
+          </div>
+
+          {/* Mail with badge */}
+          <div className="relative flex h-[34px] w-[34px] items-center justify-center rounded-[8px] bg-header-icon-bg text-header-icon-color">
+            <Mail className="h-4 w-4" />
+            <div className="absolute -top-1 -right-1 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-header-notification-dot">
+              <span className="text-[9px] font-semibold text-header-primary-text leading-[13px]">
+                01
+              </span>
+            </div>
+          </div>
+
+          {/* Notification */}
+          <div className="relative flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-header-icon-bg text-header-icon-color">
+            <Bell className="h-4 w-4" />
+          </div>
+
+          {/* Theme Toggle */}
+          <ThemeToggleIcon />
+
+          {/* Settings Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[8px] bg-header-icon-bg text-header-icon-color cursor-pointer">
+                <Settings className="h-4 w-4" />
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Settings</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Globe className="h-4 w-4 mr-2" />
+                Language
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={logout}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* User Avatar */}
+        <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-header-secondary text-header-secondary-text text-xs font-semibold">
+          AD
+        </div>
+      </div>
+    </header>
   );
 }
