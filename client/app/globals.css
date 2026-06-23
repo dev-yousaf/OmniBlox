@@ -249,10 +249,24 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+  }
   body {
     @apply bg-background text-foreground;
     letter-spacing: var(--tracking-normal);
   }
+}
+
+/* Force Next.js auto-generated wrapper divs to stay within viewport */
+#__next,
+body > div:first-child {
+  height: 100% !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
 }
 
 @keyframes global-progress-shimmer {
