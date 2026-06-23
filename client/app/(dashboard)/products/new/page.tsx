@@ -1,9 +1,9 @@
 "use client";
 
-import { Suspense, useRef } from "react";
+import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Minus, Loader2 } from "lucide-react";
+import { RefreshCw, Minus } from "lucide-react";
 import Link from "next/link";
 import { ProductForm } from "@/components/products/product-form";
 
@@ -35,7 +35,7 @@ function NewProductForm() {
 
 export default function NewProductPage() {
   return (
-    <div className="space-y-0">
+    <div className="max-w-[1440px] mx-auto">
       <div className="flex items-center justify-between h-[48px] mb-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Link href="/dashboard" className="hover:text-foreground">Inventory</Link>
@@ -54,13 +54,7 @@ export default function NewProductPage() {
         </div>
       </div>
 
-      <Suspense fallback={
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      }>
-        <NewProductForm />
-      </Suspense>
+      <NewProductForm />
     </div>
   );
 }
