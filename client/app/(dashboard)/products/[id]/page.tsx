@@ -227,14 +227,15 @@ export default function ProductDetailPage({
 			setProduct(productData);
 
 			setInventoryLoading(true);
-			const [inventoryData, variantsData, ledgerData] = await Promise.all([
+			// Load supplementary data - don't redirect on failure
+			const results = await Promise.allSettled([
 				getProductInventory(productId),
 				getVariants(productId),
 				getStockLedger(productId),
 			]);
-			setInventory(inventoryData);
-			setVariants(variantsData);
-			setLedger(ledgerData);
+			if (results[0].status === "fulfilled") setInventory(results[0].value);
+			if (results[1].status === "fulfilled") setVariants(results[1].value);
+			if (results[2].status === "fulfilled") setLedger(results[2].value);
 		} catch (error) {
 			toast({
 				title: "Error",

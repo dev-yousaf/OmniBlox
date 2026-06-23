@@ -43,8 +43,12 @@ export function GlobalRouteProgressBar() {
 
     clearTimers();
     isPendingRef.current = true;
-    setVisible(true);
-    setProgress(START_PROGRESS);
+
+    // Defer state updates to avoid useInsertionEffect violation in React 19
+    Promise.resolve().then(() => {
+      setVisible(true);
+      setProgress(START_PROGRESS);
+    });
 
     progressTimerRef.current = window.setInterval(() => {
       setProgress((current) => {
