@@ -20,7 +20,7 @@ import { AuthGuard } from '@thallesp/nestjs-better-auth';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CompanyId } from '../auth/decorators/company-id.decorator';
-import { UserId } from 'src/auth/decorators/user-id.decorator';
+import { UserId } from '../auth/decorators/user-id.decorator';
 import { ExpensesService } from './expenses.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
@@ -43,6 +43,7 @@ export class ExpensesController {
   }
 
   @Get()
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
   findAll(
     @CompanyId() companyId: string,
     @Query('page') page?: string,
@@ -55,11 +56,13 @@ export class ExpensesController {
   }
 
   @Get('stats')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
   getStats(@CompanyId() companyId: string) {
     return this.expensesService.getStats(companyId);
   }
 
   @Get(':id')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
   findOne(@Param('id') id: string, @CompanyId() companyId: string) {
     return this.expensesService.findOne(id, companyId);
   }

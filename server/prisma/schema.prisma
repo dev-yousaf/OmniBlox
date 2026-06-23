@@ -48,15 +48,16 @@ model Company {
 // --- MODIFIED USER & CONTACT MODELS ---
 
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
+  id            String     @id @default(uuid())
+  email         String     @unique
   password      String
   name          String
-  role          UserRole @default(STAFF) // Role *within* the company
-  emailVerified DateTime? // Null means not verified; set to timestamp when verified
-  image         String?  // Optional profile image
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  role          UserRole   @default(STAFF) // Role *within* the company
+  status        UserStatus @default(ACTIVE)
+  emailVerified DateTime?  // Null means not verified; set to timestamp when verified
+  image         String?    // Optional profile image
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   // MODIFIED: User now belongs to a Company
   companyId String
@@ -690,6 +691,13 @@ enum TokenType {
   EMAIL_VERIFICATION
   PASSWORD_RESET
   MAGIC_LINK_LOGIN
+  INVITATION
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
 }
 
 enum OrderStatus {

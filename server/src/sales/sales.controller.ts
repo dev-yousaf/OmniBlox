@@ -16,10 +16,8 @@ import { UserRole } from '@prisma/client';
 import { AuthGuard } from '@thallesp/nestjs-better-auth';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import {
-  GetCurrentCompanyId,
-  GetCurrentUserId,
-} from '../auth/decorators/current-user.decorator';
+import { CompanyId } from '../auth/decorators/company-id.decorator';
+import { UserId } from '../auth/decorators/user-id.decorator';
 import { SalesService } from './sales.service';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { UpdateSaleDto } from './dto/update-sale.dto';
@@ -34,8 +32,8 @@ export class SalesController {
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
   async create(
     @Body() dto: CreateSaleDto,
-    @GetCurrentUserId() userId: string,
-    @GetCurrentCompanyId() companyId: string,
+    @UserId() userId: string,
+    @CompanyId() companyId: string,
   ) {
     return this.salesService.create(dto, userId, companyId);
   }
@@ -43,7 +41,7 @@ export class SalesController {
   @Get()
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
   async findAll(
-    @GetCurrentCompanyId() companyId: string,
+    @CompanyId() companyId: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('search') search?: string,
@@ -64,7 +62,7 @@ export class SalesController {
 
   @Get('stats')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
-  async stats(@GetCurrentCompanyId() companyId: string) {
+  async stats(@CompanyId() companyId: string) {
     return this.salesService.getStats(companyId);
   }
 
@@ -72,7 +70,7 @@ export class SalesController {
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
   async findOne(
     @Param('id') id: string,
-    @GetCurrentCompanyId() companyId: string,
+    @CompanyId() companyId: string,
   ) {
     return this.salesService.findOne(id, companyId);
   }
@@ -82,7 +80,7 @@ export class SalesController {
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateSaleDto,
-    @GetCurrentCompanyId() companyId: string,
+    @CompanyId() companyId: string,
   ) {
     return this.salesService.update(id, dto, companyId);
   }
@@ -91,7 +89,7 @@ export class SalesController {
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
   async markAsPaid(
     @Param('id') id: string,
-    @GetCurrentCompanyId() companyId: string,
+    @CompanyId() companyId: string,
   ) {
     return this.salesService.markAsPaid(id, companyId);
   }
@@ -101,7 +99,7 @@ export class SalesController {
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
   async remove(
     @Param('id') id: string,
-    @GetCurrentCompanyId() companyId: string,
+    @CompanyId() companyId: string,
   ) {
     await this.salesService.remove(id, companyId);
   }

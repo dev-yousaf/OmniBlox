@@ -729,6 +729,54 @@ export class AuthService {
   }
 
   /**
+   * Accept invitation - validate token and set password
+   */
+  async acceptInvitation(
+    token: string,
+    password: string,
+  ): Promise<{ message: string }> {
+    const authToken = await this.prisma.authToken.findUnique({
+      where: { token },
+      include: { user: true },
+    });
+
+    if (!authToken || authToken.type !== 'INVITATION') {
+      throw new BadRequestException('Invalid invitation token');
+    }
+
+    if (authToken.expiresAt < new Date()) {
+      await this.prisma.authToken.delete({ where: { id: authToken.id } });
+      throw new BadRequestException('Invitation link has expired');
+    }
+
+    const user = authToken.user;
+    const hashedPassword = await hashPassword(password);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          password: hashedPassword,
+          emailVerified: user.emailVerified ?? new Date(),
+          status: 'ACTIVE',
+        },
+      });
+
+      await tx.account.updateMany({
+        where: { userId: user.id, providerId: 'credential' },
+        data: { password: hashedPassword },
+      });
+
+      await tx.authToken.delete({ where: { id: authToken.id } });
+    });
+
+    return {
+      message:
+        'Account activated successfully. You can now log in with your new password.',
+    };
+  }
+
+  /**
    * Resend OTP to user
    */
   async resendOtp(userId: string): Promise<{ message: string }> {

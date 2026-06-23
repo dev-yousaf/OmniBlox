@@ -54,6 +54,36 @@ export class EmailService {
     });
   }
 
+  async sendInvitationEmail(
+    to: string,
+    name: string,
+    token: string,
+    invitedByName: string,
+    companyName: string,
+  ): Promise<void> {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const inviteLink = `${frontendUrl}/accept-invitation?token=${token}`;
+
+    await this.mailerService.sendMail({
+      to,
+      subject: `You've been invited to ${companyName} - OmniBlox`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Hello ${name},</h2>
+          <p style="font-size: 16px; color: #555;">${invitedByName} has invited you to join <strong>${companyName}</strong> on OmniBlox.</p>
+          <p style="font-size: 16px; color: #555;">Click the button below to set up your account and get started:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${inviteLink}" style="background-color: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-size: 16px; display: inline-block;">Accept Invitation</a>
+          </div>
+          <p style="font-size: 14px; color: #666;">This invitation link will expire in 48 hours.</p>
+          <p style="font-size: 14px; color: #666;">If you weren't expecting this invitation, please ignore this email.</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+          <p style="font-size: 12px; color: #999;">Best regards,<br>OmniBlox Team</p>
+        </div>
+      `,
+    });
+  }
+
   async sendPasswordResetEmail(
     to: string,
     name: string,

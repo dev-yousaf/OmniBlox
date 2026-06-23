@@ -8,6 +8,8 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { UserRole } from '@prisma/client';
 import { hashPassword, verifyPassword } from 'better-auth/crypto';
+import { randomBytes } from 'crypto';
+import { EmailService } from '../email/email.service';
 import {
   CreateUserDto,
   UpdateUserDto,
@@ -19,7 +21,10 @@ import {
 
 @Injectable()
 export class TeamService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService,
+  ) {}
 
   // GOLDEN RULE: All methods require companyId and filter by it
 
@@ -27,24 +32,10 @@ export class TeamService {
     dto: CreateUserDto,
     companyId: string,
     currentUserRole: string,
+    currentUserId: string,
   ): Promise<UserResponseDto> {
-    // Debug logging
-    console.log('[TeamService.createUser] Received:', {
-      dto,
-      companyId,
-      currentUserRole,
-      roleType: typeof currentUserRole,
-      isOwner: currentUserRole === 'OWNER',
-      isAdmin: currentUserRole === 'ADMIN',
-      includes: ['OWNER', 'ADMIN'].includes(currentUserRole),
-    });
-
     // Only OWNER and ADMIN can create users
     if (!['OWNER', 'ADMIN'].includes(currentUserRole)) {
-      console.log('[TeamService.createUser] Permission check failed:', {
-        currentUserRole,
-        allowed: ['OWNER', 'ADMIN'],
-      });
       throw new ForbiddenException('Insufficient permissions to create users');
     }
 
@@ -65,20 +56,29 @@ export class TeamService {
       throw new ForbiddenException('Only company owner can create admin users');
     }
 
-    // Hash password using Better Auth (compatible with login)
-    const hashedPassword = await hashPassword(dto.password);
+    // Get the inviting user's name and company for the email
+    const inviter = await this.prisma.user.findUnique({
+      where: { id: currentUserId },
+      include: { company: true },
+    });
 
-    // Create user in transaction to ensure account record is also created
+    // Generate a random placeholder password (user will set their own via invitation)
+    const placeholderPassword = randomBytes(32).toString('hex');
+    const hashedPassword = await hashPassword(placeholderPassword);
+
+    // Create user + account + invitation token in transaction
     const user = await this.prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
-          ...dto,
+          email: dto.email,
+          name: dto.name,
+          role: dto.role ?? UserRole.STAFF,
+          status: 'INVITED',
           password: hashedPassword,
           companyId,
         },
       });
 
-      // Create Better Auth account entry for credential provider
       await tx.account.create({
         data: {
           userId: newUser.id,
@@ -90,6 +90,29 @@ export class TeamService {
 
       return newUser;
     });
+
+    // Generate invitation token (48 hour expiry)
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 48);
+
+    await this.prisma.authToken.create({
+      data: {
+        token,
+        type: 'INVITATION',
+        expiresAt,
+        userId: user.id,
+      },
+    });
+
+    // Send invitation email (fire and forget)
+    const companyName = inviter?.company?.name || 'the company';
+    const inviterName = inviter?.name || 'A team member';
+    this.emailService
+      .sendInvitationEmail(dto.email, dto.name, token, inviterName, companyName)
+      .catch((err) => {
+        console.error('Failed to send invitation email:', err);
+      });
 
     return this.mapToUserResponse(user);
   }
@@ -294,7 +317,7 @@ export class TeamService {
   async getStats(companyId: string): Promise<UserStatsDto> {
     const users = await this.prisma.user.findMany({
       where: { companyId },
-      select: { role: true, createdAt: true },
+      select: { role: true, status: true },
     });
 
     const totalUsers = users.length;
@@ -303,14 +326,20 @@ export class TeamService {
       (u) => u.role === UserRole.MANAGER,
     ).length;
     const staffCount = users.filter((u) => u.role === UserRole.STAFF).length;
+    const activeUsers = users.filter(
+      (u) => u.status === 'ACTIVE',
+    ).length;
+    const invitedUsers = users.filter(
+      (u) => u.status === 'INVITED',
+    ).length;
 
     return {
       totalUsers,
       adminCount,
       managerCount,
       staffCount,
-      activeUsers: totalUsers, // For now, assume all users are active
-      inactiveUsers: 0,
+      activeUsers,
+      inactiveUsers: invitedUsers,
     };
   }
 
@@ -322,7 +351,7 @@ export class TeamService {
       role: user.role,
       createdAt: user.createdAt,
       lastLogin: undefined, // TODO: Implement last login tracking
-      status: 'active', // TODO: Implement user status
+      status: (user.status || 'ACTIVE').toLowerCase() as 'active' | 'inactive',
     };
   }
 }

@@ -302,6 +302,15 @@ export class AuthController {
     );
   }
 
+  @Post('accept-invitation')
+  @AllowAnonymous()
+  @HttpCode(HttpStatus.OK)
+  async acceptInvitation(
+    @Body() body: { token: string; password: string },
+  ) {
+    return this.authService.acceptInvitation(body.token, body.password);
+  }
+
   @Post('password-reset/request')
   @AllowAnonymous()
   @HttpCode(HttpStatus.OK)

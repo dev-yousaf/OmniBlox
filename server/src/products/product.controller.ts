@@ -20,7 +20,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CompanyId } from '../auth/decorators/company-id.decorator';
 import { UserRole } from '@prisma/client';
-import { GetCurrentUserId } from '../auth/decorators/current-user.decorator';
+import { UserId } from '../auth/decorators/user-id.decorator';
 
 @Controller('products')
 @UseGuards(AuthGuard, RolesGuard)
@@ -138,7 +138,7 @@ export class ProductController {
   @HttpCode(HttpStatus.CREATED)
   async createStockAdjustment(
     @Body() createStockAdjustmentDto: CreateStockAdjustmentDto,
-    @GetCurrentUserId() userId: string,
+    @UserId() userId: string,
     @CompanyId() companyId: string,
   ) {
     return this.productService.createStockAdjustment(

@@ -55,10 +55,14 @@ const roleConfig = {
   },
 };
 
-const statusConfig = {
+const statusConfig: Record<string, { label: string; className: string }> = {
   active: {
     label: "Active",
     className: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  },
+  invited: {
+    label: "Invited",
+    className: "bg-amber-100 text-amber-700 border-amber-200",
   },
   inactive: {
     label: "Inactive",
@@ -85,19 +89,27 @@ export default function UsersPage() {
           getUsers(),
           getTeamStats(),
         ]);
-        // Backend returns array directly when no pagination params
         const usersList = Array.isArray(usersResponse)
           ? usersResponse
           : usersResponse.users;
         setUsers(usersList);
         setStats(statsResponse);
-      } catch (error) {
-        console.error("Error loading users:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load users. Please try again.",
-          variant: "destructive",
-        });
+      } catch (error: any) {
+        if (error?.statusCode === 403) {
+          toast({
+            title: "Access Denied",
+            description:
+              "You don't have permission to view users. Contact an administrator.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description:
+              error?.message || "Failed to load users. Please try again.",
+            variant: "destructive",
+          });
+        }
       } finally {
         setLoading(false);
       }
@@ -138,7 +150,7 @@ export default function UsersPage() {
         )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="pb-3">
             <CardDescription>Total Users</CardDescription>
@@ -163,6 +175,14 @@ export default function UsersPage() {
           <CardHeader className="pb-3">
             <CardDescription>Staff</CardDescription>
             <CardTitle className="text-3xl">{stats?.staffCount || 0}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardDescription>Invited</CardDescription>
+            <CardTitle className="text-3xl text-amber-600">
+              {stats?.inactiveUsers || 0}
+            </CardTitle>
           </CardHeader>
         </Card>
       </div>

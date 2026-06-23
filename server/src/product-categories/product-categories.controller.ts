@@ -34,11 +34,13 @@ export class ProductCategoriesController {
   }
 
   @Get()
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
   findAll(@CompanyId() companyId: string) {
     return this.productCategoriesService.findAll(companyId);
   }
 
   @Get(':id')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
   findOne(@Param('id') id: string, @CompanyId() companyId: string) {
     return this.productCategoriesService.findOne(id, companyId);
   }

@@ -15,7 +15,7 @@ import { UserRole } from '@prisma/client';
 import { AuthGuard } from '@thallesp/nestjs-better-auth';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { GetCurrentCompanyId } from '../auth/decorators/current-user.decorator';
+import { CompanyId } from '../auth/decorators/company-id.decorator';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
@@ -30,7 +30,7 @@ export class CustomersController {
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
   async create(
     @Body() dto: CreateCustomerDto,
-    @GetCurrentCompanyId() companyId: string,
+    @CompanyId() companyId: string,
   ) {
     return this.customersService.create(dto, companyId);
   }
@@ -38,7 +38,7 @@ export class CustomersController {
   @Get()
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
   async findAll(
-    @GetCurrentCompanyId() companyId: string,
+    @CompanyId() companyId: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('search') search?: string,
@@ -52,7 +52,7 @@ export class CustomersController {
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
   async findOne(
     @Param('id') id: string,
-    @GetCurrentCompanyId() companyId: string,
+    @CompanyId() companyId: string,
   ) {
     return this.customersService.findOne(id, companyId);
   }
@@ -62,7 +62,7 @@ export class CustomersController {
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateCustomerDto,
-    @GetCurrentCompanyId() companyId: string,
+    @CompanyId() companyId: string,
   ) {
     return this.customersService.update(id, dto, companyId);
   }
@@ -72,7 +72,7 @@ export class CustomersController {
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
   async remove(
     @Param('id') id: string,
-    @GetCurrentCompanyId() companyId: string,
+    @CompanyId() companyId: string,
   ) {
     await this.customersService.remove(id, companyId);
   }

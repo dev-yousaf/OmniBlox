@@ -13,7 +13,6 @@ export interface TeamUser {
 
 export interface CreateUserData {
   email: string;
-  password: string;
   name: string;
   role?: "ADMIN" | "MANAGER" | "STAFF";
 }
@@ -42,6 +41,7 @@ export interface TeamStats {
   staffCount: number;
   activeUsers: number;
   inactiveUsers: number;
+  invitedUsers?: number;
 }
 
 interface TeamFilters {
@@ -136,6 +136,15 @@ export function useTeamApi() {
     return get("/team/stats") as Promise<TeamStats>;
   }, [get]);
 
+  const acceptInvitation = useCallback(
+    async (token: string, password: string): Promise<{ message: string }> => {
+      return post("/auth/accept-invitation", { token, password }) as Promise<{
+        message: string;
+      }>;
+    },
+    [post]
+  );
+
   return {
     createUser,
     getUsers,
@@ -145,5 +154,6 @@ export function useTeamApi() {
     changePassword,
     deleteUser,
     getTeamStats,
+    acceptInvitation,
   };
 }

@@ -34,11 +34,13 @@ export class ExpenseCategoriesController {
   }
 
   @Get()
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
   findAll(@CompanyId() companyId: string) {
     return this.expenseCategoriesService.findAll(companyId);
   }
 
   @Get(':id')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
   findOne(@Param('id') id: string, @CompanyId() companyId: string) {
     return this.expenseCategoriesService.findOne(id, companyId);
   }

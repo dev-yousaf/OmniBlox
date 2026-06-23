@@ -24,6 +24,7 @@ export class DeliveriesController {
   constructor(private readonly deliveriesService: DeliveriesService) {}
 
   @Get()
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
   async findAll(
     @CompanyId() companyId: string,
   ): Promise<DeliveryResponseDto[]> {
@@ -31,6 +32,7 @@ export class DeliveriesController {
   }
 
   @Get(':id')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
   async findOne(
     @Param('id') id: string,
     @CompanyId() companyId: string,

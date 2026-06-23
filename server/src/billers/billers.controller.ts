@@ -10,9 +10,12 @@ import {
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 import { AuthGuard } from '@thallesp/nestjs-better-auth';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CompanyId } from '../auth/decorators/company-id.decorator';
 import { BillersService } from './billers.service';
-import { GetCurrentCompanyId } from '../auth/decorators/current-user.decorator';
 import {
   CreateBillerDto,
   UpdateBillerDto,
@@ -21,22 +24,24 @@ import {
   BillerStatsDto,
 } from './dto/billers.dto';
 
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, RolesGuard)
 @Controller('billers')
 export class BillersController {
   constructor(private readonly billersService: BillersService) {}
 
   @Post()
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
   async create(
     @Body() createBillerDto: CreateBillerDto,
-    @GetCurrentCompanyId() companyId: string,
+    @CompanyId() companyId: string,
   ): Promise<BillerResponseDto> {
     return this.billersService.create(createBillerDto, companyId);
   }
 
   @Get()
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
   async findAll(
-    @GetCurrentCompanyId() companyId: string,
+    @CompanyId() companyId: string,
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
     @Query('search') search?: string,
@@ -55,17 +60,19 @@ export class BillersController {
   }
 
   @Get('stats')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
   async getStats(
-    @GetCurrentCompanyId() companyId: string,
+    @CompanyId() companyId: string,
   ): Promise<BillerStatsDto> {
     return this.billersService.getStats(companyId);
   }
 
   @Get('check-code')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
   async checkCodeAvailability(
     @Query('code') code: string,
     @Query('excludeId') excludeId: string | undefined,
-    @GetCurrentCompanyId() companyId: string,
+    @CompanyId() companyId: string,
   ): Promise<{ available: boolean }> {
     return this.billersService.checkCodeAvailability(
       code,
@@ -75,26 +82,29 @@ export class BillersController {
   }
 
   @Get(':id')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
   async findOne(
     @Param('id') id: string,
-    @GetCurrentCompanyId() companyId: string,
+    @CompanyId() companyId: string,
   ): Promise<BillerResponseDto> {
     return this.billersService.findOne(id, companyId);
   }
 
   @Put(':id')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
   async update(
     @Param('id') id: string,
     @Body() updateBillerDto: UpdateBillerDto,
-    @GetCurrentCompanyId() companyId: string,
+    @CompanyId() companyId: string,
   ): Promise<BillerResponseDto> {
     return this.billersService.update(id, updateBillerDto, companyId);
   }
 
   @Delete(':id')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
   async remove(
     @Param('id') id: string,
-    @GetCurrentCompanyId() companyId: string,
+    @CompanyId() companyId: string,
   ): Promise<{ message: string }> {
     return this.billersService.remove(id, companyId);
   }
