@@ -94,12 +94,16 @@ export class ProductService {
       }
 
       // Create product with companyId (Golden Rule applied)
-      const { type, ...restProductData } = productData;
+      const { type, manufacturedDate, expiryDate, ...restProductData } = productData;
+      const dateData: Record<string, Date> = {};
+      if (manufacturedDate) dateData.manufacturedDate = new Date(manufacturedDate);
+      if (expiryDate) dateData.expiryDate = new Date(expiryDate);
       const product = await this.prisma.product.create({
         data: {
           sku,
           type: type || 'STANDARD',
           ...restProductData,
+          ...dateData,
           categoryId: categoryRecord.id,
           brandId: brandRecord?.id || null,
           companyId,
@@ -346,8 +350,10 @@ export class ProductService {
     }
 
     try {
-      const { category, brand, stock, comboItems, ...productData } = updateProductDto;
+      const { category, brand, stock, comboItems, manufacturedDate, expiryDate, ...productData } = updateProductDto;
       const updateData: any = { ...productData };
+      if (manufacturedDate !== undefined) updateData.manufacturedDate = manufacturedDate ? new Date(manufacturedDate) : null;
+      if (expiryDate !== undefined) updateData.expiryDate = expiryDate ? new Date(expiryDate) : null;
 
       if (category !== undefined) {
         let categoryRecord = await this.prisma.productCategory.findUnique({
@@ -774,6 +780,12 @@ export class ProductService {
       unit: product.unit || 'pcs',
       imageUrl: product.imageUrl || null,
       barcodeSymbology: product.barcodeSymbology || 'CODE128',
+      subCategory: product.subCategory || null,
+      itemCode: product.itemCode || null,
+      manufacturer: product.manufacturer || null,
+      warranty: product.warranty || null,
+      manufacturedDate: product.manufacturedDate ? product.manufacturedDate.toISOString() : null,
+      expiryDate: product.expiryDate ? product.expiryDate.toISOString() : null,
       taxRate: Number(product.taxRate || 0),
       alertQuantity: product.alertQuantity || 0,
       salePrice: Number(product.salePrice),
@@ -800,6 +812,12 @@ export class ProductService {
               unit: v.unit || 'pcs',
               imageUrl: v.imageUrl || null,
               barcodeSymbology: v.barcodeSymbology || 'CODE128',
+              subCategory: v.subCategory || null,
+              itemCode: v.itemCode || null,
+              manufacturer: v.manufacturer || null,
+              warranty: v.warranty || null,
+              manufacturedDate: v.manufacturedDate ? v.manufacturedDate.toISOString() : null,
+              expiryDate: v.expiryDate ? v.expiryDate.toISOString() : null,
               taxRate: Number(v.taxRate || 0),
               alertQuantity: v.alertQuantity || 0,
               salePrice: Number(v.salePrice),

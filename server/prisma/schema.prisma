@@ -277,6 +277,12 @@ model Product {
   purchaseReturnItems  PurchaseReturnItem[]
   stockAdjustmentItems StockAdjustmentItem[]
   stockLedgerEntries   StockLedger[]
+  subCategory          String?
+  itemCode             String?
+  manufacturer         String?
+  warranty             String?
+  manufacturedDate     DateTime?
+  expiryDate           DateTime?
 
   @@unique([companyId, sku]) // Ensures SKU is unique only within a company
   @@map("products")

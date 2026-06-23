@@ -13,10 +13,16 @@ export class ProductResponseDto {
   sku: string;
   description?: string;
   category: string;
+  subCategory?: string | null;
   brand?: string;
   unit: string;
   imageUrl?: string | null;
   barcodeSymbology: string;
+  itemCode?: string | null;
+  manufacturer?: string | null;
+  warranty?: string | null;
+  manufacturedDate?: string | null;
+  expiryDate?: string | null;
   taxRate: number;
   alertQuantity: number;
   salePrice: number;

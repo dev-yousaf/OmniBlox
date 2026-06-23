@@ -42,6 +42,10 @@ export class CreateProductDto {
 
   @IsString()
   @IsOptional()
+  subCategory?: string;
+
+  @IsString()
+  @IsOptional()
   brand?: string;
 
   @IsString()
@@ -55,6 +59,24 @@ export class CreateProductDto {
   @IsString()
   @IsOptional()
   barcodeSymbology?: string = 'CODE128';
+
+  @IsString()
+  @IsOptional()
+  itemCode?: string;
+
+  @IsString()
+  @IsOptional()
+  manufacturer?: string;
+
+  @IsString()
+  @IsOptional()
+  warranty?: string;
+
+  @IsOptional()
+  manufacturedDate?: string;
+
+  @IsOptional()
+  expiryDate?: string;
 
   @Transform(({value}) => parseFloat(value))
   @IsNumber({maxDecimalPlaces:2})

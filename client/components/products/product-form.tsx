@@ -23,10 +23,11 @@ import Image from "next/image";
 import {
   Info,
   LifeBuoy,
-  Image as ImageIcon,
+  ImageIcon,
   List,
   CircleChevronDown,
   CirclePlus,
+  Calendar,
 } from "lucide-react";
 
 interface VariantAttribute {
@@ -56,6 +57,7 @@ interface ProductFormData {
   description: string;
   category: string;
   customCategory: string;
+  subCategory: string;
   brand: string;
   unit: string;
   imageUrl: string;
@@ -72,6 +74,11 @@ interface ProductFormData {
   barcodeSymbology: "CODE128" | "EAN13" | "UPCA" | "QR";
   taxRate: string;
   alertQuantity: string;
+  itemCode: string;
+  manufacturer: string;
+  warranty: string;
+  manufacturedDate: string;
+  expiryDate: string;
 }
 
 interface ProductFormProps {
@@ -98,6 +105,16 @@ const BARCODE_OPTIONS = [
   { value: "EAN13", label: "EAN-13" },
   { value: "UPCA", label: "UPC-A" },
   { value: "QR", label: "QR Code" },
+];
+
+const WARRANTY_OPTIONS = [
+  { value: "no_warranty", label: "No Warranty" },
+  { value: "30_days", label: "30 Days" },
+  { value: "3_months", label: "3 Months" },
+  { value: "6_months", label: "6 Months" },
+  { value: "1_year", label: "1 Year" },
+  { value: "2_years", label: "2 Years" },
+  { value: "lifetime", label: "Lifetime" },
 ];
 
 function CardSection({
@@ -170,6 +187,12 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
     const [brands, setBrands] = useState<string[]>([]);
     const [showCustomCategory, setShowCustomCategory] = useState(false);
 
+    const [customFieldsEnabled, setCustomFieldsEnabled] = useState({
+      warranties: !!initialData?.warranty,
+      manufacturer: !!initialData?.manufacturer,
+      expiry: !!initialData?.expiryDate || !!initialData?.manufacturedDate,
+    });
+
     const [attributesList, setAttributesList] = useState<VariantAttribute[]>([]);
     const [generatedVariants, setGeneratedVariants] = useState<
       GeneratedVariant[]
@@ -200,6 +223,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
       description: initialData?.description || "",
       category: initialData?.category || "",
       customCategory: "",
+      subCategory: initialData?.subCategory || "",
       brand: initialData?.brand || "",
       unit: initialData?.unit || "pcs",
       imageUrl: initialData?.imageUrl || "",
@@ -216,6 +240,11 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
       barcodeSymbology: (initialData?.barcodeSymbology as "CODE128" | "EAN13" | "UPCA" | "QR") || "CODE128",
       taxRate: initialData?.taxRate?.toString() || "",
       alertQuantity: initialData?.alertQuantity?.toString() || "",
+      itemCode: initialData?.itemCode || "",
+      manufacturer: initialData?.manufacturer || "",
+      warranty: initialData?.warranty || "",
+      manufacturedDate: initialData?.manufacturedDate || "",
+      expiryDate: initialData?.expiryDate || "",
     });
 
     useEffect(() => {
@@ -300,66 +329,42 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
     const generateVariants = () => {
       const valid = attributesList.filter((a) => a.name.trim() && a.values.trim());
       if (valid.length === 0) {
-        toast({
-          title: "Error",
-          description: "Add at least one attribute with values",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Add at least one attribute with values", variant: "destructive" });
         return;
       }
 
-      const attrNames = valid.map((a) => a.name.trim());
       const attrValues = valid.map((a) =>
         a.values.split(",").map((v) => v.trim()).filter(Boolean)
       );
 
       if (attrValues.some((v) => v.length === 0)) {
-        toast({
-          title: "Error",
-          description: "Each attribute must have at least one value",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Each attribute must have at least one value", variant: "destructive" });
         return;
       }
 
       const combos = cartesianProduct(attrValues);
 
-      const variants: GeneratedVariant[] = combos.map((combo) => {
-        const comboLabel = combo.join(" - ");
-        const skuSuffix = combo.map((v) => v.toUpperCase().replace(/\s+/g, "-")).join("-");
-        return {
-          id: crypto.randomUUID(),
-          combo: comboLabel,
-          skuSuffix,
-          salePrice: formData.salePrice,
-          costPrice: formData.costPrice,
-          stock: "0",
-        };
-      });
+      const variants: GeneratedVariant[] = combos.map((combo) => ({
+        id: crypto.randomUUID(),
+        combo: combo.join(" - "),
+        skuSuffix: combo.map((v) => v.toUpperCase().replace(/\s+/g, "-")).join("-"),
+        salePrice: formData.salePrice,
+        costPrice: formData.costPrice,
+        stock: "0",
+      }));
 
       setGeneratedVariants(variants);
 
       const attrsRecord: Record<string, string> = {};
       valid.forEach((a) => {
         attrsRecord[a.name.trim()] =
-          a.values
-            .split(",")
-            .map((v) => v.trim())
-            .filter(Boolean)
-            .join(",");
+          a.values.split(",").map((v) => v.trim()).filter(Boolean).join(",");
       });
 
-      setFormData((prev) => ({
-        ...prev,
-        attributes: JSON.stringify(attrsRecord),
-      }));
+      setFormData((prev) => ({ ...prev, attributes: JSON.stringify(attrsRecord) }));
     };
 
-    const updateVariantField = (
-      index: number,
-      field: keyof GeneratedVariant,
-      value: string
-    ) => {
+    const updateVariantField = (index: number, field: keyof GeneratedVariant, value: string) => {
       setGeneratedVariants((prev) => {
         const next = [...prev];
         next[index] = { ...next[index], [field]: value };
@@ -376,19 +381,10 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
       setComboSearching(true);
       try {
         const result = await getProducts({ search: comboSearchQuery.trim(), limit: 10 });
-        const items = (result.products || []).map((p) => ({
-          id: p.id,
-          name: p.name,
-          sku: p.sku,
-        }));
-        setComboSearchResults(items);
+        setComboSearchResults((result.products || []).map((p) => ({ id: p.id, name: p.name, sku: p.sku })));
       } catch (error) {
         console.error("Failed to search products:", error);
-        toast({
-          title: "Error",
-          description: "Failed to search products",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Failed to search products", variant: "destructive" });
       } finally {
         setComboSearching(false);
       }
@@ -396,29 +392,16 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
 
     const addComboItem = (product: { id: string; name: string; sku: string }) => {
       if (comboItems.some((item) => item.productId === product.id)) {
-        toast({
-          title: "Info",
-          description: "Product already added to bundle",
-        });
+        toast({ title: "Info", description: "Product already added to bundle" });
         return;
       }
-      const newItem: ComboItemEntry = {
-        productId: product.id,
-        productName: product.name,
-        productSku: product.sku,
-        quantity: 1,
-      };
-      setComboItems((prev) => [...prev, newItem]);
+      setComboItems((prev) => [...prev, { productId: product.id, productName: product.name, productSku: product.sku, quantity: 1 }]);
       setComboSearchQuery("");
       setComboSearchResults([]);
     };
 
     const updateComboItemQuantity = (productId: string, quantity: number) => {
-      setComboItems((prev) =>
-        prev.map((item) =>
-          item.productId === productId ? { ...item, quantity } : item
-        )
-      );
+      setComboItems((prev) => prev.map((item) => item.productId === productId ? { ...item, quantity } : item));
     };
 
     const removeComboItem = (productId: string) => {
@@ -445,34 +428,23 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
 
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-
       if (isSubmitting) return;
       setIsSubmitting(true);
 
       try {
-        const finalCategory = showCustomCategory
-          ? formData.customCategory
-          : formData.category;
-
+        const finalCategory = showCustomCategory ? formData.customCategory : formData.category;
         if (!finalCategory.trim()) {
           toast({ title: "Error", description: "Please provide a category", variant: "destructive" });
           setIsSubmitting(false);
           return;
         }
 
-        const isDigitalOrService =
-          formData.type === "DIGITAL" || formData.type === "SERVICE";
+        const isDigitalOrService = formData.type === "DIGITAL" || formData.type === "SERVICE";
         const isCombo = formData.type === "COMBO";
 
         let attributesRecord: Record<string, string> | undefined;
         if (formData.hasVariants) {
-          try {
-            attributesRecord = formData.attributes
-              ? JSON.parse(formData.attributes)
-              : undefined;
-          } catch {
-            attributesRecord = undefined;
-          }
+          try { attributesRecord = formData.attributes ? JSON.parse(formData.attributes) : undefined; } catch { attributesRecord = undefined; }
         }
 
         const productData: Record<string, unknown> = {
@@ -480,35 +452,30 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
           sku: formData.sku,
           description: formData.description || undefined,
           category: finalCategory,
+          subCategory: customFieldsEnabled.warranties ? formData.subCategory || undefined : undefined,
           brand: formData.brand || undefined,
           unit: formData.unit,
           imageUrl: formData.imageUrl || undefined,
           type: formData.type,
+          itemCode: formData.itemCode || undefined,
+          manufacturer: customFieldsEnabled.manufacturer ? formData.manufacturer || undefined : undefined,
+          warranty: customFieldsEnabled.warranties ? formData.warranty || undefined : undefined,
+          manufacturedDate: customFieldsEnabled.expiry ? formData.manufacturedDate || undefined : undefined,
+          expiryDate: customFieldsEnabled.expiry ? formData.expiryDate || undefined : undefined,
           salePrice: parseFloat(formData.salePrice),
           costPrice: parseFloat(formData.costPrice),
-          stock: isDigitalOrService || isCombo
-            ? undefined
-            : parseInt(formData.stock),
-          reorderLevel: isDigitalOrService || isCombo
-            ? undefined
-            : parseInt(formData.reorderLevel),
-          alertQuantity: formData.alertQuantity
-            ? parseInt(formData.alertQuantity)
-            : undefined,
+          stock: isDigitalOrService || isCombo ? undefined : parseInt(formData.stock),
+          reorderLevel: isDigitalOrService || isCombo ? undefined : parseInt(formData.reorderLevel),
+          alertQuantity: formData.alertQuantity ? parseInt(formData.alertQuantity) : undefined,
           barcodeSymbology: formData.barcodeSymbology,
-          taxRate: formData.taxRate
-            ? parseFloat(formData.taxRate)
-            : undefined,
+          taxRate: formData.taxRate ? parseFloat(formData.taxRate) : undefined,
           status: formData.status,
           hasVariants: formData.hasVariants || undefined,
           attributes: attributesRecord,
         };
 
         if (isCombo && comboItems.length > 0) {
-          productData.comboItems = comboItems.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-          }));
+          productData.comboItems = comboItems.map((item) => ({ productId: item.productId, quantity: item.quantity }));
         }
 
         if (isEdit && productId) {
@@ -522,66 +489,65 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
         if (onSuccess) onSuccess();
         else router.push("/products");
       } catch (error: any) {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to save product",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: error.message || "Failed to save product", variant: "destructive" });
       } finally {
         setIsSubmitting(false);
       }
     };
 
-    const showInventoryFields =
-      formData.type === "STANDARD" || formData.type === "COMBO";
-
     return (
       <form ref={ref} onSubmit={handleSubmit} className="space-y-5">
         {/* Product Information */}
-        <CardSection
-          icon={<Info className="h-4 w-4" />}
-          title="Product Information"
-        >
+        <CardSection icon={<Info className="h-4 w-4" />} title="Product Information">
           <div className="space-y-4">
-            {/* Row 1: Product Name | SKU */}
             <div className="flex gap-4">
               <FormField label="Product Name" required className="flex-1">
-                <Input
-                  placeholder="Enter product name"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                  required
-                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]"
-                />
+                <Input placeholder="Enter product name" value={formData.name}
+                  onChange={(e) => handleInputChange("name", e.target.value)} required
+                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
               </FormField>
+              <FormField label="Slug" className="flex-1">
+                <Input placeholder="product-name" value={formData.sku}
+                  onChange={(e) => handleInputChange("description", e.target.value)}
+                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+              </FormField>
+            </div>
+
+            <div className="flex gap-4">
               <FormField label="SKU" required className="flex-1">
                 <div className="flex gap-2">
-                  <Input
-                    placeholder="PRD-001"
-                    value={formData.sku}
-                    onChange={(e) => handleInputChange("sku", e.target.value)}
-                    required
-                    className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px] flex-1"
-                  />
-                  <button
-                    type="button"
-                    onClick={generateSku}
-                    className="h-[38px] px-3 rounded-[5px] text-[11px] font-medium text-white bg-[#fe9f43] hover:bg-[#fe9f43]/90 shrink-0"
-                  >
+                  <Input placeholder="PRD-001" value={formData.sku}
+                    onChange={(e) => handleInputChange("sku", e.target.value)} required
+                    className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px] flex-1" />
+                  <button type="button" onClick={generateSku}
+                    className="h-[38px] px-3 rounded-[5px] text-[11px] font-medium text-white bg-[#fe9f43] hover:bg-[#fe9f43]/90 shrink-0">
                     Generate
                   </button>
                 </div>
               </FormField>
+              <FormField label="Selling Type" required className="flex-1">
+                <Select value={formData.type}
+                  onValueChange={(value: "STANDARD" | "DIGITAL" | "SERVICE" | "COMBO") =>
+                    setFormData((prev) => ({ ...prev, type: value }))
+                  }
+                  disabled={isEdit}>
+                  <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="STANDARD">Standard</SelectItem>
+                    <SelectItem value="DIGITAL">Digital</SelectItem>
+                    <SelectItem value="SERVICE">Service</SelectItem>
+                    <SelectItem value="COMBO">Combo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormField>
             </div>
 
-            {/* Row 2: Category | Brand */}
             <div className="flex gap-4">
               <FormField label="Category" required className="flex-1">
                 <div>
-                  <Select
-                    value={formData.category}
-                    onValueChange={(value) => handleInputChange("category", value)}
-                  >
+                  <Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)}>
                     <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
@@ -597,34 +563,30 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                   </button>
                 </div>
               </FormField>
+              <FormField label="Sub Category" className="flex-1">
+                <Input placeholder="e.g. Electronics > Phones" value={formData.subCategory}
+                  onChange={(e) => handleInputChange("subCategory", e.target.value)}
+                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+              </FormField>
+            </div>
+
+            <div className="flex gap-4">
               <FormField label="Brand" required className="flex-1">
-                <Select
-                  value={formData.brand}
-                  onValueChange={(value) => handleInputChange("brand", value)}
-                >
+                <Select value={formData.brand} onValueChange={(value) => handleInputChange("brand", value)}>
                   <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    {brands.length > 0 ? (
-                      brands.map((b) => (
-                        <SelectItem key={b} value={b}>{b}</SelectItem>
-                      ))
-                    ) : (
+                    {brands.length > 0 ? brands.map((b) => (
+                      <SelectItem key={b} value={b}>{b}</SelectItem>
+                    )) : (
                       <SelectItem value="__no_brands" disabled>No brands available</SelectItem>
                     )}
                   </SelectContent>
                 </Select>
               </FormField>
-            </div>
-
-            {/* Row 3: Unit | Barcode Symbology */}
-            <div className="flex gap-4">
               <FormField label="Unit" required className="flex-1">
-                <Select
-                  value={formData.unit}
-                  onValueChange={(value) => handleInputChange("unit", value)}
-                >
+                <Select value={formData.unit} onValueChange={(value) => handleInputChange("unit", value)}>
                   <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
@@ -635,13 +597,17 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                   </SelectContent>
                 </Select>
               </FormField>
+            </div>
+
+            <div className="flex gap-4">
+              <FormField label="Item Code" className="flex-1">
+                <Input placeholder="Alternative product code" value={formData.itemCode}
+                  onChange={(e) => handleInputChange("itemCode", e.target.value)}
+                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+              </FormField>
               <FormField label="Barcode Symbology" required className="flex-1">
-                <Select
-                  value={formData.barcodeSymbology}
-                  onValueChange={(value) =>
-                    handleInputChange("barcodeSymbology", value as "CODE128" | "EAN13" | "UPCA" | "QR")
-                  }
-                >
+                <Select value={formData.barcodeSymbology}
+                  onValueChange={(value) => handleInputChange("barcodeSymbology", value as "CODE128" | "EAN13" | "UPCA" | "QR")}>
                   <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
@@ -654,26 +620,19 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
               </FormField>
             </div>
 
-            {/* Description */}
             <FormField label="Description">
-              <Textarea
-                placeholder="Enter product description"
-                value={formData.description}
+              <Textarea placeholder="Enter product description" value={formData.description}
                 onChange={(e) => handleInputChange("description", e.target.value)}
-                rows={4}
-                className="rounded-[5px] text-[14px] resize-none"
-              />
+                rows={6}
+                className="rounded-[5px] text-[14px] resize-none min-h-[140px]" />
+              <p className="text-[13px] text-muted-foreground">Maximum 60 Words</p>
             </FormField>
           </div>
         </CardSection>
 
         {/* Pricing & Stocks */}
-        <CardSection
-          icon={<LifeBuoy className="h-4 w-4" />}
-          title="Pricing & Stocks"
-        >
+        <CardSection icon={<LifeBuoy className="h-4 w-4" />} title="Pricing & Stocks">
           <div className="space-y-4">
-            {/* Product Type radio */}
             <div>
               <Label className="text-[14px] font-medium text-[#212b36] dark:text-card-foreground leading-[21px] mb-2 block">
                 Product Type
@@ -685,7 +644,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                     name="productType"
                     checked={!formData.hasVariants}
                     onChange={() => handleVariantToggle(false)}
-                    className="accent-[#fe9f43] w-4 h-4"
+                    className="appearance-none w-4 h-4 rounded-full border-2 border-[#e6eaed] checked:border-[#fe9f43] checked:bg-[#fe9f43] relative checked:after:content-[''] checked:after:block checked:after:w-1.5 checked:after:h-1.5 checked:after:bg-white checked:after:rounded-full checked:after:absolute checked:after:top-1/2 checked:after:left-1/2 checked:after:-translate-x-1/2 checked:after:-translate-y-1/2"
                   />
                   <span className="text-[14px] text-[#212b36] dark:text-card-foreground">Single Product</span>
                 </label>
@@ -695,107 +654,63 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                     name="productType"
                     checked={formData.hasVariants}
                     onChange={() => handleVariantToggle(true)}
-                    className="accent-[#fe9f43] w-4 h-4"
+                    className="appearance-none w-4 h-4 rounded-full border-2 border-[#e6eaed] checked:border-[#fe9f43] checked:bg-[#fe9f43] relative checked:after:content-[''] checked:after:block checked:after:w-1.5 checked:after:h-1.5 checked:after:bg-white checked:after:rounded-full checked:after:absolute checked:after:top-1/2 checked:after:left-1/2 checked:after:-translate-x-1/2 checked:after:-translate-y-1/2"
                   />
                   <span className="text-[14px] text-[#212b36] dark:text-card-foreground">Variable Product</span>
                 </label>
               </div>
             </div>
 
-            {/* Row 1: Sale Price | Cost Price | Tax Rate */}
             <div className="flex gap-4">
-              <FormField label="Sale Price" required className="flex-1">
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={formData.salePrice}
-                  onChange={(e) => handleInputChange("salePrice", e.target.value)}
-                  required
-                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]"
-                />
-              </FormField>
-              <FormField label="Cost Price" className="flex-1">
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={formData.costPrice}
-                  onChange={(e) => handleInputChange("costPrice", e.target.value)}
-                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]"
-                />
-              </FormField>
-              <FormField label="Tax Rate (%)" className="flex-1">
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={formData.taxRate}
-                  onChange={(e) => handleInputChange("taxRate", e.target.value)}
-                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]"
-                />
-              </FormField>
-            </div>
-
-            {/* Row 2: Stock Qty | Reorder Level | Alert Qty */}
-            <div className="flex gap-4">
-              <FormField label="Stock Quantity" className="flex-1">
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={formData.stock}
+              <FormField label="Quantity" required className="flex-1">
+                <Input type="number" placeholder="0" value={formData.stock}
                   onChange={(e) => handleInputChange("stock", e.target.value)}
-                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]"
-                />
+                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
               </FormField>
-              <FormField label="Reorder Level" className="flex-1">
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={formData.reorderLevel}
-                  onChange={(e) => handleInputChange("reorderLevel", e.target.value)}
-                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]"
-                />
+              <FormField label="Price" required className="flex-1">
+                <Input type="number" step="0.01" placeholder="0.00" value={formData.salePrice}
+                  onChange={(e) => handleInputChange("salePrice", e.target.value)} required
+                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
               </FormField>
-              <FormField label="Alert Quantity" className="flex-1">
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={formData.alertQuantity}
-                  onChange={(e) => handleInputChange("alertQuantity", e.target.value)}
-                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]"
-                />
-              </FormField>
-            </div>
-
-            {/* Type & Status - moved from right column */}
-            <div className="flex gap-4 pt-2">
-              <FormField label="Product Type" className="flex-1">
-                <Select
-                  value={formData.type}
-                  onValueChange={(value: "STANDARD" | "DIGITAL" | "SERVICE" | "COMBO") =>
-                    setFormData((prev) => ({ ...prev, type: value }))
-                  }
-                  disabled={isEdit}
-                >
+              <FormField label="Tax Type" required className="flex-1">
+                <Select value={formData.taxRate || "0"} onValueChange={(value) => handleInputChange("taxRate", value)}>
                   <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
-                    <SelectValue placeholder="Select type" />
+                    <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="STANDARD">Standard</SelectItem>
-                    <SelectItem value="DIGITAL">Digital</SelectItem>
-                    <SelectItem value="SERVICE">Service</SelectItem>
-                    <SelectItem value="COMBO">Combo</SelectItem>
+                    <SelectItem value="0">No Tax</SelectItem>
+                    <SelectItem value="5">5%</SelectItem>
+                    <SelectItem value="10">10%</SelectItem>
+                    <SelectItem value="12">12%</SelectItem>
+                    <SelectItem value="18">18%</SelectItem>
+                    <SelectItem value="20">20%</SelectItem>
                   </SelectContent>
                 </Select>
               </FormField>
+            </div>
+
+            <div className="flex gap-4">
+              <FormField label="Reorder Level" className="flex-1">
+                <Input type="number" placeholder="0" value={formData.reorderLevel}
+                  onChange={(e) => handleInputChange("reorderLevel", e.target.value)}
+                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+              </FormField>
+              <FormField label="Cost Price" className="flex-1">
+                <Input type="number" step="0.01" placeholder="0.00" value={formData.costPrice}
+                  onChange={(e) => handleInputChange("costPrice", e.target.value)}
+                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+              </FormField>
+              <FormField label="Quantity Alert" className="flex-1">
+                <Input type="number" placeholder="0" value={formData.alertQuantity}
+                  onChange={(e) => handleInputChange("alertQuantity", e.target.value)}
+                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+              </FormField>
+            </div>
+
+            <div className="flex gap-4 pt-2">
               <FormField label="Status" className="flex-1">
-                <Select
-                  value={formData.status}
-                  onValueChange={(value: "ACTIVE" | "INACTIVE" | "DISCONTINUED") =>
-                    handleInputChange("status", value)
-                  }
-                >
+                <Select value={formData.status}
+                  onValueChange={(value: "ACTIVE" | "INACTIVE" | "DISCONTINUED") => handleInputChange("status", value)}>
                   <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
                     <SelectValue />
                   </SelectTrigger>
@@ -806,108 +721,119 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                   </SelectContent>
                 </Select>
               </FormField>
+              <div className="flex-1" />
+              <div className="flex-1" />
             </div>
           </div>
         </CardSection>
 
         {/* Images */}
-        <CardSection
-          icon={<ImageIcon className="h-4 w-4" />}
-          title="Images"
-        >
+        <CardSection icon={<ImageIcon className="h-4 w-4" />} title="Images">
           <div className="flex gap-4 flex-wrap">
             <label className="flex flex-col items-center justify-center w-[120px] h-[120px] border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-[#fe9f43] transition-colors bg-muted/30">
               <CirclePlus className="h-4 w-4 text-muted-foreground mb-1" />
               <span className="text-[12px] text-muted-foreground">Add Image</span>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImageSelect}
-              />
+              <input type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
             </label>
             {imagePreview && (
               <div className="relative w-[120px] h-[120px] rounded-lg overflow-hidden border border-border">
-                <Image
-                  src={imagePreview}
-                  alt="Preview"
-                  fill
-                  className="object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => { setImagePreview(null); handleInputChange("imageUrl", ""); }}
-                  className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 flex items-center justify-center text-[11px]"
-                >
-                  X
-                </button>
+                <Image src={imagePreview} alt="Preview" fill className="object-cover" />
+                <button type="button" onClick={() => { setImagePreview(null); handleInputChange("imageUrl", ""); }}
+                  className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 flex items-center justify-center text-[11px]">X</button>
               </div>
             )}
           </div>
         </CardSection>
 
         {/* Custom Fields */}
-        <CardSection
-          icon={<List className="h-4 w-4" />}
-          title="Custom Fields"
-        >
+        <CardSection icon={<List className="h-4 w-4" />} title="Custom Fields">
           <div className="space-y-4">
             <div className="flex items-center gap-6 flex-wrap">
               <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox checked={false} onCheckedChange={() => {}} />
+                <Checkbox checked={customFieldsEnabled.warranties}
+                  onCheckedChange={(checked) => setCustomFieldsEnabled((prev) => ({ ...prev, warranties: checked === true }))} />
                 <span className="text-[14px] text-[#212b36] dark:text-card-foreground">Warranties</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox checked={false} onCheckedChange={() => {}} />
+                <Checkbox checked={customFieldsEnabled.manufacturer}
+                  onCheckedChange={(checked) => setCustomFieldsEnabled((prev) => ({ ...prev, manufacturer: checked === true }))} />
                 <span className="text-[14px] text-[#212b36] dark:text-card-foreground">Manufacturer</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox checked={false} onCheckedChange={() => {}} />
+                <Checkbox checked={customFieldsEnabled.expiry}
+                  onCheckedChange={(checked) => setCustomFieldsEnabled((prev) => ({ ...prev, expiry: checked === true }))} />
                 <span className="text-[14px] text-[#212b36] dark:text-card-foreground">Expiry</span>
               </label>
             </div>
-            <p className="text-[13px] text-muted-foreground italic">Custom field configuration coming soon</p>
+
+            {customFieldsEnabled.warranties && (
+              <div className="flex gap-4">
+                <FormField label="Warranty" required className="flex-1">
+                  <Select value={formData.warranty} onValueChange={(value) => handleInputChange("warranty", value)}>
+                    <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {WARRANTY_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
+                <FormField label="Manufacturer" required className="flex-1">
+                  <Input placeholder="Enter manufacturer name" value={formData.manufacturer}
+                    onChange={(e) => handleInputChange("manufacturer", e.target.value)}
+                    className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+                </FormField>
+              </div>
+            )}
+
+            {customFieldsEnabled.expiry && (
+              <div className="flex gap-4">
+                <FormField label="Manufactured Date" required className="flex-1">
+                  <div className="relative">
+                    <Input type="date" value={formData.manufacturedDate}
+                      onChange={(e) => handleInputChange("manufacturedDate", e.target.value)}
+                      className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px] [color-scheme:light]" />
+                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                </FormField>
+                <FormField label="Expiry On" required className="flex-1">
+                  <div className="relative">
+                    <Input type="date" value={formData.expiryDate}
+                      onChange={(e) => handleInputChange("expiryDate", e.target.value)}
+                      className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px] [color-scheme:light]" />
+                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                </FormField>
+              </div>
+            )}
+
+            {!customFieldsEnabled.warranties && !customFieldsEnabled.manufacturer && !customFieldsEnabled.expiry && (
+              <p className="text-[13px] text-muted-foreground italic">Toggle options above to add custom fields</p>
+            )}
           </div>
         </CardSection>
 
-        {/* Combo Items (only when COMBO) */}
+        {/* Combo Items */}
         {formData.type === "COMBO" && (
-          <CardSection
-            icon={<List className="h-4 w-4" />}
-            title="Combo Items"
-          >
+          <CardSection icon={<List className="h-4 w-4" />} title="Combo Items">
             <div className="space-y-4">
               <div className="flex gap-2">
-                <Input
-                  placeholder="Search products by name or SKU..."
-                  value={comboSearchQuery}
+                <Input placeholder="Search products by name or SKU..." value={comboSearchQuery}
                   onChange={(e) => setComboSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleComboSearch();
-                    }
-                  }}
-                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-[38px] text-[13px]"
-                  onClick={handleComboSearch}
-                  disabled={comboSearching}
-                >
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleComboSearch(); } }}
+                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+                <Button type="button" variant="outline" className="h-[38px] text-[13px]"
+                  onClick={handleComboSearch} disabled={comboSearching}>
                   {comboSearching ? "..." : "Search"}
                 </Button>
               </div>
               {comboSearchResults.length > 0 && (
                 <div className="max-h-40 overflow-y-auto rounded border">
                   {comboSearchResults.map((product) => (
-                    <div
-                      key={product.id}
-                      className="flex items-center justify-between px-3 py-2 hover:bg-muted cursor-pointer"
-                      onClick={() => addComboItem(product)}
-                    >
+                    <div key={product.id} className="flex items-center justify-between px-3 py-2 hover:bg-muted cursor-pointer"
+                      onClick={() => addComboItem(product)}>
                       <div>
                         <span className="text-sm font-medium">{product.name}</span>
                         <span className="text-xs text-muted-foreground ml-2">{product.sku}</span>
@@ -928,14 +854,11 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                         <p className="text-xs text-muted-foreground">{item.productSku}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          className="w-20 h-8 text-[13px]"
-                          min={1}
+                        <Input type="number" className="w-20 h-8 text-[13px]" min={1}
                           value={item.quantity}
-                          onChange={(e) => updateComboItemQuantity(item.productId, parseInt(e.target.value) || 1)}
-                        />
-                        <Button type="button" variant="ghost" size="sm" onClick={() => removeComboItem(item.productId)}>X</Button>
+                          onChange={(e) => updateComboItemQuantity(item.productId, parseInt(e.target.value) || 1)} />
+                        <Button type="button" variant="ghost" size="sm"
+                          onClick={() => removeComboItem(item.productId)}>X</Button>
                       </div>
                     </div>
                   ))}
@@ -947,44 +870,34 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
 
         {/* Variants */}
         {!isEdit && formData.hasVariants && (
-          <CardSection
-            icon={<List className="h-4 w-4" />}
-            title="Variants"
-          >
+          <CardSection icon={<List className="h-4 w-4" />} title="Variants">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-[14px] font-medium text-[#212b36] dark:text-card-foreground">Attributes</span>
-                <Button type="button" variant="outline" size="sm" onClick={addAttribute} className="text-[12px] h-[34px]">
-                  Add Attribute
-                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={addAttribute}
+                  className="text-[12px] h-[34px]">Add Attribute</Button>
               </div>
               {attributesList.map((attr, index) => (
                 <div key={index} className="flex items-start gap-2 rounded border p-3">
                   <div className="flex-1 space-y-1">
                     <Label className="text-xs text-muted-foreground">Attribute Name</Label>
-                    <Input
-                      placeholder='e.g. "Color"'
-                      value={attr.name}
+                    <Input placeholder='e.g. "Color"' value={attr.name}
                       onChange={(e) => updateAttribute(index, "name", e.target.value)}
-                      className="h-[34px] text-[13px]"
-                    />
+                      className="h-[34px] text-[13px]" />
                   </div>
                   <div className="flex-[2] space-y-1">
                     <Label className="text-xs text-muted-foreground">Values (comma-separated)</Label>
-                    <Input
-                      placeholder='e.g. "Red, Blue, Green"'
-                      value={attr.values}
+                    <Input placeholder='e.g. "Red, Blue, Green"' value={attr.values}
                       onChange={(e) => updateAttribute(index, "values", e.target.value)}
-                      className="h-[34px] text-[13px]"
-                    />
+                      className="h-[34px] text-[13px]" />
                   </div>
-                  <Button type="button" variant="ghost" size="sm" className="mt-5" onClick={() => removeAttribute(index)}>X</Button>
+                  <Button type="button" variant="ghost" size="sm" className="mt-5"
+                    onClick={() => removeAttribute(index)}>X</Button>
                 </div>
               ))}
               {attributesList.length > 0 && (
-                <Button type="button" variant="secondary" onClick={generateVariants} className="text-[13px]">
-                  Generate Variants
-                </Button>
+                <Button type="button" variant="secondary" onClick={generateVariants}
+                  className="text-[13px]">Generate Variants</Button>
               )}
               {generatedVariants.length > 0 && (
                 <div className="overflow-x-auto rounded border">
@@ -1003,11 +916,19 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                       {generatedVariants.map((variant, index) => (
                         <tr key={variant.id} className="border-b">
                           <td className="px-3 py-2 text-xs">{variant.combo}</td>
-                          <td className="px-3 py-2"><Input className="h-8 text-xs" value={variant.skuSuffix} onChange={(e) => updateVariantField(index, "skuSuffix", e.target.value)} /></td>
-                          <td className="px-3 py-2"><Input type="number" step="0.01" className="h-8 text-xs w-24" value={variant.salePrice} onChange={(e) => updateVariantField(index, "salePrice", e.target.value)} /></td>
-                          <td className="px-3 py-2"><Input type="number" step="0.01" className="h-8 text-xs w-24" value={variant.costPrice} onChange={(e) => updateVariantField(index, "costPrice", e.target.value)} /></td>
-                          <td className="px-3 py-2"><Input type="number" className="h-8 text-xs w-20" value={variant.stock} onChange={(e) => updateVariantField(index, "stock", e.target.value)} /></td>
-                          <td className="px-3 py-2"><Button type="button" variant="ghost" size="sm" className="h-8 w-8" onClick={() => removeVariant(index)}>X</Button></td>
+                          <td className="px-3 py-2"><Input className="h-8 text-xs" value={variant.skuSuffix}
+                            onChange={(e) => updateVariantField(index, "skuSuffix", e.target.value)} /></td>
+                          <td className="px-3 py-2"><Input type="number" step="0.01" className="h-8 text-xs w-24"
+                            value={variant.salePrice}
+                            onChange={(e) => updateVariantField(index, "salePrice", e.target.value)} /></td>
+                          <td className="px-3 py-2"><Input type="number" step="0.01" className="h-8 text-xs w-24"
+                            value={variant.costPrice}
+                            onChange={(e) => updateVariantField(index, "costPrice", e.target.value)} /></td>
+                          <td className="px-3 py-2"><Input type="number" className="h-8 text-xs w-20"
+                            value={variant.stock}
+                            onChange={(e) => updateVariantField(index, "stock", e.target.value)} /></td>
+                          <td className="px-3 py-2"><Button type="button" variant="ghost" size="sm" className="h-8 w-8"
+                            onClick={() => removeVariant(index)}>X</Button></td>
                         </tr>
                       ))}
                     </tbody>
