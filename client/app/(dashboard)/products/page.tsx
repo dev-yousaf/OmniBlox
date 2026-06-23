@@ -234,25 +234,25 @@ export default function ProductsPage() {
     <div className="space-y-0">
       {/* Page Info */}
       <div className="flex items-center justify-between h-[48px] mb-4">
-        <div className="flex items-center gap-2 text-sm text-[#646b72]">
-          <Link href="/dashboard" className="hover:text-[#212b36]">Inventory</Link>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Link href="/dashboard" className="hover:text-foreground">Inventory</Link>
           <span>/</span>
-          <span className="text-[#212b36] font-medium">Products</span>
+          <span className="text-foreground font-medium">Products</span>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-[1px]">
-            <button className="flex items-center justify-center w-5 h-5 text-[#646b72] hover:text-[#212b36]" onClick={handleExportCsv} title="Export PDF">
+            <button className="flex items-center justify-center w-5 h-5 text-red-500 hover:text-red-600" onClick={handleExportCsv} title="Export PDF">
               <FileText className="w-full h-full" />
             </button>
-            <button className="flex items-center justify-center w-5 h-5 text-[#646b72] hover:text-[#212b36]" onClick={handleExportExcel} title="Export Excel">
+            <button className="flex items-center justify-center w-5 h-5 text-green-600 hover:text-green-700" onClick={handleExportExcel} title="Export Excel">
               <FileSpreadsheet className="w-full h-full" />
             </button>
           </div>
           <div className="flex items-center gap-[1px]">
-            <button className="flex items-center justify-center w-4 h-4 text-[#646b72] hover:text-[#212b36]" onClick={loadProducts} title="Refresh">
+            <button className="flex items-center justify-center w-4 h-4 text-muted-foreground hover:text-foreground" onClick={loadProducts} title="Refresh">
               <RefreshCw className="w-full h-full" />
             </button>
-            <button className="flex items-center justify-center w-4 h-4 text-[#646b72] hover:text-[#212b36]" title="Collapse">
+            <button className="flex items-center justify-center w-4 h-4 text-muted-foreground hover:text-foreground" title="Collapse">
               <Minus className="w-full h-full" />
             </button>
           </div>
@@ -279,7 +279,7 @@ export default function ProductsPage() {
       {/* Import Dialog */}
       {importDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl">
+          <div className="w-full max-w-2xl rounded-lg bg-card text-card-foreground p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold">Import Products from CSV</h2>
               <Button variant="ghost" size="sm" onClick={() => { setImportDialogOpen(false); setImportPreview(null); setImportResult(null); }}>X</Button>
@@ -339,24 +339,24 @@ export default function ProductsPage() {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-[#f9fafb]">
+              <TableRow className="bg-muted/50">
                 <TableHead className="w-[60px]">
                   <Checkbox checked={selectedIds.length === products.length && products.length > 0} onCheckedChange={toggleSelectAll} />
                 </TableHead>
-                <TableHead className="w-[79px] text-[12px] font-semibold text-[#646b72]">
+                <TableHead className="w-[79px] text-[12px] font-semibold text-muted-foreground">
                   <div className="flex items-center gap-1">
                     SKU
-                    <ChevronDown className="h-3 w-3 text-[#646b72]" />
+                    <ChevronDown className="h-3 w-3 text-muted-foreground" />
                   </div>
                 </TableHead>
-                <TableHead className="w-[212px] text-[12px] font-semibold text-[#646b72]">Product Name</TableHead>
-                <TableHead className="w-[109px] text-[12px] font-semibold text-[#646b72]">Category</TableHead>
-                <TableHead className="w-[133px] text-[12px] font-semibold text-[#646b72]">Brand</TableHead>
-                <TableHead className="w-[81px] text-[12px] font-semibold text-[#646b72]">Price</TableHead>
-                <TableHead className="w-[72px] text-[12px] font-semibold text-[#646b72]">Unit</TableHead>
-                <TableHead className="w-[82px] text-[12px] font-semibold text-[#646b72]">Quantity</TableHead>
-                <TableHead className="w-[171px] text-[12px] font-semibold text-[#646b72]">Created By</TableHead>
-                <TableHead className="w-[141px] text-[12px] font-semibold text-[#646b72] text-right">Action</TableHead>
+                <TableHead className="w-[212px] text-[12px] font-semibold text-muted-foreground">Product Name</TableHead>
+                <TableHead className="w-[109px] text-[12px] font-semibold text-muted-foreground">Category</TableHead>
+                <TableHead className="w-[133px] text-[12px] font-semibold text-muted-foreground">Brand</TableHead>
+                <TableHead className="w-[81px] text-[12px] font-semibold text-muted-foreground">Price</TableHead>
+                <TableHead className="w-[72px] text-[12px] font-semibold text-muted-foreground">Unit</TableHead>
+                <TableHead className="w-[82px] text-[12px] font-semibold text-muted-foreground">Quantity</TableHead>
+                <TableHead className="w-[171px] text-[12px] font-semibold text-muted-foreground">Created By</TableHead>
+                <TableHead className="w-[141px] text-[12px] font-semibold text-muted-foreground text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -364,7 +364,7 @@ export default function ProductsPage() {
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
                     {Array.from({ length: 10 }).map((_, j) => (
-                      <TableCell key={j}><div className="h-4 bg-gray-100 rounded animate-pulse" /></TableCell>
+                      <TableCell key={j}><div className="h-4 bg-muted rounded animate-pulse" /></TableCell>
                     ))}
                   </TableRow>
                 ))
@@ -376,40 +376,40 @@ export default function ProductsPage() {
                 </TableRow>
               ) : (
                 products.map((product) => (
-                  <TableRow key={product.id} className="hover:bg-[#f9fafb]">
+                  <TableRow key={product.id}>
                     <TableCell>
                       <Checkbox checked={selectedIds.includes(product.id)} onCheckedChange={() => toggleSelect(product.id)} />
                     </TableCell>
-                    <TableCell className="font-mono text-[13px] text-[#212b36]">{product.sku}</TableCell>
+                    <TableCell className="font-mono text-[13px] text-foreground">{product.sku}</TableCell>
                     <TableCell>
                       <Link href={`/products/${product.id}`} className="flex items-center gap-3 hover:underline">
-                        <div className="w-[30px] h-[30px] rounded-lg bg-[#f4f6f8] flex items-center justify-center shrink-0 overflow-hidden">
+                        <div className="w-[30px] h-[30px] rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
                           {product.imageUrl ? (
                             <img src={product.imageUrl} alt="" className="w-full h-full object-cover" />
                           ) : (
-                            <ImageIcon className="h-4 w-4 text-[#646b72]" />
+                            <ImageIcon className="h-4 w-4 text-muted-foreground" />
                           )}
                         </div>
-                        <span className="text-[13px] font-medium text-[#212b36]">{product.name}</span>
+                        <span className="text-[13px] font-medium text-foreground">{product.name}</span>
                       </Link>
                     </TableCell>
-                    <TableCell><span className="text-[13px] text-[#212b36]">{product.category}</span></TableCell>
-                    <TableCell><span className="text-[13px] text-[#212b36]">{product.brand || "-"}</span></TableCell>
-                    <TableCell className="text-[13px] text-[#212b36]">${product.salePrice.toFixed(2)}</TableCell>
-                    <TableCell className="text-[13px] text-[#212b36]">{product.unit}</TableCell>
-                    <TableCell className="text-[13px] text-[#212b36]">{product.stock}</TableCell>
+                    <TableCell><span className="text-[13px] text-foreground">{product.category}</span></TableCell>
+                    <TableCell><span className="text-[13px] text-foreground">{product.brand || "-"}</span></TableCell>
+                    <TableCell className="text-[13px] text-foreground">${product.salePrice.toFixed(2)}</TableCell>
+                    <TableCell className="text-[13px] text-foreground">{product.unit}</TableCell>
+                    <TableCell className="text-[13px] text-foreground">{product.stock}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <div className="w-[30px] h-[30px] rounded-full bg-[#f4f6f8] flex items-center justify-center shrink-0 overflow-hidden">
+                        <div className="w-[30px] h-[30px] rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
                           {product.createdBy?.image ? (
                             <img src={product.createdBy.image} alt="" className="w-full h-full object-cover" />
                           ) : (
-                            <span className="text-[11px] font-medium text-[#646b72]">
+                            <span className="text-[11px] font-medium text-muted-foreground">
                               {product.createdBy?.name?.charAt(0).toUpperCase() || "U"}
                             </span>
                           )}
                         </div>
-                        <span className="text-[13px] text-[#212b36]">{product.createdBy?.name || "—"}</span>
+                        <span className="text-[13px] text-foreground">{product.createdBy?.name || "—"}</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -459,8 +459,8 @@ export default function ProductsPage() {
             </TableBody>
           </Table>
         </div>
-        <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-[#f9fafb]">
-          <div className="text-[13px] text-[#646b72]">Page {page} of {totalPages}</div>
+        <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/50">
+          <div className="text-[13px] text-muted-foreground">Page {page} of {totalPages}</div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>Previous</Button>
             <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>Next</Button>
