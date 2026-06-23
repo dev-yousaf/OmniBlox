@@ -215,21 +215,36 @@ model Supplier {
 
 // --- MODIFIED PRODUCT & INVENTORY MODELS ---
 
+enum ProductType {
+  STANDARD
+  DIGITAL
+  SERVICE
+  COMBO
+}
+
 model Product {
   id           String        @id @default(uuid())
   name         String
   sku          String        // SKU should be unique *per company*
   description  String?
+  type         ProductType   @default(STANDARD)
   salePrice    Decimal       @db.Decimal(10, 2)
   costPrice    Decimal       @db.Decimal(10, 2)
   reorderLevel Int           @default(0)
   status       ProductStatus @default(ACTIVE)
+  hasVariants  Boolean       @default(false)
+  attributes   Json?         // Variant attributes like {"color": "Red", "size": "L"}
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
   // NEW: Link to Company
   companyId String
   company   Company @relation(fields: [companyId], references: [id])
+
+  // Variant support - self relation
+  parentId String?
+  parent   Product?  @relation("ProductVariants", fields: [parentId], references: [id])
+  variants Product[] @relation("ProductVariants")
 
   // Relations
   categoryId           String
@@ -243,9 +258,31 @@ model Product {
   salesReturnItems     SalesReturnItem[]
   purchaseReturnItems  PurchaseReturnItem[]
   stockAdjustmentItems StockAdjustmentItem[]
+  stockLedgerEntries   StockLedger[]
 
   @@unique([companyId, sku]) // Ensures SKU is unique only within a company
   @@map("products")
+}
+
+model StockLedger {
+  id        String   @id @default(uuid())
+  quantity  Int      // Change in quantity (+ for additions, - for removals)
+  balance   Int      // Running balance after this entry
+  type      String   // ADJUSTMENT, SALE, PURCHASE, RETURN, TRANSFER
+  reference String?  // Reference number or ID (sale #, PO #, etc.)
+  note      String?
+  createdAt DateTime @default(now())
+
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouseId String?
+  warehouse   Warehouse? @relation(fields: [warehouseId], references: [id])
+  userId      String?
+  user        User?      @relation(fields: [userId], references: [id])
+
+  @@index([productId])
+  @@index([productId, warehouseId])
+  @@map("stock_ledger")
 }
 
 model ProductCategory {

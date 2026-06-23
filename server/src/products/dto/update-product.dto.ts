@@ -57,4 +57,14 @@ export class UpdateProductDto {
   @IsIn(['ACTIVE', 'INACTIVE', 'DISCONTINUED'])
   @IsOptional()
   status?: ProductStatus;
+
+  @IsIn(['STANDARD', 'DIGITAL', 'SERVICE', 'COMBO'])
+  @IsOptional()
+  type?: string;
+
+  hasVariants?: boolean;
+
+  attributes?: Record<string, string>;
+
+  parentId?: string;
 }

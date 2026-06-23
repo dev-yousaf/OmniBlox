@@ -43,7 +43,7 @@ export function useStockAdjustmentService() {
   const createStockAdjustment = async (
     payload: CreateStockAdjustmentPayload
   ): Promise<StockAdjustmentResponse> => {
-    const response = await post("/stock-adjustments", payload);
+    const response = await post("/products/adjustments", payload);
     return response as StockAdjustmentResponse;
   };
 

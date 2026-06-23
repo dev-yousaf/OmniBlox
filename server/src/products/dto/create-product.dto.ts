@@ -44,14 +44,26 @@ export class CreateProductDto {
   @Transform(({ value }) => parseInt(value))
   @IsInt()
   @Min(0)
-  stock: number;
+  @IsOptional()
+  stock: number = 0;
 
   @Transform(({ value }) => parseInt(value))
   @IsInt()
   @Min(0)
-  reorderLevel: number;
+  @IsOptional()
+  reorderLevel: number = 0;
 
   @IsIn(['ACTIVE', 'INACTIVE', 'DISCONTINUED'])
   @IsOptional()
   status?: ProductStatus = 'ACTIVE' as ProductStatus;
+
+  @IsIn(['STANDARD', 'DIGITAL', 'SERVICE', 'COMBO'])
+  @IsOptional()
+  type?: string = 'STANDARD';
+
+  hasVariants?: boolean;
+
+  attributes?: Record<string, string>;
+
+  parentId?: string;
 }

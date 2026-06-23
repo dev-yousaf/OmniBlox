@@ -23,12 +23,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ArrowLeft, Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useProductApi } from "@/hooks/use-product-api";
 import { useInventoryApi, type InventoryItem } from "@/hooks/use-inventory-api";
 import { useToast } from "@/hooks/use-toast";
-import type { Product } from "@/lib/types";
+import type { Product, StockLedgerEntry } from "@/lib/types";
 import { useAuth } from "@/contexts/auth-context";
 
 export default function ProductDetailPage({
@@ -39,9 +47,11 @@ export default function ProductDetailPage({
   const { id: productId } = use(params);
   const [product, setProduct] = useState<Product | null>(null);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [variants, setVariants] = useState<Product[]>([]);
+  const [ledger, setLedger] = useState<StockLedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [inventoryLoading, setInventoryLoading] = useState(false);
-  const { getProduct, deleteProduct } = useProductApi();
+  const { getProduct, deleteProduct, getStockLedger, getVariants } = useProductApi();
   const { getProductInventory } = useInventoryApi();
   const { toast } = useToast();
   const router = useRouter();
@@ -62,8 +72,14 @@ export default function ProductDetailPage({
 
       // Load inventory data
       setInventoryLoading(true);
-      const inventoryData = await getProductInventory(productId);
+      const [inventoryData, variantsData, ledgerData] = await Promise.all([
+        getProductInventory(productId),
+        getVariants(productId),
+        getStockLedger(productId),
+      ]);
       setInventory(inventoryData);
+      setVariants(variantsData);
+      setLedger(ledgerData);
     } catch (error) {
       toast({
         title: "Error",
@@ -367,25 +383,123 @@ export default function ProductDetailPage({
 
           <Card>
             <CardHeader>
-              <CardTitle>Status</CardTitle>
+              <CardTitle>Status & Type</CardTitle>
             </CardHeader>
-            <CardContent>
-              <Badge
-                variant={
-                  product.status === "ACTIVE"
-                    ? "default"
-                    : product.status === "INACTIVE"
-                    ? "secondary"
-                    : "destructive"
-                }
-                className="capitalize"
-              >
-                {product.status.toLowerCase()}
-              </Badge>
+            <CardContent className="space-y-3">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground block mb-1">Status</label>
+                <Badge
+                  variant={
+                    product.status === "ACTIVE"
+                      ? "default"
+                      : product.status === "INACTIVE"
+                      ? "secondary"
+                      : "destructive"
+                  }
+                  className="capitalize"
+                >
+                  {product.status.toLowerCase()}
+                </Badge>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground block mb-1">Type</label>
+                <Badge variant="outline" className={
+                  product.type === "DIGITAL" ? "bg-blue-50 text-blue-700" :
+                  product.type === "SERVICE" ? "bg-green-50 text-green-700" :
+                  product.type === "COMBO" ? "bg-purple-50 text-purple-700" :
+                  "bg-gray-50 text-gray-700"
+                }>
+                  {product.type || "STANDARD"}
+                </Badge>
+              </div>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {ledger.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Stock Ledger</CardTitle>
+            <CardDescription>History of stock movements</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Quantity</TableHead>
+                  <TableHead>Balance</TableHead>
+                  <TableHead>Reference</TableHead>
+                  <TableHead>Note</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {ledger.map((entry) => (
+                  <TableRow key={entry.id}>
+                    <TableCell>{new Date(entry.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{entry.type}</Badge>
+                    </TableCell>
+                    <TableCell className={entry.quantity > 0 ? "text-green-600" : "text-red-600"}>
+                      {entry.quantity > 0 ? `+${entry.quantity}` : entry.quantity}
+                    </TableCell>
+                    <TableCell>{entry.balance}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{entry.reference || "-"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{entry.note || "-"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {variants.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Variants</CardTitle>
+            <CardDescription>Product variations ({variants.length})</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>SKU</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {variants.map((v) => (
+                  <TableRow key={v.id}>
+                    <TableCell className="font-mono text-xs">{v.sku}</TableCell>
+                    <TableCell>
+                      <Link href={`/products/${v.id}`} className="hover:underline font-medium">
+                        {v.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell>${v.salePrice.toFixed(2)}</TableCell>
+                    <TableCell>
+                      <span className={v.stock <= v.reorderLevel ? "text-warning font-semibold" : ""}>
+                        {v.stock}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={v.status === "ACTIVE" ? "default" : "secondary"}>
+                        {v.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

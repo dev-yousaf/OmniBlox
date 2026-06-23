@@ -3,6 +3,11 @@ export interface Product {
   sku: string
   name: string
   description?: string
+  type?: "STANDARD" | "DIGITAL" | "SERVICE" | "COMBO"
+  hasVariants?: boolean
+  attributes?: Record<string, string> | null
+  parentId?: string | null
+  variants?: Product[]
   category: string
   brand?: string
   salePrice: number
@@ -16,13 +21,17 @@ export interface Product {
 
 export interface StockLedgerEntry {
   id: string
-  productId: string
-  date: string
-  type: "purchase" | "sale" | "adjustment" | "transfer"
   quantity: number
   balance: number
-  reference: string
-  notes?: string
+  type: string
+  reference?: string | null
+  note?: string | null
+  createdAt: string
+  productId: string
+  warehouseId?: string | null
+  warehouse?: { id: string; name: string } | null
+  userId?: string | null
+  user?: { id: string; name: string } | null
 }
 
 export interface Invoice {

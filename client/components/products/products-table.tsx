@@ -107,6 +107,23 @@ const columns: ColumnDef<Product>[] = [
     },
   },
   {
+    accessorKey: "type",
+    header: "Type",
+    cell: ({ row }) => {
+      const type = row.getValue("type") as string;
+      return (
+        <Badge variant="outline" className={
+          type === "DIGITAL" ? "bg-blue-50 text-blue-700" :
+          type === "SERVICE" ? "bg-green-50 text-green-700" :
+          type === "COMBO" ? "bg-purple-50 text-purple-700" :
+          ""
+        }>
+          {type || "STANDARD"}
+        </Badge>
+      );
+    },
+  },
+  {
     accessorKey: "salePrice",
     header: ({ column }) => {
       return (

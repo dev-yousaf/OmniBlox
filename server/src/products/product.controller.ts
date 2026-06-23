@@ -163,6 +163,18 @@ export class ProductController {
     return this.productService.getStockAdjustment(id, companyId);
   }
 
+  @Get(':id/ledger')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
+  async getStockLedger(@Param('id') id: string, @CompanyId() companyId: string) {
+    return this.productService.getStockLedger(id, companyId);
+  }
+
+  @Get(':id/variants')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
+  async getVariants(@Param('id') id: string, @CompanyId() companyId: string) {
+    return this.productService.getVariants(id, companyId);
+  }
+
   @Get('warehouses')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async getWarehouses(@CompanyId() companyId: string) {

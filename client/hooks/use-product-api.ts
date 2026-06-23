@@ -1,6 +1,6 @@
 import { useAuthenticatedApi } from "./use-authenticated-api";
 import { useCallback } from "react";
-import type { Product } from "@/lib/types";
+import type { Product, StockLedgerEntry } from "@/lib/types";
 
 interface CreateProductData {
   name: string;
@@ -10,9 +10,13 @@ interface CreateProductData {
   brand?: string;
   salePrice: number;
   costPrice: number;
-  stock: number;
-  reorderLevel: number;
+  stock?: number;
+  reorderLevel?: number;
   status?: "ACTIVE" | "INACTIVE" | "DISCONTINUED";
+  type?: "STANDARD" | "DIGITAL" | "SERVICE" | "COMBO";
+  hasVariants?: boolean;
+  attributes?: Record<string, string>;
+  parentId?: string;
 }
 
 interface UpdateProductData extends Partial<CreateProductData> {}
@@ -123,6 +127,20 @@ export function useProductApi() {
     return get("/products/stats") as Promise<ProductStats>;
   }, [get]);
 
+  const getStockLedger = useCallback(
+    async (id: string): Promise<StockLedgerEntry[]> => {
+      return get(`/products/${id}/ledger`) as Promise<StockLedgerEntry[]>;
+    },
+    [get]
+  );
+
+  const getVariants = useCallback(
+    async (id: string): Promise<Product[]> => {
+      return get(`/products/${id}/variants`) as Promise<Product[]>;
+    },
+    [get]
+  );
+
   return {
     createProduct,
     getProducts,
@@ -135,5 +153,7 @@ export function useProductApi() {
     getBrands,
     getLowStockProducts,
     getProductStats,
+    getStockLedger,
+    getVariants,
   };
 }

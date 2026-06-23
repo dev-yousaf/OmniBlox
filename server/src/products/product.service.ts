@@ -19,7 +19,7 @@ export class ProductService {
     createProductDto: CreateProductDto,
     companyId: string,
   ): Promise<ProductResponseDto> {
-    const { sku, category, brand, stock, ...productData } = createProductDto;
+    const { sku, category, brand, stock = 0, ...productData } = createProductDto;
 
     // Check if SKU already exists within this company (Golden Rule applied)
     const existingProduct = await this.prisma.product.findUnique({
@@ -80,10 +80,12 @@ export class ProductService {
       }
 
       // Create product with companyId (Golden Rule applied)
+      const { type, ...restProductData } = productData;
       const product = await this.prisma.product.create({
         data: {
           sku,
-          ...productData,
+          type: type || 'STANDARD',
+          ...restProductData,
           categoryId: categoryRecord.id,
           brandId: brandRecord?.id || null,
           companyId, // Golden Rule: always include companyId
@@ -94,36 +96,39 @@ export class ProductService {
         },
       });
 
-      // Find a warehouse for this company (Golden Rule applied)
-      const defaultWarehouse = await this.prisma.warehouse.findFirst({
-        where: { companyId }, // Golden Rule: filter by companyId
-      });
-
-      if (!defaultWarehouse) {
-        // Create a default warehouse for this company if none exists
-        const warehouse = await this.prisma.warehouse.create({
-          data: {
-            name: 'Default Warehouse',
-            location: 'Default Location',
-            companyId, // Golden Rule: always include companyId
-          },
+      // Only create inventory for physical products (STANDARD or COMBO)
+      if (createProductDto.type !== 'DIGITAL' && createProductDto.type !== 'SERVICE') {
+        // Find a warehouse for this company (Golden Rule applied)
+        const defaultWarehouse = await this.prisma.warehouse.findFirst({
+          where: { companyId }, // Golden Rule: filter by companyId
         });
 
-        await this.prisma.inventory.create({
-          data: {
-            productId: product.id,
-            warehouseId: warehouse.id,
-            quantity: stock,
-          },
-        });
-      } else {
-        await this.prisma.inventory.create({
-          data: {
-            productId: product.id,
-            warehouseId: defaultWarehouse.id,
-            quantity: stock,
-          },
-        });
+        if (!defaultWarehouse) {
+          // Create a default warehouse for this company if none exists
+          const warehouse = await this.prisma.warehouse.create({
+            data: {
+              name: 'Default Warehouse',
+              location: 'Default Location',
+              companyId, // Golden Rule: always include companyId
+            },
+          });
+
+          await this.prisma.inventory.create({
+            data: {
+              productId: product.id,
+              warehouseId: warehouse.id,
+              quantity: stock,
+            },
+          });
+        } else {
+          await this.prisma.inventory.create({
+            data: {
+              productId: product.id,
+              warehouseId: defaultWarehouse.id,
+              quantity: stock,
+            },
+          });
+        }
       }
 
       return this.transformToDto(product, stock);
@@ -179,6 +184,17 @@ export class ProductService {
               warehouse: true,
             },
           },
+          variants: {
+            include: {
+              category: true,
+              brand: true,
+              inventory: {
+                include: {
+                  warehouse: true,
+                },
+              },
+            },
+          },
         },
       }),
       this.prisma.product.count({ where }),
@@ -209,6 +225,17 @@ export class ProductService {
         inventory: {
           include: {
             warehouse: true,
+          },
+        },
+        variants: {
+          include: {
+            category: true,
+            brand: true,
+            inventory: {
+              include: {
+                warehouse: true,
+              },
+            },
           },
         },
       },
@@ -403,6 +430,9 @@ export class ProductService {
         id,
         companyId, // Golden Rule: always filter by companyId
       },
+      include: {
+        variants: { select: { id: true } },
+      },
     });
 
     if (!existingProduct) {
@@ -414,6 +444,16 @@ export class ProductService {
         this.prisma.inventory.deleteMany({
           where: { productId: id },
         }),
+        ...(existingProduct.variants?.length
+          ? [
+              this.prisma.inventory.deleteMany({
+                where: { productId: { in: existingProduct.variants.map(v => v.id) } },
+              }),
+              this.prisma.product.deleteMany({
+                where: { parentId: id },
+              }),
+            ]
+          : []),
         this.prisma.product.delete({
           where: { id },
         }),
@@ -713,6 +753,36 @@ export class ProductService {
       stock: stock || 0, // Will be calculated from inventory
       reorderLevel: product.reorderLevel,
       status: product.status,
+      type: product.type || 'STANDARD',
+      hasVariants: product.hasVariants ?? false,
+      attributes: product.attributes || null,
+      parentId: product.parentId || null,
+      variants: product.variants
+        ? product.variants.map((v: any) => {
+            const variantStock = v.inventory
+              ? v.inventory.reduce((sum: number, inv: any) => sum + inv.quantity, 0)
+              : 0;
+            return {
+              id: v.id,
+              name: v.name,
+              sku: v.sku,
+              description: v.description,
+              category: v.category?.name || '',
+              brand: v.brand?.name || undefined,
+              salePrice: Number(v.salePrice),
+              costPrice: Number(v.costPrice),
+              stock: variantStock,
+              reorderLevel: v.reorderLevel,
+              status: v.status,
+              type: v.type || 'STANDARD',
+              hasVariants: v.hasVariants ?? false,
+              attributes: v.attributes || null,
+              parentId: v.parentId || null,
+              createdAt: v.createdAt,
+              updatedAt: v.updatedAt,
+            };
+          })
+        : undefined,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
     };
@@ -957,5 +1027,43 @@ export class ProductService {
       name: warehouse.name,
       location: warehouse.location,
     }));
+  }
+
+  async getStockLedger(productId: string, companyId: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, companyId },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    return this.prisma.stockLedger.findMany({
+      where: { productId },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      include: {
+        warehouse: { select: { id: true, name: true } },
+        user: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  async getVariants(productId: string, companyId: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, companyId },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    const variants = await this.prisma.product.findMany({
+      where: { parentId: productId, companyId },
+      include: {
+        category: true,
+        brand: true,
+        inventory: { include: { warehouse: true } },
+      },
+    });
+
+    return variants.map((v) => {
+      const totalStock = v.inventory.reduce((sum, inv) => sum + inv.quantity, 0);
+      return this.transformToDto(v, totalStock);
+    });
   }
 }

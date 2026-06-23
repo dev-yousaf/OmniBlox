@@ -33,6 +33,10 @@ interface ProductFormData {
   category: string;
   customCategory: string;
   brand: string;
+  type: "STANDARD" | "DIGITAL" | "SERVICE" | "COMBO";
+  hasVariants: boolean;
+  attributes: string;
+  parentId: string;
   salePrice: string;
   costPrice: string;
   stock: string;
@@ -81,6 +85,10 @@ export function ProductForm({
     category: initialData?.category || "",
     customCategory: "",
     brand: initialData?.brand || "",
+    type: initialData?.type || "STANDARD",
+    hasVariants: false,
+    attributes: "",
+    parentId: "",
     salePrice: initialData?.salePrice?.toString() || "",
     costPrice: initialData?.costPrice?.toString() || "",
     stock: initialData?.stock?.toString() || "",
@@ -147,16 +155,19 @@ export function ProductForm({
         return;
       }
 
+      const isDigitalOrService = formData.type === "DIGITAL" || formData.type === "SERVICE";
+
       const productData = {
         name: formData.name,
         sku: formData.sku,
         description: formData.description || undefined,
         category: finalCategory,
         brand: formData.brand || undefined,
+        type: formData.type,
         salePrice: parseFloat(formData.salePrice),
         costPrice: parseFloat(formData.costPrice),
-        stock: parseInt(formData.stock),
-        reorderLevel: parseInt(formData.reorderLevel),
+        stock: isDigitalOrService ? undefined : parseInt(formData.stock),
+        reorderLevel: isDigitalOrService ? undefined : parseInt(formData.reorderLevel),
         status: formData.status,
       };
 
@@ -276,6 +287,27 @@ export function ProductForm({
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="type">Product Type</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value: "STANDARD" | "DIGITAL" | "SERVICE" | "COMBO") =>
+                    setFormData((prev) => ({ ...prev, type: value }))
+                  }
+                  disabled={isEdit}
+                >
+                  <SelectTrigger id="type">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="STANDARD">Standard - Physical product with stock</SelectItem>
+                    <SelectItem value="DIGITAL">Digital - Downloadable product, no stock</SelectItem>
+                    <SelectItem value="SERVICE">Service - Labor/service, no stock</SelectItem>
+                    <SelectItem value="COMBO">Combo - Bundle of products</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
@@ -337,32 +369,34 @@ export function ProductForm({
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="stock">Initial Stock *</Label>
-                  <Input
-                    id="stock"
-                    type="number"
-                    placeholder="0"
-                    value={formData.stock}
-                    onChange={(e) => handleInputChange("stock", e.target.value)}
-                    required
-                  />
+              {formData.type !== "DIGITAL" && formData.type !== "SERVICE" && (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="stock">Initial Stock *</Label>
+                    <Input
+                      id="stock"
+                      type="number"
+                      placeholder="0"
+                      value={formData.stock}
+                      onChange={(e) => handleInputChange("stock", e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reorderLevel">Reorder Level *</Label>
+                    <Input
+                      id="reorderLevel"
+                      type="number"
+                      placeholder="0"
+                      value={formData.reorderLevel}
+                      onChange={(e) =>
+                        handleInputChange("reorderLevel", e.target.value)
+                      }
+                      required
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reorderLevel">Reorder Level *</Label>
-                  <Input
-                    id="reorderLevel"
-                    type="number"
-                    placeholder="0"
-                    value={formData.reorderLevel}
-                    onChange={(e) =>
-                      handleInputChange("reorderLevel", e.target.value)
-                    }
-                    required
-                  />
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>

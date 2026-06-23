@@ -61,6 +61,9 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<ProductStats | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 20;
   const { getProducts, deleteProduct, getProductStats } = useProductApi();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -74,7 +77,7 @@ export default function ProductsPage() {
   // Load products on component mount
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [page, searchQuery]);
 
   const loadProducts = async ({ showSpinner = true } = {}) => {
     try {
@@ -82,13 +85,17 @@ export default function ProductsPage() {
         setLoading(true);
       }
 
-      const statsResponse = await getProductStats();
-      const totalProductCount = Math.max(statsResponse.totalProducts, 1);
-      const productsResponse = await getProducts({
-        limit: totalProductCount,
-      });
+      const [statsResponse, productsResponse] = await Promise.all([
+        getProductStats(),
+        getProducts({
+          page,
+          limit: pageSize,
+          search: searchQuery || undefined,
+        }),
+      ]);
 
       setProducts(productsResponse.products);
+      setTotalPages(productsResponse.pages);
       setStats(statsResponse);
     } catch (error) {
       toast({
@@ -118,15 +125,6 @@ export default function ProductsPage() {
       });
     }
   };
-
-  const filteredProducts = (products || []).filter(
-    (product) =>
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (product.brand &&
-        product.brand.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
 
   const lowStockCount = stats?.lowStockCount ?? 0;
 
@@ -253,6 +251,7 @@ export default function ProductsPage() {
                 <TableHead>SKU</TableHead>
                 <TableHead>Product Name</TableHead>
                 <TableHead>Category</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead className="text-right">Price</TableHead>
                 <TableHead className="text-right">Cost</TableHead>
                 <TableHead className="text-right">Stock</TableHead>
@@ -261,7 +260,7 @@ export default function ProductsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProducts.map((product) => (
+              {products.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell className="font-mono text-xs">
                     {product.sku}
@@ -276,6 +275,16 @@ export default function ProductsPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">{product.category}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={
+                      product.type === "DIGITAL" ? "bg-blue-50 text-blue-700" :
+                      product.type === "SERVICE" ? "bg-green-50 text-green-700" :
+                      product.type === "COMBO" ? "bg-purple-50 text-purple-700" :
+                      ""
+                    }>
+                      {product.type || "STANDARD"}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     ${product.salePrice.toFixed(2)}
@@ -373,6 +382,29 @@ export default function ProductsPage() {
               ))}
             </TableBody>
           </Table>
+          <div className="flex items-center justify-between pt-4">
+            <div className="text-sm text-muted-foreground">
+              Page {page} of {totalPages}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
