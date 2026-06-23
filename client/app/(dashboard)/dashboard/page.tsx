@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -170,63 +169,67 @@ export default function DashboardPage() {
       amount: data?.totalSales ?? 0,
       change: data?.salesChange ?? 0,
       icon: DollarSign,
-      iconBg: "bg-green-100",
-      iconColor: "text-green-600",
+      iconBg: "bg-[#fe9f43]",
+      iconColor: "text-[#fe9f43]",
     },
     {
       title: "Total Sales Return",
       amount: data?.totalSalesReturn ?? 0,
       change: data?.salesReturnChange ?? 0,
       icon: ArrowDownUp,
-      iconBg: "bg-red-100",
-      iconColor: "text-red-600",
+      iconBg: "bg-[#092c4c]",
+      iconColor: "text-[#092c4c]",
     },
     {
       title: "Total Purchase",
       amount: data?.totalPurchase ?? 0,
       change: data?.purchaseChange ?? 0,
       icon: ShoppingBag,
-      iconBg: "bg-blue-100",
-      iconColor: "text-blue-600",
+      iconBg: "bg-[#0e9384]",
+      iconColor: "text-[#0e9384]",
     },
     {
       title: "Total Purchase Return",
       amount: data?.totalPurchaseReturn ?? 0,
       change: data?.purchaseReturnChange ?? 0,
       icon: RefreshCcw,
-      iconBg: "bg-yellow-100",
-      iconColor: "text-yellow-600",
+      iconBg: "bg-[#155eef]",
+      iconColor: "text-[#155eef]",
     },
   ];
 
-  const financialCards: FinancialCard[] = [
+  const financialCards: { title: string; amount: number; change: number; label: string; icon: typeof TrendingUp; iconBg: string }[] = [
     {
       title: "Profit",
       amount: data?.profit ?? 0,
       change: data?.profitChange ?? 0,
-      label: data?.profitLabel ?? "% from last month",
+      label: "vs Last Month",
       icon: TrendingUp,
+      iconBg: "bg-[#e9f8fb]",
     },
     {
       title: "Invoice Due",
       amount: data?.invoiceDue ?? 0,
       change: data?.invoiceDueChange ?? 0,
-      label: data?.invoiceDueLabel ?? "% from last month",
+      label: "vs Last Month",
       icon: FileText,
+      iconBg: "bg-[#e9f5f4]",
     },
     {
       title: "Total Expenses",
       amount: data?.totalExpenses ?? 0,
       change: data?.expensesChange ?? 0,
-      label: data?.expensesLabel ?? "% from last month",
+      label: "vs Last Month",
       icon: Receipt,
+      iconBg: "bg-[#fcefea]",
     },
     {
       title: "Total Payment Returns",
       amount: data?.totalPaymentReturns ?? 0,
       change: data?.paymentReturnsChange ?? 0,
-      label: data?.paymentReturnsLabel ?? "% from last month",
+      label: "vs Last Month",
       icon: Banknote,
+      iconBg: "bg-[#ededfb]",
     },
   ];
 
@@ -244,7 +247,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      <div className="max-w-[1440px] mx-auto px-6">
+      <div className="max-w-[1440px] mx-auto px-6 flex flex-col gap-6">
         {/* Header */}
         <div className="pt-6 pb-0 flex items-center justify-between">
           <div>
@@ -255,168 +258,164 @@ export default function DashboardPage() {
               </div>
             ) : (
               <>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Good morning, {user?.name?.split(" ")[0] ?? "User"}
+                <h1 className="text-[28px] font-bold text-[#212b36] leading-[42px]">
+                  Welcome, {user?.name?.split(" ")[0] ?? "Admin"}
                 </h1>
-                <p className="text-sm text-gray-500 mt-0.5">
-                  Here&apos;s what&apos;s happening with your store today
+                <p className="text-sm text-[#646b72]">
+                  You have <span className="font-bold text-[#fe9f43]">200+</span> Orders, Today
                 </p>
               </>
             )}
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg bg-white text-sm text-gray-700">
-            <CalendarDays className="h-4 w-4 text-gray-400" />
-            <span>Jun 10 - Jun 23, 2026</span>
+          <div className="flex items-center gap-[7px] px-[10px] py-[10px] border border-[rgba(145,158,171,0.3)] rounded-lg bg-white text-sm text-[#092c4c]">
+            <CalendarDays className="h-4 w-4 text-[#092c4c]" />
+            <span className="text-[15px]">01 Jan 2024 - 07 Jan 2024</span>
           </div>
         </div>
 
         {/* Notification Bar */}
         {notificationVisible && (
-          <div className="mt-6 flex items-center justify-between bg-blue-50 border border-blue-100 rounded-full px-5 py-3">
-            <div className="flex items-center gap-3">
-              <Info className="h-4 w-4 text-blue-600 shrink-0" />
-              <p className="text-sm text-blue-800">
-                From April 1, 2025, we have updated our{" "}
-                <span className="font-semibold">Privacy Policy</span> and{" "}
-                <span className="font-semibold">Terms of Service</span>. Please
-                review the updated documents.
+          <div className="flex items-center justify-between bg-[#fcefea] rounded-lg px-[10px] py-[10px]">
+            <div className="flex items-center gap-[10px]">
+              <Info className="h-3.5 w-3.5 text-[#e04f16] shrink-0" />
+              <p className="text-sm text-[#646b72]">
+                Your Product{" "}
+                <span className="font-semibold text-[#e04f16]">Apple Iphone 15 is running Low,</span>
+                {" "}already below 5 Pcs.,{" "}
+                <span className="font-semibold text-[#e04f16] underline">Add Stock</span>
               </p>
             </div>
             <button
               onClick={() => setNotificationVisible(false)}
-              className="shrink-0 ml-4 p-1 rounded-full hover:bg-blue-100 transition-colors"
+              className="shrink-0 ml-4 p-0.5 rounded-full hover:bg-orange-200 transition-colors"
             >
-              <X className="h-4 w-4 text-blue-600" />
+              <X className="h-3.5 w-3.5 text-[#e04f16]" />
             </button>
           </div>
         )}
 
         {/* Summary Cards */}
-        <div className="mt-6 grid grid-cols-4 gap-6">
+        <div className="grid grid-cols-4 gap-6">
           {summaryCards.map((card) => {
             const Icon = card.icon;
             return (
-              <Card key={card.title} className="rounded-xl border shadow-sm">
-                <CardContent className="p-5">
-                  <div className="flex items-start gap-4">
-                    <div
-                      className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 ${card.iconBg}`}
-                    >
-                      <Icon className={`h-5 w-5 ${card.iconColor}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-500">{card.title}</p>
+              <div key={card.title} className={`rounded-lg h-[92px] p-5 ${card.iconBg}`}>
+                <div className="flex items-center gap-3 h-full">
+                  <div className="bg-white rounded-lg p-[10px] shrink-0 flex items-center justify-center">
+                    <Icon className="h-6 w-6 text-black" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-[#f9fafb]">{card.title}</p>
+                    <div className="flex items-center gap-2 mt-1">
                       {loading ? (
-                        <Skeleton className="h-7 w-24 mt-1" />
+                        <Skeleton className="h-7 w-24" />
                       ) : (
-                        <p className="text-2xl font-bold text-gray-900 mt-0.5">
+                        <span className="text-lg font-bold text-white">
                           {formatCurrency(card.amount)}
-                        </p>
+                        </span>
                       )}
+                      <div className={`flex items-center gap-1 px-[6px] py-[4px] rounded-[5px] ${
+                        card.change >= 0 ? "bg-[#eefaf1]" : "bg-[#ffede9]"
+                      }`}>
+                        <span className={`text-[10px] font-bold ${
+                          card.change >= 0 ? "text-[#3eb780]" : "text-[#e70d0d]"
+                        }`}>
+                          {card.change >= 0 ? "+" : ""}{card.change}%
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="mt-3">
-                    <Badge
-                      variant="outline"
-                      className={`text-xs font-medium ${
-                        card.change >= 0
-                          ? "text-green-600 border-green-200 bg-green-50"
-                          : "text-red-600 border-red-200 bg-red-50"
-                      }`}
-                    >
-                      {card.change >= 0 ? "+" : ""}{card.change}%
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             );
           })}
         </div>
 
         {/* Financial Summary */}
-        <div className="mt-6 grid grid-cols-4 gap-6">
+        <div className="grid grid-cols-4 gap-6">
           {financialCards.map((card) => {
             const Icon = card.icon;
             return (
-              <Card key={card.title} className="rounded-xl border shadow-sm">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      {loading ? (
-                        <>
-                          <Skeleton className="h-7 w-24" />
-                          <Skeleton className="h-4 w-16 mt-1" />
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-[27px] font-bold text-gray-900 leading-none">
-                            {formatCompactCurrency(card.amount)}
-                          </p>
-                          <p className="text-sm text-gray-500 mt-1.5">
-                            {card.title}
-                          </p>
-                        </>
-                      )}
-                    </div>
-                    <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center">
-                      <Icon className="h-5 w-5 text-orange-500" />
-                    </div>
+              <div key={card.title} className="bg-white border border-[#e6eaed] rounded-lg p-5 flex flex-col gap-4 shadow-[0px_4px_12px_rgba(236,236,236,0.25)]">
+                <div className="flex items-start justify-between gap-1">
+                  <div>
+                    {loading ? (
+                      <>
+                        <Skeleton className="h-7 w-24" />
+                        <Skeleton className="h-4 w-16 mt-1" />
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-lg font-bold text-[#212b36] leading-[27px]">
+                          {formatCompactCurrency(card.amount)}
+                        </p>
+                        <p className="text-sm text-[#7a8086] leading-[21px]">
+                          {card.title}
+                        </p>
+                      </>
+                    )}
                   </div>
-                  <Separator className="my-3" />
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-gray-500">
-                      <span
-                        className={`font-medium ${
-                          card.change >= 0 ? "text-green-600" : "text-red-600"
-                        }`}
-                      >
-                        {card.change >= 0 ? "+" : ""}{card.change}%
-                      </span>{" "}
-                      {card.label}
-                    </p>
-                    <Link
-                      href="/reports"
-                      className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                  <div className={`w-12 h-12 rounded-lg ${card.iconBg} flex items-center justify-center shrink-0`}>
+                    <Icon className="h-4 w-4 text-[#212b36]" />
+                  </div>
+                </div>
+                <div className="h-px bg-[#e6eaed]" />
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-[#646b72]">
+                    <span
+                      className={`font-bold ${
+                        card.change >= 0 ? "text-[#3eb780]" : "text-red-500"
+                      }`}
                     >
-                      View All
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
+                      {card.change >= 0 ? "+" : ""}{card.change}%
+                    </span>{" "}
+                    {card.label}
+                  </p>
+                  <Link
+                    href="/reports"
+                    className="text-[13px] font-medium text-[#212b36] underline"
+                  >
+                    View All
+                  </Link>
+                </div>
+              </div>
             );
           })}
         </div>
 
         {/* Sales & Purchase + Overall Info */}
-        <div className="mt-6 grid grid-cols-12 gap-6">
+        <div className="grid grid-cols-12 gap-6">
           {/* Sales & Purchase Chart */}
           <div className="col-span-8">
-            <Card className="rounded-xl border shadow-sm h-full">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between mb-1">
+            <div className="border border-[#e6eaed] rounded-lg h-full">
+              <div className="border-b border-[#e6eaed] px-5 py-[15px]">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-gray-500" />
-                    <h3 className="text-base font-semibold text-gray-900">
+                    <div className="bg-[#fff6ee] rounded-lg p-2">
+                      <BarChart3 className="h-3.5 w-3.5 text-[#fe9f43]" />
+                    </div>
+                    <h3 className="text-lg font-bold text-[#212b36] leading-[27px]">
                       Sales & Purchase
                     </h3>
                   </div>
-                  <div className="flex items-center gap-1">
-                    {PERIODS.map((tab) => (
+                  <div className="flex items-center bg-[#f9fafb] rounded-[4px] h-[30px]">
+                    {PERIODS.map((tab, idx) => (
                       <button
                         key={tab}
                         onClick={() => setPeriod(tab)}
-                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                        className={`px-3 py-1 text-xs font-medium leading-[18px] transition-colors ${
                           tab === period
-                            ? "bg-blue-600 text-white"
-                            : "text-gray-500 hover:bg-gray-100"
-                        }`}
+                            ? "text-[#212b36]"
+                            : "text-[#212b36]"
+                        } ${idx < PERIODS.length - 1 ? "border-r border-[#e6eaed]" : ""}`}
                       >
                         {tab}
                       </button>
                     ))}
                   </div>
                 </div>
-
+              </div>
+              <div className="p-5">
                 {/* Legend amounts */}
                 <div className="flex items-center gap-6 mt-3 mb-4">
                   <div className="flex items-center gap-2">
@@ -496,14 +495,14 @@ export default function DashboardPage() {
                     </BarChart>
                   </ResponsiveContainer>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
           {/* Overall Information */}
           <div className="col-span-4">
-            <Card className="rounded-xl border shadow-sm h-full">
-              <CardContent className="p-5">
+            <div className="border border-[#e6eaed] rounded-lg h-full">
+              <div className="p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Info className="h-5 w-5 text-gray-500" />
                   <h3 className="text-base font-semibold text-gray-900">
@@ -642,17 +641,17 @@ export default function DashboardPage() {
                     )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Top Selling Products + Low Stock Products */}
-        <div className="mt-6 grid grid-cols-12 gap-6">
+        <div className="grid grid-cols-12 gap-6">
           {/* Top Selling Products */}
           <div className="col-span-4">
-            <Card className="rounded-xl border shadow-sm h-full">
-              <CardContent className="p-5">
+            <div className="border border-[#e6eaed] rounded-lg h-full">
+              <div className="p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <Box className="h-5 w-5 text-gray-500" />
@@ -720,14 +719,14 @@ export default function DashboardPage() {
                       </p>
                     )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
           {/* Low Stock Products */}
           <div className="col-span-4">
-            <Card className="rounded-xl border shadow-sm h-full">
-              <CardContent className="p-5">
+            <div className="border border-[#e6eaed] rounded-lg h-full">
+              <div className="p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5 text-gray-500" />
@@ -798,8 +797,8 @@ export default function DashboardPage() {
                       </p>
                     )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
           {/* Empty spacer to match layout */}
@@ -807,7 +806,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Footer */}
-        <div className="mt-6 py-4 border-t border-gray-200">
+        <div className="py-4 border-t border-gray-200">
           <p className="text-xs text-gray-400 text-center">
             &copy; {new Date().getFullYear()} OmniBlox. All rights reserved.
           </p>

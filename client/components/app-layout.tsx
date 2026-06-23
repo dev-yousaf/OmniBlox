@@ -55,7 +55,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             onCollapsedChange={setSidebarCollapsed}
           />
           <div className="flex flex-1 flex-col overflow-hidden">
-            <AppHeader sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)} />
+            <AppHeader />
           </div>
           <main className="flex-1 overflow-y-auto">
             <div className="min-h-full w-full px-6 py-6">
@@ -75,7 +75,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           onCollapsedChange={setSidebarCollapsed}
         />
         <div className="flex flex-1 flex-col overflow-hidden">
-          <AppHeader sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)} />
+          <AppHeader />
           <main className="flex-1 overflow-y-auto">
             {/* Global page container to ensure consistent padding from header/sidebar */}
             <div className="min-h-full w-full px-6 py-6">{children}</div>

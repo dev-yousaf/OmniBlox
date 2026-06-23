@@ -13,10 +13,8 @@ import {
   Sun,
   Plus,
   Monitor,
-  PanelLeftClose,
   Mail,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCommandMenu } from "./command-menu-provider";
 import { useState, useEffect } from "react";
@@ -31,10 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/auth-context";
 
-type AppHeaderProps = {
-  sidebarCollapsed: boolean;
-  onToggleSidebar?: () => void;
-};
+type AppHeaderProps = Record<string, never>;
 
 function ThemeToggleIcon() {
   const { theme, setTheme } = useTheme();
@@ -62,23 +57,12 @@ function ThemeToggleIcon() {
   );
 }
 
-export function AppHeader({ sidebarCollapsed, onToggleSidebar }: AppHeaderProps) {
+export function AppHeader(_props: AppHeaderProps) {
   const { setOpen } = useCommandMenu();
   const { logout } = useAuth();
 
   return (
-    <header className="flex h-[65px] items-center gap-3 border-b border-header-border bg-header-bg px-6 relative">
-      {/* Sidebar Toggle */}
-      <div className="absolute left-[-10px] top-1/2 -translate-y-1/2 z-10">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-5 w-5 rounded-full bg-header-primary text-header-primary-text hover:bg-header-primary/90 p-0.5"
-          onClick={onToggleSidebar}
-        >
-          <PanelLeftClose className="h-3 w-3" />
-        </Button>
-      </div>
+    <header className="flex h-[65px] items-center gap-3 border-b border-header-border bg-header-bg px-6">
 
       {/* Search Bar */}
       <div className="flex items-center gap-2 border border-header-search-border bg-header-search-bg rounded-lg px-3 py-2 w-[229px]">
