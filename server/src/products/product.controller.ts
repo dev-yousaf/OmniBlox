@@ -34,8 +34,9 @@ export class ProductController {
   async create(
     @Body() createProductDto: CreateProductDto,
     @CompanyId() companyId: string,
+    @UserId() userId: string,
   ) {
-    return this.productService.create(createProductDto, companyId);
+    return this.productService.create(createProductDto, companyId, userId);
   }
 
   // READ - All authenticated users

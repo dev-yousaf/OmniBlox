@@ -81,6 +81,9 @@ model User {
   // Auth Token Relations
   authTokens AuthToken[]
 
+  // Created products
+  createdProducts Product[] @relation("CreatedProducts")
+
   // Stock Ledger
   stockLedgerEntries StockLedger[]
 
@@ -264,6 +267,8 @@ model Product {
   category             ProductCategory       @relation(fields: [categoryId], references: [id])
   brandId              String?
   brand                Brand?                @relation(fields: [brandId], references: [id])
+  createdById          String?
+  createdBy            User?                 @relation("CreatedProducts", fields: [createdById], references: [id])
   inventory            Inventory[]
   purchaseOrderItems   PurchaseOrderItem[]
   quotationItems       QuotationItem[]

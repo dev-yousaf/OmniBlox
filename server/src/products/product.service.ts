@@ -18,6 +18,7 @@ export class ProductService {
   async create(
     createProductDto: CreateProductDto,
     companyId: string,
+    userId?: string,
   ): Promise<ProductResponseDto> {
     const { sku, category, brand, stock = 0, comboItems, ...productData } = createProductDto;
 
@@ -102,6 +103,7 @@ export class ProductService {
           categoryId: categoryRecord.id,
           brandId: brandRecord?.id || null,
           companyId,
+          createdById: userId || null,
           ...(comboItems?.length ? {
             comboComponents: {
               create: comboItems.map(ci => ({
@@ -114,6 +116,7 @@ export class ProductService {
         include: {
           category: true,
           brand: true,
+          createdBy: { select: { id: true, name: true, image: true } },
           comboComponents: {
             include: { product: { select: { id: true, name: true, sku: true } } },
           },
@@ -201,6 +204,7 @@ export class ProductService {
         include: {
           category: true,
           brand: true,
+          createdBy: { select: { id: true, name: true, image: true } },
           inventory: {
             include: {
               warehouse: true,
@@ -210,6 +214,7 @@ export class ProductService {
             include: {
               category: true,
               brand: true,
+              createdBy: { select: { id: true, name: true, image: true } },
               inventory: {
                 include: {
                   warehouse: true,
@@ -818,6 +823,9 @@ export class ProductService {
             productSku: ci.product?.sku || '',
             quantity: ci.quantity,
           }))
+        : undefined,
+      createdBy: product.createdBy
+        ? { id: product.createdBy.id, name: product.createdBy.name, image: product.createdBy.image }
         : undefined,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,

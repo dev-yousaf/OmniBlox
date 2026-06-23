@@ -30,6 +30,7 @@ export class ProductResponseDto {
   parentId?: string | null;
   variants?: ProductResponseDto[];
   comboItems?: ComboItemResponseDto[];
+  createdBy?: { id: string; name: string; image?: string | null } | null;
   createdAt: Date;
   updatedAt: Date;
 }

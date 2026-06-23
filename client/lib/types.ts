@@ -25,6 +25,7 @@ export interface Product {
   reorderLevel: number
   status: "ACTIVE" | "INACTIVE" | "DISCONTINUED"
   comboItems?: ComboItem[]
+  createdBy?: { id: string; name: string; image?: string | null } | null
   createdAt: string
   updatedAt: string
 }
