@@ -137,13 +137,34 @@ type AppSidebarProps = {
   onCollapsedChange: (collapsed: boolean) => void;
 };
 
+const roleAccess: Record<string, string[]> = {
+  Users: ["OWNER", "ADMIN", "MANAGER"],
+  Reports: ["OWNER", "ADMIN", "MANAGER"],
+};
+
+function canShowNavItem(name: string, role: string): boolean {
+  const allowed = roleAccess[name];
+  if (!allowed) return true;
+  return allowed.includes(role);
+}
+
+function filterChildren(children: { name: string; href: string }[] | undefined, role: string) {
+  if (!children) return children;
+  return children.filter((child) => canShowNavItem(child.name, role));
+}
+
 export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const userRole = (user?.role || "").toUpperCase();
   const [openSections, setOpenSections] = useState<string[]>([
     "Products",
     "Sales",
   ]);
+
+  const visibleNavigation = navigation.filter(
+    (item) => canShowNavItem(item.name, userRole)
+  );
 
   const toggleSection = (name: string) => {
     setOpenSections((prev) =>
@@ -168,7 +189,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <Package className="h-4 w-4" />
             </div>
-            <span className="text-sm">OmniBlox</span>
+            <span className="text-sm">{user?.company?.name || "OmniBlox"}</span>
           </Link>
         )}
 
@@ -188,7 +209,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
 
       {/* Sidebar Navigation */}
       <nav className="flex-1 space-y-1 overflow-y-auto p-2">
-        {navigation.map((item) => {
+        {visibleNavigation.map((item) => {
           const isActive =
             item.href === "/dashboard"
               ? pathname === "/dashboard" || pathname === "/"
@@ -197,7 +218,9 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
           const Icon = item.icon;
           const isOpen = openSections.includes(item.name);
 
-          if (item.children && !collapsed) {
+          const filteredChildren = filterChildren(item.children, userRole);
+
+          if (filteredChildren && filteredChildren.length > 0 && !collapsed) {
             return (
               <div key={item.name}>
                 <Button
@@ -231,7 +254,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
                       className="overflow-hidden"
                     >
                       <div className="space-y-1 pl-7 pt-1">
-                        {item.children.map((child) => {
+                        {filteredChildren.map((child) => {
                           const isChildActive = pathname === child.href;
                           return (
                             <Link key={child.href} href={child.href}>

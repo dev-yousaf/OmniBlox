@@ -22,6 +22,7 @@ import {
 import { useTeamApi, type CreateUserData } from "@/hooks/use-team-api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+import { PageError, checkRoleAccess } from "@/components/ui/page-error";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowLeft, UserPlus, Mail } from "lucide-react";
 import Link from "next/link";
@@ -42,6 +43,10 @@ export default function CreateUserPage() {
   const currentRole = (user?.role || "").toUpperCase();
   const canCreateUser = currentRole === "OWNER" || currentRole === "ADMIN";
   const canCreateAdmin = currentRole === "OWNER";
+
+  if (!canCreateUser) {
+    return <PageError type="forbidden" />;
+  }
 
   useEffect(() => {
     if (!canCreateAdmin && formData.role === "ADMIN") {

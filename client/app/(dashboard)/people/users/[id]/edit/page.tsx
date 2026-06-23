@@ -26,6 +26,8 @@ import {
   type TeamUser,
   type UpdateUserData,
 } from "@/hooks/use-team-api";
+import { useAuth } from "@/contexts/auth-context";
+import { PageError, checkRoleAccess } from "@/components/ui/page-error";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, User as UserIcon } from "lucide-react";
 
@@ -33,7 +35,14 @@ export default function EditUserPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { user: authUser } = useAuth();
+  const currentRole = (authUser?.role || "").toUpperCase();
+  const canEdit = checkRoleAccess(currentRole, ["OWNER", "ADMIN"]);
   const { getUser, updateUser } = useTeamApi();
+
+  if (!canEdit) {
+    return <PageError type="forbidden" />;
+  }
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

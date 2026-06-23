@@ -46,6 +46,8 @@ import {
   StaffPerformance,
   TaxSummary,
 } from "@/services/reports.service";
+import { useAuth } from "@/contexts/auth-context";
+import { PageError, checkRoleAccess } from "@/components/ui/page-error";
 import { useToast } from "@/hooks/use-toast";
 
 // Helper function to format currency
@@ -65,7 +67,14 @@ const formatPercentage = (value: number) => {
 
 export default function ReportsPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const currentRole = (user?.role || "").toUpperCase();
+  const canView = checkRoleAccess(currentRole, ["OWNER", "ADMIN", "MANAGER"]);
   const [activeTab, setActiveTab] = useState("financial");
+
+  if (!canView) {
+    return <PageError type="forbidden" />;
+  }
 
   // Date range state
   const [dateFrom, setDateFrom] = useState(() => {

@@ -31,6 +31,7 @@ import {
 } from "@/hooks/use-team-api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+import { PageError, checkRoleAccess } from "@/components/ui/page-error";
 
 const roleConfig = {
   OWNER: {
@@ -79,6 +80,7 @@ export default function UsersPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const currentRole = (user?.role || "").toUpperCase();
+  const canView = checkRoleAccess(currentRole, ["OWNER", "ADMIN", "MANAGER"]);
   const canCreateUser = currentRole === "OWNER" || currentRole === "ADMIN";
 
   useEffect(() => {
@@ -129,6 +131,10 @@ export default function UsersPage() {
     if (!lastLogin) return "Never";
     return new Date(lastLogin).toLocaleString();
   };
+  if (!canView) {
+    return <PageError type="forbidden" />;
+  }
+
   return (
     <div className="space-y-6">
       <div className="mb-6">

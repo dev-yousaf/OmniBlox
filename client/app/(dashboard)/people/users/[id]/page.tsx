@@ -23,6 +23,8 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useTeamApi, type TeamUser } from "@/hooks/use-team-api";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
+import { PageError, checkRoleAccess } from "@/components/ui/page-error";
 import Link from "next/link";
 import {
   AlertDialog,
@@ -72,12 +74,19 @@ const statusConfig = {
 export default function UserDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { user: authUser } = useAuth();
+  const currentRole = (authUser?.role || "").toUpperCase();
+  const canView = checkRoleAccess(currentRole, ["OWNER", "ADMIN", "MANAGER"]);
   const [user, setUser] = useState<TeamUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const { getUser, deleteUser } = useTeamApi();
   const { toast } = useToast();
+
+  if (!canView) {
+    return <PageError type="forbidden" />;
+  }
 
   useEffect(() => {
     const loadUser = async () => {
