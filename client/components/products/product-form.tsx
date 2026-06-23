@@ -22,12 +22,11 @@ import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import {
   Info,
-  Lifebuoy,
-  Photo,
+  LifeBuoy,
+  Image as ImageIcon,
   List,
   CircleChevronDown,
   CirclePlus,
-  ChevronDown,
 } from "lucide-react";
 
 interface VariantAttribute {
@@ -670,7 +669,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
 
         {/* Pricing & Stocks */}
         <CardSection
-          icon={<Lifebuoy className="h-4 w-4" />}
+          icon={<LifeBuoy className="h-4 w-4" />}
           title="Pricing & Stocks"
         >
           <div className="space-y-4">
@@ -813,7 +812,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
 
         {/* Images */}
         <CardSection
-          icon={<Photo className="h-4 w-4" />}
+          icon={<ImageIcon className="h-4 w-4" />}
           title="Images"
         >
           <div className="flex gap-4 flex-wrap">
