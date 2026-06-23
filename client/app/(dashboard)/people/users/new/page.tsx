@@ -31,7 +31,7 @@ export default function CreateUserPage() {
   const [formData, setFormData] = useState<CreateUserData>({
     email: "",
     name: "",
-    role: "STAFF",
+    role: "OBSERVER",
   });
   const [loading, setLoading] = useState(false);
 
@@ -50,7 +50,7 @@ export default function CreateUserPage() {
 
   useEffect(() => {
     if (!canCreateAdmin && formData.role === "ADMIN") {
-      setFormData((prev) => ({ ...prev, role: "STAFF" }));
+      setFormData((prev) => ({ ...prev, role: "OBSERVER" }));
     }
   }, [canCreateAdmin, formData.role]);
 
@@ -161,7 +161,7 @@ export default function CreateUserPage() {
                 <Label htmlFor="role">Role *</Label>
                 <Select
                   value={formData.role}
-                  onValueChange={(value: "ADMIN" | "MANAGER" | "STAFF") =>
+                  onValueChange={(value: "ADMIN" | "MANAGER" | "OBSERVER") =>
                     setFormData({ ...formData, role: value })
                   }
                 >
@@ -175,7 +175,7 @@ export default function CreateUserPage() {
                     <SelectItem value="MANAGER">
                       Manager - Limited admin access
                     </SelectItem>
-                    <SelectItem value="STAFF">Staff - Basic access</SelectItem>
+                    <SelectItem value="OBSERVER">Observer - View only</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

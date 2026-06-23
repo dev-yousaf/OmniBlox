@@ -810,7 +810,7 @@ export default function ReportsPage() {
           ) : null}
         </TabsContent>
 
-        {/* STAFF TAB */}
+        {/* OBSERVER TAB */}
         <TabsContent value="staff" className="space-y-6">
           {staffData ? (
             <>

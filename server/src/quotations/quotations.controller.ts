@@ -26,7 +26,7 @@ export class QuotationsController {
   constructor(private readonly quotationsService: QuotationsService) {}
 
   @Post()
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   create(
     @Body() createQuotationDto: CreateQuotationDto,
     @UserId() userId: string,
@@ -36,13 +36,13 @@ export class QuotationsController {
   }
 
   @Get()
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   findAll(@CompanyId() companyId: string) {
     return this.quotationsService.findAll(companyId);
   }
 
   @Get(':id')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   findOne(@Param('id') id: string, @CompanyId() companyId: string) {
     return this.quotationsService.findOne(id, companyId);
   }
@@ -58,7 +58,7 @@ export class QuotationsController {
   }
 
   @Patch(':id/status')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   updateStatus(
     @Param('id') id: string,
     @Body() updateStatusDto: UpdateQuotationStatusDto,
@@ -74,7 +74,7 @@ export class QuotationsController {
   }
 
   @Post(':id/convert-to-sale')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   convertToSale(
     @Param('id') id: string,
     @Body() body: { warehouseId?: string },
@@ -90,7 +90,7 @@ export class QuotationsController {
   }
 
   @Get(':id/stock-levels')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   getStockLevels(@Param('id') id: string, @CompanyId() companyId: string) {
     return this.quotationsService.getStockLevels(id, companyId);
   }

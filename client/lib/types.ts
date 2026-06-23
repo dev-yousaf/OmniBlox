@@ -69,7 +69,7 @@ export interface User {
   id: string
   name: string
   email: string
-  role: "admin" | "manager" | "staff"
+  role: "admin" | "manager" | "observer"
   status: "active" | "inactive"
   avatar?: string
   createdAt: string

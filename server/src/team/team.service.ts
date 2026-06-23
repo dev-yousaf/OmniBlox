@@ -72,7 +72,7 @@ export class TeamService {
         data: {
           email: dto.email,
           name: dto.name,
-          role: dto.role ?? UserRole.STAFF,
+          role: dto.role ?? UserRole.OBSERVER,
           status: 'INVITED',
           password: hashedPassword,
           companyId,
@@ -325,7 +325,7 @@ export class TeamService {
     const managerCount = users.filter(
       (u) => u.role === UserRole.MANAGER,
     ).length;
-    const staffCount = users.filter((u) => u.role === UserRole.STAFF).length;
+    const staffCount = users.filter((u) => u.role === UserRole.OBSERVER).length;
     const activeUsers = users.filter(
       (u) => u.status === 'ACTIVE',
     ).length;

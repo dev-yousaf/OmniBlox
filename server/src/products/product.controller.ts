@@ -40,7 +40,7 @@ export class ProductController {
 
   // READ - All authenticated users
   @Get('/')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async findAll(
     @CompanyId() companyId: string,
     @Query('page') page?: string,
@@ -63,37 +63,37 @@ export class ProductController {
   }
 
   @Get('categories')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async getCategories(@CompanyId() companyId: string) {
     return this.productService.getCategories(companyId);
   }
 
   @Get('brands')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async getBrands(@CompanyId() companyId: string) {
     return this.productService.getBrands(companyId);
   }
 
   @Get('low-stock')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async getLowStockProducts(@CompanyId() companyId: string) {
     return this.productService.getLowStockProducts(companyId);
   }
 
   @Get('stats')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async getStats(@CompanyId() companyId: string) {
     return this.productService.getStats(companyId);
   }
 
   @Get('sku/:sku')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async findBySku(@Param('sku') sku: string, @CompanyId() companyId: string) {
     return this.productService.findBySku(sku, companyId);
   }
 
   @Get(':id')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async findOne(@Param('id') id: string, @CompanyId() companyId: string) {
     return this.productService.findOne(id, companyId);
   }
@@ -149,13 +149,13 @@ export class ProductController {
   }
 
   @Get('adjustments')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async getStockAdjustments(@CompanyId() companyId: string) {
     return this.productService.getStockAdjustments(companyId);
   }
 
   @Get('adjustments/:id')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async getStockAdjustment(
     @Param('id') id: string,
     @CompanyId() companyId: string,
@@ -164,7 +164,7 @@ export class ProductController {
   }
 
   @Get('warehouses')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async getWarehouses(@CompanyId() companyId: string) {
     return this.productService.getWarehouses(companyId);
   }

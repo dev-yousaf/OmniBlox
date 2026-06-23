@@ -46,7 +46,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const userRole = (user?.role || "").toUpperCase();
   const isMutating = mutationRoutePattern.test(pathname);
 
-  if (isMutating && userRole === "STAFF") {
+  if (isMutating && userRole === "OBSERVER") {
     return (
       <CommandMenuProvider>
         <div className="flex h-screen overflow-hidden bg-background">

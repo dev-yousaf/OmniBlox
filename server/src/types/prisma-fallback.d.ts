@@ -26,7 +26,7 @@ declare module '@prisma/client' {
     OWNER = 'OWNER',
     ADMIN = 'ADMIN',
     MANAGER = 'MANAGER',
-    STAFF = 'STAFF',
+    OBSERVER = 'OBSERVER',
   }
 
   export enum OrderStatus {

@@ -52,7 +52,7 @@ model User {
   email         String     @unique
   password      String
   name          String
-  role          UserRole   @default(STAFF) // Role *within* the company
+  role          UserRole   @default(OBSERVER) // Role *within* the company
   status        UserStatus @default(ACTIVE)
   emailVerified DateTime?  // Null means not verified; set to timestamp when verified
   image         String?    // Optional profile image
@@ -684,7 +684,7 @@ enum UserRole {
   OWNER   // NEW: Add OWNER role for the company creator
   ADMIN
   MANAGER
-  STAFF
+  OBSERVER
 }
 
 enum TokenType {

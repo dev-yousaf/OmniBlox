@@ -41,13 +41,13 @@ export class InventoryController {
   }
 
   @Get('warehouses')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   getWarehouses(@CompanyId() companyId: string) {
     return this.inventoryService.getWarehouses(companyId);
   }
 
   @Get('warehouses/:id')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   getWarehouse(
     @CompanyId() companyId: string,
     @Param('id') id: string,
@@ -75,7 +75,7 @@ export class InventoryController {
   }
 
   @Get('warehouses/:id/inventory')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   getWarehouseInventory(
     @CompanyId() companyId: string,
     @Param('id') warehouseId: string,
@@ -85,7 +85,7 @@ export class InventoryController {
 
   // === INVENTORY ENDPOINTS ===
   @Get()
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   getInventory(
     @CompanyId() companyId: string,
     @Query() query: InventoryQueryDto,
@@ -110,13 +110,13 @@ export class InventoryController {
   }
 
   @Get('stats')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   getInventoryStats(@CompanyId() companyId: string) {
     return this.inventoryService.getInventoryStats(companyId);
   }
 
   @Get('product/:productId')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   getProductInventory(
     @CompanyId() companyId: string,
     @Param('productId') productId: string,
@@ -147,7 +147,7 @@ export class InventoryController {
   }
 
   @Get('adjustments')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   getStockAdjustments(
     @CompanyId() companyId: string,
     @Query('page') page?: string,

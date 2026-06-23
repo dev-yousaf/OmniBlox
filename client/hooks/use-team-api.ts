@@ -5,7 +5,7 @@ export interface TeamUser {
   id: string;
   email: string;
   name: string;
-  role: "OWNER" | "ADMIN" | "MANAGER" | "STAFF";
+  role: "OWNER" | "ADMIN" | "MANAGER" | "OBSERVER";
   createdAt: string;
   lastLogin?: string;
   status: "active" | "inactive";
@@ -14,13 +14,13 @@ export interface TeamUser {
 export interface CreateUserData {
   email: string;
   name: string;
-  role?: "ADMIN" | "MANAGER" | "STAFF";
+  role?: "ADMIN" | "MANAGER" | "OBSERVER";
 }
 
 export interface UpdateUserData {
   email?: string;
   name?: string;
-  role?: "ADMIN" | "MANAGER" | "STAFF";
+  role?: "ADMIN" | "MANAGER" | "OBSERVER";
 }
 
 export interface ChangePasswordData {

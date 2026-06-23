@@ -39,7 +39,7 @@ export class BillersController {
   }
 
   @Get()
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async findAll(
     @CompanyId() companyId: string,
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
@@ -60,7 +60,7 @@ export class BillersController {
   }
 
   @Get('stats')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async getStats(
     @CompanyId() companyId: string,
   ): Promise<BillerStatsDto> {
@@ -68,7 +68,7 @@ export class BillersController {
   }
 
   @Get('check-code')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async checkCodeAvailability(
     @Query('code') code: string,
     @Query('excludeId') excludeId: string | undefined,
@@ -82,7 +82,7 @@ export class BillersController {
   }
 
   @Get(':id')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async findOne(
     @Param('id') id: string,
     @CompanyId() companyId: string,

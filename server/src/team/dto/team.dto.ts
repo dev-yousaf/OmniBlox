@@ -16,7 +16,7 @@ export class CreateUserDto {
 
   @IsEnum(UserRole)
   @IsOptional()
-  role?: UserRole = UserRole.STAFF;
+  role?: UserRole = UserRole.OBSERVER;
 }
 
 export class UpdateUserDto {

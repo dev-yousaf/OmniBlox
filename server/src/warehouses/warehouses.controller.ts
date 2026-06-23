@@ -36,7 +36,7 @@ export class WarehousesController {
   }
 
   @Get()
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async findAll(
     @CompanyId() companyId: string,
     @Query('page') page?: string,
@@ -49,7 +49,7 @@ export class WarehousesController {
   }
 
   @Get(':id')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async findOne(
     @Param('id') id: string,
     @CompanyId() companyId: string,

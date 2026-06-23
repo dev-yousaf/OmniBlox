@@ -29,7 +29,7 @@ export class SalesController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async create(
     @Body() dto: CreateSaleDto,
     @UserId() userId: string,
@@ -39,7 +39,7 @@ export class SalesController {
   }
 
   @Get()
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async findAll(
     @CompanyId() companyId: string,
     @Query('page') page?: string,
@@ -61,13 +61,13 @@ export class SalesController {
   }
 
   @Get('stats')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async stats(@CompanyId() companyId: string) {
     return this.salesService.getStats(companyId);
   }
 
   @Get(':id')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async findOne(
     @Param('id') id: string,
     @CompanyId() companyId: string,

@@ -49,8 +49,8 @@ const roleConfig = {
     className: "bg-blue-100 text-blue-700 border-blue-200",
     icon: Briefcase,
   },
-  STAFF: {
-    label: "Staff",
+  OBSERVER: {
+    label: "Observer",
     className: "bg-gray-100 text-gray-700 border-gray-200",
     icon: Users,
   },

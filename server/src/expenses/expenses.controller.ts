@@ -33,7 +33,7 @@ export class ExpensesController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   create(
     @Body() dto: CreateExpenseDto,
     @UserId() userId: string,
@@ -43,7 +43,7 @@ export class ExpensesController {
   }
 
   @Get()
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   findAll(
     @CompanyId() companyId: string,
     @Query('page') page?: string,
@@ -56,13 +56,13 @@ export class ExpensesController {
   }
 
   @Get('stats')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   getStats(@CompanyId() companyId: string) {
     return this.expensesService.getStats(companyId);
   }
 
   @Get(':id')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   findOne(@Param('id') id: string, @CompanyId() companyId: string) {
     return this.expensesService.findOne(id, companyId);
   }
@@ -95,7 +95,7 @@ export class ExpensesController {
   }
 
   @Post(':id/attachments')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   @UseInterceptors(FileInterceptor('file'))
   async uploadAttachment(
     @Param('id') id: string,

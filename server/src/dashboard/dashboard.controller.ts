@@ -13,10 +13,10 @@ export class DashboardController {
 
   /**
    * GET /dashboard/stats
-   * Accessible to STAFF and above
+   * Accessible to OBSERVER and above
    */
   @Get('stats')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF)
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async getStats(@CompanyId() companyId: string) {
     return this.dashboardService.getStats(companyId);
   }

@@ -603,7 +603,7 @@ export class ReportsService {
         userId: item.userId,
         name: staffMember?.name ?? 'Unknown',
         email: staffMember?.email ?? '',
-        role: staffMember?.role ?? 'STAFF',
+        role: staffMember?.role ?? 'OBSERVER',
         revenue,
         orderCount: item._count.id,
         averageOrderValue: item._count.id > 0 ? revenue / item._count.id : 0,

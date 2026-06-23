@@ -174,7 +174,7 @@ export default function EditUserPage() {
                 <SelectContent>
                   <SelectItem value="ADMIN">Admin</SelectItem>
                   <SelectItem value="MANAGER">Manager</SelectItem>
-                  <SelectItem value="STAFF">Staff</SelectItem>
+                  <SelectItem value="OBSERVER">Observer</SelectItem>
                 </SelectContent>
               </Select>
             </div>
