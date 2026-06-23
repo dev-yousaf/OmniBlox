@@ -80,6 +80,9 @@ model User {
   // Auth Token Relations
   authTokens AuthToken[]
 
+  // Stock Ledger
+  stockLedgerEntries StockLedger[]
+
   @@map("users")
 }
 
@@ -333,6 +336,7 @@ model Warehouse {
   purchaseReturns      PurchaseReturn[]
   sales                Sale[]
   purchases            PurchaseOrder[]
+  stockLedgerEntries   StockLedger[]
 
   @@map("warehouses")
 }

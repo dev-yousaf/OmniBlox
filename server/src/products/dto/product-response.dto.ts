@@ -1,4 +1,4 @@
-import { ProductStatus, ProductType } from '@prisma/client';
+import { ProductStatus } from '@prisma/client';
 
 export class ProductResponseDto {
   id: string;
@@ -12,7 +12,7 @@ export class ProductResponseDto {
   stock: number;
   reorderLevel: number;
   status: ProductStatus;
-  type: ProductType;
+  type: 'STANDARD' | 'DIGITAL' | 'SERVICE' | 'COMBO';
   hasVariants: boolean;
   attributes?: Record<string, string> | null;
   parentId?: string | null;
