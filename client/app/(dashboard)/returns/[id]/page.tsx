@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/contexts/auth-context";
 
 type ReturnType = "customer" | "supplier";
 
@@ -50,6 +51,8 @@ const statusConfig = {
 };
 
 export default function ReturnDetailPage() {
+  const { user } = useAuth();
+  const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
@@ -230,40 +233,44 @@ export default function ReturnDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/returns/${data.id}/edit`}>
-            <Button variant="outline" size="sm">
-              <Edit className="h-4 w-4 mr-2" /> Edit
-            </Button>
-          </Link>
-          <AlertDialog
-            open={deleteDialogOpen}
-            onOpenChange={setDeleteDialogOpen}
-          >
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm">
-                <Trash2 className="h-4 w-4 mr-2" /> Delete
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Return</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete this return? This action
-                  cannot be undone. The return {data.referenceNumber} will be
-                  permanently removed.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDelete}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {canManage && (
+            <>
+              <Link href={`/returns/${data.id}/edit`}>
+                <Button variant="outline" size="sm">
+                  <Edit className="h-4 w-4 mr-2" /> Edit
+                </Button>
+              </Link>
+              <AlertDialog
+                open={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+              >
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    <Trash2 className="h-4 w-4 mr-2" /> Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Return</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete this return? This action
+                      cannot be undone. The return {data.referenceNumber} will be
+                      permanently removed.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
+          )}
         </div>
       </div>
 
@@ -422,11 +429,13 @@ export default function ReturnDetailPage() {
               <CardTitle>Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Link href={`/returns/${data.id}/edit`}>
-                <Button variant="outline" size="sm" className="w-full">
-                  <Edit className="h-4 w-4 mr-2" /> Edit
-                </Button>
-              </Link>
+              {canManage && (
+                <Link href={`/returns/${data.id}/edit`}>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Edit className="h-4 w-4 mr-2" /> Edit
+                  </Button>
+                </Link>
+              )}
 
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">

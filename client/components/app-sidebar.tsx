@@ -38,9 +38,9 @@ const navigation = [
     icon: Package,
     children: [
       { name: "All Products", href: "/products" },
-      { name: "New Product", href: "/products/new" },
+      { name: "New Product", href: "/products/new", mutationOnly: true },
       { name: "Barcode Labels", href: "/products/barcodes" },
-      { name: "Stock Adjustment", href: "/products/adjustment" },
+      { name: "Stock Adjustment", href: "/products/adjustment", mutationOnly: true },
     ],
   },
   {
@@ -49,7 +49,7 @@ const navigation = [
     icon: DollarSign,
     children: [
       { name: "All Expenses", href: "/expenses" },
-      { name: "New Expense", href: "/expenses/new" },
+      { name: "New Expense", href: "/expenses/new", mutationOnly: true },
       { name: "Expense Categories", href: "/expenses/categories" },
       { name: "Expense Reports", href: "/expenses/reports" },
     ],
@@ -60,7 +60,7 @@ const navigation = [
     icon: FileText,
     children: [
       { name: "All Sales", href: "/sales" },
-      { name: "New Sale", href: "/sales/new" },
+      { name: "New Sale", href: "/sales/new", mutationOnly: true },
       { name: "Deliveries", href: "/sales/deliveries" },
     ],
   },
@@ -85,7 +85,7 @@ const navigation = [
     icon: Building,
     children: [
       { name: "All Suppliers", href: "/suppliers" },
-      { name: "Add Supplier", href: "/suppliers/new" },
+      { name: "Add Supplier", href: "/suppliers/new", mutationOnly: true },
       { name: "Purchase Orders", href: "/suppliers/orders" },
       { name: "Payments", href: "/suppliers/payments" },
     ],
@@ -107,7 +107,7 @@ const navigation = [
     icon: Warehouse,
     children: [
       { name: "Stock Overview", href: "/inventory" },
-      { name: "Stock Transfer", href: "/inventory/transfer" },
+      { name: "Stock Transfer", href: "/inventory/transfer", mutationOnly: true },
       { name: "Warehouses", href: "/inventory/warehouses" },
     ],
   },
@@ -142,15 +142,20 @@ const roleAccess: Record<string, string[]> = {
   Reports: ["OWNER", "ADMIN", "MANAGER"],
 };
 
+type NavChild = { name: string; href: string; mutationOnly?: boolean };
+
 function canShowNavItem(name: string, role: string): boolean {
   const allowed = roleAccess[name];
   if (!allowed) return true;
   return allowed.includes(role);
 }
 
-function filterChildren(children: { name: string; href: string }[] | undefined, role: string) {
+function filterChildren(children: NavChild[] | undefined, role: string) {
   if (!children) return children;
-  return children.filter((child) => canShowNavItem(child.name, role));
+  const isRoleAllowed = role === "OWNER" || role === "ADMIN" || role === "MANAGER";
+  return children.filter(
+    (child) => canShowNavItem(child.name, role) && (!child.mutationOnly || isRoleAllowed)
+  );
 }
 
 export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
@@ -218,7 +223,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
           const Icon = item.icon;
           const isOpen = openSections.includes(item.name);
 
-          const filteredChildren = filterChildren(item.children, userRole);
+          const filteredChildren = filterChildren(item.children as NavChild[] | undefined, userRole);
 
           if (filteredChildren && filteredChildren.length > 0 && !collapsed) {
             return (

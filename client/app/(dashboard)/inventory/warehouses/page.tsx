@@ -47,8 +47,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function WarehousesPage() {
+  const { user } = useAuth();
+  const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const router = useRouter();
   const { toast } = useToast();
   const { getWarehouses, deleteWarehouse } = useInventoryApi();
@@ -160,12 +163,14 @@ export default function WarehousesPage() {
 
       <div className="flex items-center justify-between">
         <div></div>
-        <Link href="/inventory/warehouses/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Warehouse
-          </Button>
-        </Link>
+        {canManage && (
+          <Link href="/inventory/warehouses/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Warehouse
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -290,20 +295,24 @@ export default function WarehousesPage() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex justify-end gap-2">
-                        <Link
-                          href={`/inventory/warehouses/${warehouse.id}/edit`}
-                        >
-                          <Button variant="ghost" size="icon">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => handleDeleteClick(e, warehouse.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {canManage && (
+                          <>
+                            <Link
+                              href={`/inventory/warehouses/${warehouse.id}/edit`}
+                            >
+                              <Button variant="ghost" size="icon">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => handleDeleteClick(e, warehouse.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

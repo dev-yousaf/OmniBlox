@@ -26,6 +26,7 @@ import {
   type QuotationWithDetails,
 } from "@/hooks/use-quotations-api";
 import { format } from "date-fns";
+import { useAuth } from "@/contexts/auth-context";
 
 const statusConfig = {
   PENDING: {
@@ -46,6 +47,8 @@ const statusConfig = {
 };
 
 export default function QuotationsPage() {
+  const { user } = useAuth();
+  const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const { getQuotations } = useQuotationsApi();
   const [quotations, setQuotations] = useState<QuotationWithDetails[]>([]);
   const [filteredQuotations, setFilteredQuotations] = useState<
@@ -109,12 +112,14 @@ export default function QuotationsPage() {
 
       <div className="flex items-center justify-between">
         <div></div>
-        <Link href="/quotations/new">
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Quotation
-          </Button>
-        </Link>
+        {canManage && (
+          <Link href="/quotations/new">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Quotation
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -198,7 +203,7 @@ export default function QuotationsPage() {
                   ? "No quotations found matching your search"
                   : "No quotations yet. Create your first quotation to get started."}
               </p>
-              {!searchQuery && (
+              {!searchQuery && canManage && (
                 <Link href="/quotations/new">
                   <Button className="mt-4 gap-2">
                     <Plus className="h-4 w-4" />

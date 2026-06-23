@@ -29,6 +29,7 @@ import { useProductApi } from "@/hooks/use-product-api";
 import { useInventoryApi, type InventoryItem } from "@/hooks/use-inventory-api";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@/lib/types";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function ProductDetailPage({
   params,
@@ -44,6 +45,8 @@ export default function ProductDetailPage({
   const { getProductInventory } = useInventoryApi();
   const { toast } = useToast();
   const router = useRouter();
+  const { user } = useAuth();
+  const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
 
   useEffect(() => {
     if (productId) {
@@ -125,39 +128,43 @@ export default function ProductDetailPage({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/products/${productId}/edit`}>
-            <Button variant="outline" className="gap-2">
-              <Edit className="h-4 w-4" />
-              Edit
-            </Button>
-          </Link>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" className="gap-2">
-                <Trash2 className="h-4 w-4" />
-                Delete
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete the
-                  product "{product.name}" and remove all associated data from
-                  our servers.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDelete}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Delete Product
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {canManage && (
+            <>
+              <Link href={`/products/${productId}/edit`}>
+                <Button variant="outline" className="gap-2">
+                  <Edit className="h-4 w-4" />
+                  Edit
+                </Button>
+              </Link>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="gap-2">
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete the
+                      product "{product.name}" and remove all associated data from
+                      our servers.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete Product
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
+          )}
         </div>
       </div>
 

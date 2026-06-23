@@ -24,8 +24,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { SupplierService } from "../_services/supplier-service";
 import { Supplier } from "../_types";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function SupplierDetailPage() {
+  const { user } = useAuth();
+  const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const params = useParams();
   const router = useRouter();
   const [supplier, setSupplier] = useState<Supplier | null>(null);
@@ -120,17 +123,21 @@ export default function SupplierDetailPage() {
           {renderStatusBadge(supplier.status)}
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => router.push(`/suppliers/${supplier.id}/edit`)}
-          >
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
-          <Button variant="destructive">
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
-          </Button>
+          {canManage && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/suppliers/${supplier.id}/edit`)}
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+              <Button variant="destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </Button>
+            </>
+          )}
         </div>
       </div>
 

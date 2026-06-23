@@ -9,6 +9,9 @@ import { AppSidebar } from "./app-sidebar";
 import { AppHeader } from "./app-header";
 import { CommandMenuProvider } from "./command-menu-provider";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
+import { PageError } from "@/components/ui/page-error";
+
+const mutationRoutePattern = /\/(new|edit|adjustment|transfer)(\/|$)/;
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -38,6 +41,30 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return null;
+  }
+
+  const userRole = (user?.role || "").toUpperCase();
+  const isMutating = mutationRoutePattern.test(pathname);
+
+  if (isMutating && userRole === "STAFF") {
+    return (
+      <CommandMenuProvider>
+        <div className="flex h-screen overflow-hidden bg-background">
+          <AppSidebar
+            collapsed={sidebarCollapsed}
+            onCollapsedChange={setSidebarCollapsed}
+          />
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <AppHeader sidebarCollapsed={sidebarCollapsed} />
+            <main className="flex-1 overflow-y-auto">
+              <div className="min-h-full w-full px-6 py-6">
+                <PageError type="forbidden" />
+              </div>
+            </main>
+          </div>
+        </div>
+      </CommandMenuProvider>
+    );
   }
 
   return (

@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { useAuth } from "@/contexts/auth-context";
 
 const statusColors = {
   [ExpenseStatus.PENDING]:
@@ -66,6 +67,8 @@ export default function ExpensesPage() {
   const api = useExpensesApi();
   const { toast } = useToast();
   const router = useRouter();
+  const { user } = useAuth();
+  const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
 
   useEffect(() => {
     fetchData();
@@ -133,10 +136,12 @@ export default function ExpensesPage() {
             Track and manage your business expenses
           </p>
         </div>
-        <Button onClick={() => router.push("/expenses/new")}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Expense
-        </Button>
+        {canManage && (
+          <Button onClick={() => router.push("/expenses/new")}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Expense
+          </Button>
+        )}
       </div>
 
       {stats && (
@@ -253,23 +258,27 @@ export default function ExpensesPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => router.push(`/expenses/${expense.id}`)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setDeletingExpense(expense);
-                            setIsDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        {canManage && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => router.push(`/expenses/${expense.id}`)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setDeletingExpense(expense);
+                                setIsDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

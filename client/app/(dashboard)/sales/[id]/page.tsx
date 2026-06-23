@@ -35,8 +35,11 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import { useSaleDetail } from "../_hooks/use-sales";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function SaleDetailPage() {
+  const { user } = useAuth();
+  const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const saleId = params?.id ?? "";
@@ -123,12 +126,14 @@ export default function SaleDetailPage() {
             <Printer className="h-4 w-4" />
             Print
           </Button>
-          <Link href={`/sales/${sale.id}/edit`}>
-            <Button size="sm" className="gap-2">
-              <Edit className="h-4 w-4" />
-              Edit
-            </Button>
-          </Link>
+          {canManage && (
+            <Link href={`/sales/${sale.id}/edit`}>
+              <Button size="sm" className="gap-2">
+                <Edit className="h-4 w-4" />
+                Edit
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 

@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useDeliveriesApi, type Delivery } from "@/hooks/use-deliveries-api";
+import { useAuth } from "@/contexts/auth-context";
 
 const STATUS_BADGE_MAP = {
   PENDING: { label: "Pending", variant: "secondary" as const },
@@ -45,6 +46,8 @@ const STATUS_BADGE_MAP = {
 };
 
 export default function DeliveryDetailPage() {
+  const { user } = useAuth();
+  const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { toast } = useToast();
@@ -160,21 +163,25 @@ export default function DeliveryDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/sales/deliveries/${delivery.id}/edit`}>
-            <Button size="sm" className="gap-2">
-              <Edit className="h-4 w-4" />
-              Edit
-            </Button>
-          </Link>
-          <Button
-            variant="destructive"
-            size="sm"
-            className="gap-2"
-            onClick={() => setShowDeleteDialog(true)}
-          >
-            <Trash2 className="h-4 w-4" />
-            Delete
-          </Button>
+          {canManage && (
+            <>
+              <Link href={`/sales/deliveries/${delivery.id}/edit`}>
+                <Button size="sm" className="gap-2">
+                  <Edit className="h-4 w-4" />
+                  Edit
+                </Button>
+              </Link>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="gap-2"
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </Button>
+            </>
+          )}
         </div>
       </div>
 

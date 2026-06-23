@@ -28,6 +28,7 @@ import {
   type BillersStats,
 } from "@/hooks/use-billers-api";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
 
 const statusConfig = {
   ACTIVE: {
@@ -43,6 +44,8 @@ const statusConfig = {
 };
 
 export default function BillersPage() {
+  const { user } = useAuth();
+  const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const [billers, setBillers] = useState<Biller[]>([]);
   const [stats, setStats] = useState<BillersStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -97,12 +100,14 @@ export default function BillersPage() {
 
       <div className="flex items-center justify-between">
         <div></div>
-        <Link href="/people/billers/new">
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Biller
-          </Button>
-        </Link>
+        {canManage && (
+          <Link href="/people/billers/new">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add Biller
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

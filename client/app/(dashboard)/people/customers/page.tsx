@@ -16,8 +16,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCustomersApi, type Customer } from "@/hooks/use-customers-api";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function CustomersPage() {
+  const { user } = useAuth();
+  const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const [customers, setCustomers] = useState<Customer[]>([]);
   // Server does not provide stats endpoint; derive minimal stats locally
   const [loading, setLoading] = useState(true);
@@ -73,12 +76,14 @@ export default function CustomersPage() {
 
       <div className="flex items-center justify-between">
         <div></div>
-        <Link href="/people/customers/new">
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Customer
-          </Button>
-        </Link>
+        {canManage && (
+          <Link href="/people/customers/new">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add Customer
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">

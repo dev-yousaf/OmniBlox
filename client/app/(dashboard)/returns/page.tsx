@@ -25,6 +25,7 @@ import {
 import Link from "next/link";
 import { useReturnsApi, type UnifiedReturn } from "@/hooks/use-returns-api";
 import { format } from "date-fns";
+import { useAuth } from "@/contexts/auth-context";
 
 const statusConfig = {
   PENDING: {
@@ -46,6 +47,8 @@ const statusConfig = {
 };
 
 export default function ReturnsPage() {
+  const { user } = useAuth();
+  const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const { getAllReturns } = useReturnsApi();
   const [returns, setReturns] = useState<UnifiedReturn[]>([]);
   const [filteredReturns, setFilteredReturns] = useState<UnifiedReturn[]>([]);
@@ -132,12 +135,14 @@ export default function ReturnsPage() {
 
       <div className="flex items-center justify-between">
         <div></div>
-        <Link href="/returns/new">
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Return
-          </Button>
-        </Link>
+        {canManage && (
+          <Link href="/returns/new">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Return
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">

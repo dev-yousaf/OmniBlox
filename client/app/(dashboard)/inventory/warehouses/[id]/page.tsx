@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useInventoryApi } from "@/hooks/use-inventory-api";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
 
 interface Warehouse {
   id: string;
@@ -64,6 +65,8 @@ interface Warehouse {
 }
 
 export default function WarehouseDetailPage() {
+  const { user } = useAuth();
+  const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
@@ -170,23 +173,27 @@ export default function WarehouseDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() =>
-              router.push(`/inventory/warehouses/${warehouse.id}/edit`)
-            }
-          >
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
-          <Button
-            variant="outline"
-            className="text-destructive hover:bg-destructive hover:text-white"
-            onClick={() => setDeleteOpen(true)}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
-          </Button>
+          {canManage && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  router.push(`/inventory/warehouses/${warehouse.id}/edit`)
+                }
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+              <Button
+                variant="outline"
+                className="text-destructive hover:bg-destructive hover:text-white"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </Button>
+            </>
+          )}
         </div>
       </div>
 

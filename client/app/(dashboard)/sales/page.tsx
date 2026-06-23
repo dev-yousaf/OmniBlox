@@ -56,8 +56,11 @@ import {
 import Link from "next/link";
 import { useSalesList } from "./_hooks/use-sales";
 import type { SaleSummary } from "./_types";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function SalesPage() {
+  const { user } = useAuth();
+  const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const router = useRouter();
   const {
     sales,
@@ -134,12 +137,14 @@ export default function SalesPage() {
             Manage your sales transactions and invoices
           </p>
         </div>
-        <Link href="/sales/new">
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Sale
-          </Button>
-        </Link>
+        {canManage && (
+          <Link href="/sales/new">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Sale
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -322,13 +327,17 @@ export default function SalesPage() {
                                 View Details
                               </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/sales/${sale.id}/edit`}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
+                            {canManage && (
+                              <>
+                                <DropdownMenuItem asChild>
+                                  <Link href={`/sales/${sale.id}/edit`}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit
+                                  </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                              </>
+                            )}
                             {sale.paymentStatus !== "PAID" && (
                               <DropdownMenuItem
                                 onSelect={(event) => {
@@ -342,20 +351,22 @@ export default function SalesPage() {
                                 {isMarking ? "Marking..." : "Mark as Paid"}
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onSelect={(event) => {
-                                event.preventDefault();
-                                setPendingDelete({
-                                  id: sale.id,
-                                  customer: sale.customerName,
-                                  invoice: sale.invoiceNumber,
-                                });
-                              }}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              {isDeleting ? "Deleting..." : "Delete"}
-                            </DropdownMenuItem>
+                            {canManage && (
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onSelect={(event) => {
+                                  event.preventDefault();
+                                  setPendingDelete({
+                                    id: sale.id,
+                                    customer: sale.customerName,
+                                    invoice: sale.invoiceNumber,
+                                  });
+                                }}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                {isDeleting ? "Deleting..." : "Delete"}
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
