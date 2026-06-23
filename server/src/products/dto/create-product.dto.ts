@@ -6,9 +6,22 @@ import {
   IsInt,
   IsIn,
   Min,
+  IsArray,
+  ValidateNested,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
+
 import type { ProductStatus } from '@prisma/client';
+
+class ComboItemDto {
+  @IsString()
+  @IsNotEmpty()
+  productId: string;
+
+  @IsInt()
+  @Min(1)
+  quantity: number;
+}
 
 export class CreateProductDto {
   @IsString()
@@ -30,6 +43,30 @@ export class CreateProductDto {
   @IsString()
   @IsOptional()
   brand?: string;
+
+  @IsString()
+  @IsOptional()
+  unit?: string = 'pcs';
+
+  @IsString()
+  @IsOptional()
+  imageUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  barcodeSymbology?: string = 'CODE128';
+
+  @Transform(({value}) => parseFloat(value))
+  @IsNumber({maxDecimalPlaces:2})
+  @Min(0)
+  @IsOptional()
+  taxRate?: number = 0;
+
+  @Transform(({value}) => parseInt(value))
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  alertQuantity?: number = 0;
 
   @Transform(({ value }) => parseFloat(value))
   @IsNumber({ maxDecimalPlaces: 2 })
@@ -66,4 +103,10 @@ export class CreateProductDto {
   attributes?: Record<string, string>;
 
   parentId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ComboItemDto)
+  comboItems?: ComboItemDto[];
 }

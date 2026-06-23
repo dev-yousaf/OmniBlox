@@ -6,6 +6,7 @@ import {
   IsInt,
   Min,
   IsUUID,
+  IsIn,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -31,6 +32,14 @@ export class CreateStockAdjustmentDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsString()
+  @IsOptional()
+  documentUrl?: string;
+
+  @IsIn(['ADDITION', 'REMOVAL'])
+  @IsOptional()
+  type?: string = 'ADDITION';
 
   @IsArray()
   @ValidateNested({ each: true })

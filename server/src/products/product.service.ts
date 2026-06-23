@@ -19,7 +19,7 @@ export class ProductService {
     createProductDto: CreateProductDto,
     companyId: string,
   ): Promise<ProductResponseDto> {
-    const { sku, category, brand, stock = 0, ...productData } = createProductDto;
+    const { sku, category, brand, stock = 0, comboItems, ...productData } = createProductDto;
 
     // Check if SKU already exists within this company (Golden Rule applied)
     const existingProduct = await this.prisma.product.findUnique({
@@ -52,7 +52,7 @@ export class ProductService {
         categoryRecord = await this.prisma.productCategory.create({
           data: {
             name: category,
-            companyId, // Golden Rule: always include companyId
+            companyId,
           },
         });
       }
@@ -73,9 +73,22 @@ export class ProductService {
           brandRecord = await this.prisma.brand.create({
             data: {
               name: brand,
-              companyId, // Golden Rule: always include companyId
+              companyId,
             },
           });
+        }
+      }
+
+      // Validate combo items if provided
+      const productType = createProductDto.type || 'STANDARD';
+      if (productType === 'COMBO' && comboItems && comboItems.length > 0) {
+        const comboProductIds = comboItems.map(i => i.productId);
+        const existingComponents = await this.prisma.product.findMany({
+          where: { id: { in: comboProductIds }, companyId },
+          select: { id: true, name: true },
+        });
+        if (existingComponents.length !== comboProductIds.length) {
+          throw new BadRequestException('One or more combo component products not found');
         }
       }
 
@@ -88,28 +101,37 @@ export class ProductService {
           ...restProductData,
           categoryId: categoryRecord.id,
           brandId: brandRecord?.id || null,
-          companyId, // Golden Rule: always include companyId
+          companyId,
+          ...(comboItems?.length ? {
+            comboComponents: {
+              create: comboItems.map(ci => ({
+                productId: ci.productId,
+                quantity: ci.quantity,
+              })),
+            },
+          } : {}),
         },
         include: {
           category: true,
           brand: true,
+          comboComponents: {
+            include: { product: { select: { id: true, name: true, sku: true } } },
+          },
         },
       });
 
       // Only create inventory for physical products (STANDARD or COMBO)
       if (createProductDto.type !== 'DIGITAL' && createProductDto.type !== 'SERVICE') {
-        // Find a warehouse for this company (Golden Rule applied)
         const defaultWarehouse = await this.prisma.warehouse.findFirst({
-          where: { companyId }, // Golden Rule: filter by companyId
+          where: { companyId },
         });
 
         if (!defaultWarehouse) {
-          // Create a default warehouse for this company if none exists
           const warehouse = await this.prisma.warehouse.create({
             data: {
               name: 'Default Warehouse',
               location: 'Default Location',
-              companyId, // Golden Rule: always include companyId
+              companyId,
             },
           });
 
@@ -288,7 +310,7 @@ export class ProductService {
     const existingProduct = await this.prisma.product.findFirst({
       where: {
         id,
-        companyId, // Golden Rule: always filter by companyId
+        companyId,
       },
       include: {
         category: true,
@@ -301,7 +323,6 @@ export class ProductService {
       throw new NotFoundException('Product not found');
     }
 
-    // Check if SKU is being updated and if it conflicts with existing product within the company
     if (updateProductDto.sku && updateProductDto.sku !== existingProduct.sku) {
       const existingSkuProduct = await this.prisma.product.findUnique({
         where: {
@@ -320,80 +341,79 @@ export class ProductService {
     }
 
     try {
-      const { category, brand, stock, ...productData } = updateProductDto;
+      const { category, brand, stock, comboItems, ...productData } = updateProductDto;
       const updateData: any = { ...productData };
 
-      // Handle category update within company scope
       if (category !== undefined) {
         let categoryRecord = await this.prisma.productCategory.findUnique({
           where: {
-            companyId_name: {
-              companyId,
-              name: category,
-            },
+            companyId_name: { companyId, name: category },
           },
         });
-
         if (!categoryRecord) {
           categoryRecord = await this.prisma.productCategory.create({
-            data: {
-              name: category,
-              companyId, // Golden Rule: always include companyId
-            },
+            data: { name: category, companyId },
           });
         }
         updateData.categoryId = categoryRecord.id;
       }
 
-      // Handle brand update within company scope
       if (brand !== undefined) {
         if (brand === null || brand === '') {
           updateData.brandId = null;
         } else {
           let brandRecord = await this.prisma.brand.findUnique({
-            where: {
-              companyId_name: {
-                companyId,
-                name: brand,
-              },
-            },
+            where: { companyId_name: { companyId, name: brand } },
           });
-
           if (!brandRecord) {
             brandRecord = await this.prisma.brand.create({
-              data: {
-                name: brand,
-                companyId, // Golden Rule: always include companyId
-              },
+              data: { name: brand, companyId },
             });
           }
           updateData.brandId = brandRecord.id;
         }
       }
 
+      // Handle combo items update
+      if (comboItems !== undefined) {
+        const comboProductIds = comboItems.map(i => i.productId);
+        const existingComponents = await this.prisma.product.findMany({
+          where: { id: { in: comboProductIds }, companyId },
+          select: { id: true },
+        });
+        if (existingComponents.length !== comboProductIds.length) {
+          throw new BadRequestException('One or more combo component products not found');
+        }
+
+        await this.prisma.comboItem.deleteMany({ where: { comboId: id } });
+        if (comboItems.length > 0) {
+          await this.prisma.comboItem.createMany({
+            data: comboItems.map(ci => ({
+              comboId: id,
+              productId: ci.productId,
+              quantity: ci.quantity,
+            })),
+          });
+        }
+      }
+
       const product = await this.prisma.product.update({
-        where: {
-          id,
-          // NOTE: Prisma doesn't support compound where in update, but we've already verified ownership above
-        },
+        where: { id },
         data: updateData,
         include: {
           category: true,
           brand: true,
-          inventory: {
-            include: {
-              warehouse: true,
-            },
+          inventory: { include: { warehouse: true } },
+          comboComponents: {
+            include: { product: { select: { id: true, name: true, sku: true } } },
           },
         },
       });
 
-      // Handle stock update if provided (find warehouse within company)
       if (stock !== undefined) {
         const defaultWarehouse = await this.prisma.warehouse.findFirst({
-          where: { companyId }, // Golden Rule: filter by companyId
+          where: { companyId },
         });
-
         if (defaultWarehouse) {
           await this.prisma.inventory.upsert({
             where: {
@@ -402,9 +422,7 @@ export class ProductService {
                 warehouseId: defaultWarehouse.id,
               },
             },
-            update: {
-              quantity: stock,
-            },
+            update: { quantity: stock },
             create: {
               productId: product.id,
               warehouseId: defaultWarehouse.id,
@@ -748,9 +766,14 @@ export class ProductService {
       description: product.description,
       category: product.category?.name || '',
       brand: product.brand?.name || undefined,
+      unit: product.unit || 'pcs',
+      imageUrl: product.imageUrl || null,
+      barcodeSymbology: product.barcodeSymbology || 'CODE128',
+      taxRate: Number(product.taxRate || 0),
+      alertQuantity: product.alertQuantity || 0,
       salePrice: Number(product.salePrice),
       costPrice: Number(product.costPrice),
-      stock: stock || 0, // Will be calculated from inventory
+      stock: stock || 0,
       reorderLevel: product.reorderLevel,
       status: product.status,
       type: product.type || 'STANDARD',
@@ -769,6 +792,11 @@ export class ProductService {
               description: v.description,
               category: v.category?.name || '',
               brand: v.brand?.name || undefined,
+              unit: v.unit || 'pcs',
+              imageUrl: v.imageUrl || null,
+              barcodeSymbology: v.barcodeSymbology || 'CODE128',
+              taxRate: Number(v.taxRate || 0),
+              alertQuantity: v.alertQuantity || 0,
               salePrice: Number(v.salePrice),
               costPrice: Number(v.costPrice),
               stock: variantStock,
@@ -783,6 +811,14 @@ export class ProductService {
             };
           })
         : undefined,
+      comboItems: product.comboComponents
+        ? product.comboComponents.map((ci: any) => ({
+            productId: ci.productId,
+            productName: ci.product?.name || '',
+            productSku: ci.product?.sku || '',
+            quantity: ci.quantity,
+          }))
+        : undefined,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
     };
@@ -793,7 +829,7 @@ export class ProductService {
     userId: string,
     companyId: string,
   ): Promise<StockAdjustmentResponseDto> {
-    const { items, notes } = createStockAdjustmentDto;
+    const { items, notes, type, documentUrl } = createStockAdjustmentDto;
 
     if (!items || items.length === 0) {
       throw new BadRequestException('At least one adjustment item is required');
@@ -849,6 +885,8 @@ export class ProductService {
           data: {
             referenceNumber,
             notes,
+            documentUrl,
+            type: type || 'ADDITION',
             totalItems,
             netChange,
             userId,
@@ -900,6 +938,8 @@ export class ProductService {
           referenceNumber: adjustment.referenceNumber,
           adjustmentDate: adjustment.adjustmentDate.toISOString(),
           notes: adjustment.notes,
+          documentUrl: adjustment.documentUrl || undefined,
+          type: adjustment.type,
           totalItems: adjustment.totalItems,
           netChange: adjustment.netChange,
           createdAt: adjustment.createdAt.toISOString(),
@@ -947,6 +987,8 @@ export class ProductService {
       referenceNumber: adjustment.referenceNumber,
       adjustmentDate: adjustment.adjustmentDate.toISOString(),
       notes: adjustment.notes,
+      documentUrl: adjustment.documentUrl || undefined,
+      type: adjustment.type,
       totalItems: adjustment.totalItems,
       netChange: adjustment.netChange,
       createdAt: adjustment.createdAt.toISOString(),
@@ -995,6 +1037,8 @@ export class ProductService {
       referenceNumber: adjustment.referenceNumber,
       adjustmentDate: adjustment.adjustmentDate.toISOString(),
       notes: adjustment.notes,
+      documentUrl: adjustment.documentUrl || undefined,
+      type: adjustment.type,
       totalItems: adjustment.totalItems,
       netChange: adjustment.netChange,
       createdAt: adjustment.createdAt.toISOString(),
@@ -1065,5 +1109,244 @@ export class ProductService {
       const totalStock = v.inventory.reduce((sum, inv) => sum + inv.quantity, 0);
       return this.transformToDto(v, totalStock);
     });
+  }
+
+  async getComboItems(comboId: string, companyId: string) {
+    const combo = await this.prisma.product.findFirst({
+      where: { id: comboId, companyId, type: 'COMBO' },
+    });
+    if (!combo) throw new NotFoundException('Combo product not found');
+
+    return this.prisma.comboItem.findMany({
+      where: { comboId },
+      include: {
+        product: {
+          select: { id: true, name: true, sku: true, salePrice: true },
+        },
+      },
+    });
+  }
+
+  async importCsv(
+    products: CreateProductDto[],
+    companyId: string,
+  ): Promise<{ imported: number; errors: string[] }> {
+    const errors: string[] = [];
+    let imported = 0;
+
+    for (let i = 0; i < products.length; i++) {
+      try {
+        await this.create(products[i], companyId);
+        imported++;
+      } catch (err: any) {
+        errors.push(`Row ${i + 1}: ${err.message || 'Failed to import'}`);
+      }
+    }
+
+    return { imported, errors };
+  }
+
+  async exportCsv(companyId: string): Promise<string> {
+    const products = await this.prisma.product.findMany({
+      where: { companyId, parentId: null },
+      include: {
+        category: true,
+        brand: true,
+        inventory: true,
+        comboComponents: {
+          include: { product: { select: { name: true, sku: true } } },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const header = 'SKU,Name,Description,Type,Category,Brand,Unit,SalePrice,CostPrice,Stock,ReorderLevel,Status,BarcodeSymbology,TaxRate,AlertQuantity,ComboItems';
+    const rows = products.map((p) => {
+      const totalStock = p.inventory.reduce((sum, inv) => sum + inv.quantity, 0);
+      const comboInfo = p.comboComponents?.length
+        ? p.comboComponents.map(c => `${c.product.sku}:${c.quantity}`).join(';')
+        : '';
+      return [
+        p.sku,
+        `"${p.name.replace(/"/g, '""')}"`,
+        `"${(p.description || '').replace(/"/g, '""')}"`,
+        p.type,
+        p.category?.name || '',
+        p.brand?.name || '',
+        p.unit || 'pcs',
+        Number(p.salePrice).toFixed(2),
+        Number(p.costPrice).toFixed(2),
+        totalStock,
+        p.reorderLevel,
+        p.status,
+        p.barcodeSymbology || 'CODE128',
+        Number(p.taxRate || 0).toFixed(2),
+        p.alertQuantity || 0,
+        comboInfo,
+      ].join(',');
+    });
+
+    return [header, ...rows].join('\n');
+  }
+
+  async bulkUpdatePrice(
+    updates: { id: string; salePrice: number; costPrice?: number }[],
+    companyId: string,
+  ): Promise<{ updated: number }> {
+    let updated = 0;
+    for (const item of updates) {
+      const product = await this.prisma.product.findFirst({
+        where: { id: item.id, companyId },
+      });
+      if (!product) continue;
+
+      const data: any = { salePrice: item.salePrice };
+      if (item.costPrice !== undefined) {
+        data.costPrice = item.costPrice;
+      }
+
+      await this.prisma.product.update({
+        where: { id: item.id },
+        data,
+      });
+      updated++;
+    }
+    return { updated };
+  }
+
+  async exportExcel(companyId: string): Promise<string> {
+    const products = await this.prisma.product.findMany({
+      where: { companyId, parentId: null },
+      include: {
+        category: true,
+        brand: true,
+        inventory: true,
+        comboComponents: {
+          include: { product: { select: { name: true, sku: true } } },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const header = 'SKU,Name,Description,Type,Category,Brand,Unit,SalePrice,CostPrice,Stock,ReorderLevel,Status,BarcodeSymbology,TaxRate,AlertQuantity,ComboItems';
+    const rows = products.map((p) => {
+      const totalStock = p.inventory.reduce((sum, inv) => sum + inv.quantity, 0);
+      const comboInfo = p.comboComponents?.length
+        ? p.comboComponents.map(c => `${c.product.sku}:${c.quantity}`).join(';')
+        : '';
+      return [
+        p.sku,
+        `"${p.name.replace(/"/g, '""')}"`,
+        `"${(p.description || '').replace(/"/g, '""')}"`,
+        p.type,
+        p.category?.name || '',
+        p.brand?.name || '',
+        p.unit || 'pcs',
+        Number(p.salePrice).toFixed(2),
+        Number(p.costPrice).toFixed(2),
+        totalStock,
+        p.reorderLevel,
+        p.status,
+        p.barcodeSymbology || 'CODE128',
+        Number(p.taxRate || 0).toFixed(2),
+        p.alertQuantity || 0,
+        comboInfo,
+      ].join(',');
+    });
+
+    return [header, ...rows].join('\n');
+  }
+
+  async getProductSales(productId: string, companyId: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, companyId },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    const saleItems = await this.prisma.saleItem.findMany({
+      where: { productId },
+      include: {
+        sale: {
+          include: {
+            customer: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { sale: { saleDate: 'desc' } },
+    });
+
+    return saleItems.map((item) => ({
+      id: item.id,
+      quantity: item.quantity,
+      unitPrice: Number(item.unitPrice),
+      totalPrice: Number(item.unitPrice) * item.quantity,
+      saleId: item.saleId,
+      invoiceNumber: item.sale.invoiceNumber,
+      saleDate: item.sale.saleDate,
+      customerId: item.sale.customer.id,
+      customerName: item.sale.customer.name,
+    }));
+  }
+
+  async getProductQuotations(productId: string, companyId: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, companyId },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    const quotationItems = await this.prisma.quotationItem.findMany({
+      where: { productId },
+      include: {
+        quotation: {
+          include: {
+            customer: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { quotation: { quoteDate: 'desc' } },
+    });
+
+    return quotationItems.map((item) => ({
+      id: item.id,
+      quantity: item.quantity,
+      unitPrice: Number(item.unitPrice),
+      totalPrice: Number(item.unitPrice) * item.quantity,
+      quotationId: item.quotationId,
+      referenceNumber: item.quotation.referenceNumber,
+      quoteDate: item.quotation.quoteDate,
+      customerId: item.quotation.customer.id,
+      customerName: item.quotation.customer.name,
+    }));
+  }
+
+  async getProductPurchases(productId: string, companyId: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, companyId },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    const purchaseItems = await this.prisma.purchaseOrderItem.findMany({
+      where: { productId },
+      include: {
+        purchaseOrder: {
+          include: {
+            supplier: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { purchaseOrder: { orderDate: 'desc' } },
+    });
+
+    return purchaseItems.map((item) => ({
+      id: item.id,
+      quantity: item.quantity,
+      unitCost: Number(item.unitCost),
+      totalCost: Number(item.unitCost) * item.quantity,
+      purchaseOrderId: item.purchaseOrderId,
+      referenceNumber: item.purchaseOrder.referenceNumber,
+      orderDate: item.purchaseOrder.orderDate,
+      supplierId: item.purchaseOrder.supplier.id,
+      supplierName: item.purchaseOrder.supplier.name,
+    }));
   }
 }

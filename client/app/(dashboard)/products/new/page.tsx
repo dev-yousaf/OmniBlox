@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -13,13 +14,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default function NewProductPage() {
+function NewProductForm() {
   const router = useRouter();
 
   const handleSuccess = () => {
     router.push("/products");
   };
 
+  return <ProductForm onSuccess={handleSuccess} />;
+}
+
+export default function NewProductPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -48,7 +53,9 @@ export default function NewProductPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ProductForm onSuccess={handleSuccess} />
+          <Suspense fallback={<div className="text-sm text-muted-foreground">Loading form...</div>}>
+            <NewProductForm />
+          </Suspense>
         </CardContent>
       </Card>
     </div>

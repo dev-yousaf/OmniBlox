@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
@@ -14,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
-export default function MagicLoginPage() {
+function MagicLoginContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { refreshUser } = useAuth();
@@ -112,5 +113,17 @@ export default function MagicLoginPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function MagicLoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      </div>
+    }>
+      <MagicLoginContent />
+    </Suspense>
   );
 }

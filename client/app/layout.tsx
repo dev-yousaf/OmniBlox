@@ -38,7 +38,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
       <body className="font-sans antialiased">
-        <GlobalRouteProgressBar />
+        <Suspense fallback={null}>
+          <GlobalRouteProgressBar />
+        </Suspense>
         <Suspense fallback={null}>
           <ThemeProvider>
             <AuthProvider>{children}</AuthProvider>

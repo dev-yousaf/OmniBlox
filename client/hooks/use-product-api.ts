@@ -1,6 +1,6 @@
 import { useAuthenticatedApi } from "./use-authenticated-api";
 import { useCallback } from "react";
-import type { Product, StockLedgerEntry } from "@/lib/types";
+import type { Product, StockLedgerEntry, ComboItem } from "@/lib/types";
 
 interface CreateProductData {
   name: string;
@@ -8,6 +8,8 @@ interface CreateProductData {
   description?: string;
   category: string;
   brand?: string;
+  unit?: string;
+  imageUrl?: string;
   salePrice: number;
   costPrice: number;
   stock?: number;
@@ -17,6 +19,7 @@ interface CreateProductData {
   hasVariants?: boolean;
   attributes?: Record<string, string>;
   parentId?: string;
+  comboItems?: { productId: string; quantity: number }[];
 }
 
 interface UpdateProductData extends Partial<CreateProductData> {}
@@ -141,6 +144,68 @@ export function useProductApi() {
     [get]
   );
 
+  const importCsv = useCallback(
+    async (products: CreateProductData[]): Promise<{ imported: number; errors: string[] }> => {
+      return post("/products/import", products) as Promise<{ imported: number; errors: string[] }>;
+    },
+    [post]
+  );
+
+  const exportCsv = useCallback(async (): Promise<string> => {
+    return get("/products/export") as Promise<string>;
+  }, [get]);
+
+  const getComboItems = useCallback(
+    async (id: string): Promise<ComboItem[]> => {
+      return get(`/products/${id}/combo-items`) as Promise<ComboItem[]>;
+    },
+    [get]
+  );
+
+  const exportExcel = useCallback(async (): Promise<string> => {
+    return get("/products/export") as Promise<string>;
+  }, [get]);
+
+  const bulkUpdatePrice = useCallback(
+    async (data: { id: string; salePrice: number; costPrice?: number }[]): Promise<void> => {
+      await put("/products/bulk-update-price", data);
+    },
+    [put]
+  );
+
+  const getProductSales = useCallback(
+    async (id: string): Promise<any[]> => {
+      return get(`/products/${id}/sales`) as Promise<any[]>;
+    },
+    [get]
+  );
+
+  const getProductQuotations = useCallback(
+    async (id: string): Promise<any[]> => {
+      return get(`/products/${id}/quotations`) as Promise<any[]>;
+    },
+    [get]
+  );
+
+  const getProductPurchases = useCallback(
+    async (id: string): Promise<any[]> => {
+      return get(`/products/${id}/purchases`) as Promise<any[]>;
+    },
+    [get]
+  );
+
+  const adjustStock = useCallback(
+    async (data: {
+      items: { productId: string; warehouseId: string; previousQuantity: number; newQuantity: number }[];
+      notes?: string;
+      type: "ADDITION" | "REMOVAL";
+      documentUrl?: string;
+    }): Promise<any> => {
+      return post("/products/adjustments", data);
+    },
+    [post]
+  );
+
   return {
     createProduct,
     getProducts,
@@ -155,5 +220,14 @@ export function useProductApi() {
     getProductStats,
     getStockLedger,
     getVariants,
+    importCsv,
+    exportCsv,
+    getComboItems,
+    exportExcel,
+    bulkUpdatePrice,
+    getProductSales,
+    getProductQuotations,
+    getProductPurchases,
+    adjustStock,
   };
 }

@@ -14,6 +14,8 @@ export class StockAdjustmentResponseDto {
   referenceNumber: string;
   adjustmentDate: string;
   notes?: string;
+  documentUrl?: string;
+  type: string;
   totalItems: number;
   netChange: number;
   createdAt: string;

@@ -233,8 +233,13 @@ model Product {
   type         ProductType   @default(STANDARD)
   salePrice    Decimal       @db.Decimal(10, 2)
   costPrice    Decimal       @db.Decimal(10, 2)
-  reorderLevel Int           @default(0)
-  status       ProductStatus @default(ACTIVE)
+  unit         String        @default("pcs") // Unit of measure: pcs, kg, liters, hours, etc.
+  imageUrl         String?       // Product image URL
+  barcodeSymbology String        @default("CODE128") // CODE128, EAN13, UPCA, QR
+  taxRate          Decimal       @default(0) @db.Decimal(5, 2) // Tax percentage
+  alertQuantity    Int           @default(0) // Critical stock alert threshold
+  reorderLevel     Int           @default(0)
+  status           ProductStatus @default(ACTIVE)
   hasVariants  Boolean       @default(false)
   attributes   Json?         // Variant attributes like {"color": "Red", "size": "L"}
   createdAt    DateTime      @default(now())
@@ -248,6 +253,10 @@ model Product {
   parentId String?
   parent   Product?  @relation("ProductVariants", fields: [parentId], references: [id])
   variants Product[] @relation("ProductVariants")
+
+  // Combo / Bundle support
+  comboComponents    ComboItem[] @relation("ComboComponents")
+  componentInCombos ComboItem[] @relation("ComboProductRefs")
 
   // Relations
   categoryId           String
@@ -265,6 +274,20 @@ model Product {
 
   @@unique([companyId, sku]) // Ensures SKU is unique only within a company
   @@map("products")
+}
+
+// Combo/Bundle items: a combo product contains other products
+model ComboItem {
+  id        String @id @default(uuid())
+  quantity  Int    @default(1)
+
+  comboId    String
+  combo      Product @relation("ComboComponents", fields: [comboId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product @relation("ComboProductRefs", fields: [productId], references: [id])
+
+  @@unique([comboId, productId])
+  @@map("combo_items")
 }
 
 model StockLedger {
@@ -359,6 +382,8 @@ model StockAdjustment {
   referenceNumber String
   adjustmentDate  DateTime @default(now())
   notes           String?
+  documentUrl     String?  // Attached document/image
+  type            String   @default("ADDITION") // ADDITION or REMOVAL
   totalItems      Int      @default(0)
   netChange       Int      @default(0)
   createdAt       DateTime @default(now())

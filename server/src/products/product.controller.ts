@@ -86,6 +86,39 @@ export class ProductController {
     return this.productService.getStats(companyId);
   }
 
+  @Get('export')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
+  async exportCsv(@CompanyId() companyId: string) {
+    const csv = await this.productService.exportCsv(companyId);
+    return csv;
+  }
+
+  @Post('import')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
+  @HttpCode(HttpStatus.CREATED)
+  async importCsv(
+    @Body() products: CreateProductDto[],
+    @CompanyId() companyId: string,
+  ) {
+    return this.productService.importCsv(products, companyId);
+  }
+
+  @Post('bulk-update-price')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
+  @HttpCode(HttpStatus.OK)
+  async bulkUpdatePrice(
+    @Body() body: { updates: { id: string; salePrice: number; costPrice?: number }[] },
+    @CompanyId() companyId: string,
+  ) {
+    return this.productService.bulkUpdatePrice(body.updates, companyId);
+  }
+
+  @Get('export-excel')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
+  async exportExcel(@CompanyId() companyId: string) {
+    return this.productService.exportExcel(companyId);
+  }
+
   @Get('sku/:sku')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async findBySku(@Param('sku') sku: string, @CompanyId() companyId: string) {
@@ -173,6 +206,30 @@ export class ProductController {
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async getVariants(@Param('id') id: string, @CompanyId() companyId: string) {
     return this.productService.getVariants(id, companyId);
+  }
+
+  @Get(':id/combo-items')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
+  async getComboItems(@Param('id') id: string, @CompanyId() companyId: string) {
+    return this.productService.getComboItems(id, companyId);
+  }
+
+  @Get(':id/sales')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
+  async getProductSales(@Param('id') id: string, @CompanyId() companyId: string) {
+    return this.productService.getProductSales(id, companyId);
+  }
+
+  @Get(':id/quotations')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
+  async getProductQuotations(@Param('id') id: string, @CompanyId() companyId: string) {
+    return this.productService.getProductQuotations(id, companyId);
+  }
+
+  @Get(':id/purchases')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
+  async getProductPurchases(@Param('id') id: string, @CompanyId() companyId: string) {
+    return this.productService.getProductPurchases(id, companyId);
   }
 
   @Get('warehouses')

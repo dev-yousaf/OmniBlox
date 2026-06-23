@@ -1,3 +1,10 @@
+export interface ComboItem {
+  productId: string
+  productName: string
+  productSku: string
+  quantity: number
+}
+
 export interface Product {
   id: string
   sku: string
@@ -10,13 +17,21 @@ export interface Product {
   variants?: Product[]
   category: string
   brand?: string
+  unit: string
+  imageUrl?: string | null
   salePrice: number
   costPrice: number
   stock: number
   reorderLevel: number
   status: "ACTIVE" | "INACTIVE" | "DISCONTINUED"
+  comboItems?: ComboItem[]
   createdAt: string
   updatedAt: string
+}
+
+export interface ComboItemInput {
+  productId: string
+  quantity: number
 }
 
 export interface StockLedgerEntry {
