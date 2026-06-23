@@ -56,12 +56,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           />
           <div className="flex flex-1 flex-col overflow-hidden">
             <AppHeader />
-          </div>
-          <main className="flex-1 overflow-y-auto">
-            <div className="min-h-full w-full px-6 py-6">
+            <main className="flex-1 overflow-y-auto px-6 py-6 min-h-0">
               <PageError type="forbidden" />
-            </div>
-          </main>
+            </main>
+          </div>
         </div>
       </CommandMenuProvider>
     );
@@ -76,9 +74,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         />
         <div className="flex flex-1 flex-col overflow-hidden">
           <AppHeader />
-          <main className="flex-1 overflow-y-auto">
-            {/* Global page container to ensure consistent padding from header/sidebar */}
-            <div className="w-full px-6 py-6">{children}</div>
+          <main className="flex-1 overflow-y-auto px-6 py-6 min-h-0">
+            {children}
           </main>
         </div>
       </div>
