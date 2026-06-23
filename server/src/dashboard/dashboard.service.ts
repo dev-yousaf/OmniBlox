@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { DashboardDataDto, SalesPurchaseChartItem } from './dto/dashboard-stats.dto';
+import { DashboardDataDto, SalesPurchaseChartItem, RecentSaleDto } from './dto/dashboard-stats.dto';
 
 @Injectable()
 export class DashboardService {
@@ -32,6 +32,7 @@ export class DashboardService {
       topSelling,
       lowStock,
       chartData,
+      recentSales,
     ] = await Promise.all([
       // Current period sales
       this.prisma.sale.aggregate({
@@ -112,6 +113,8 @@ export class DashboardService {
       this.getLowStockProducts(companyId),
       // Monthly chart data
       this.getSalesPurchaseChart(companyId, range.start, range.end),
+      // Recent sales
+      this.getRecentSales(companyId),
     ]);
 
     const sales = Number(currentSalesAgg._sum.totalAmount || 0);
@@ -166,6 +169,7 @@ export class DashboardService {
       returnCustomersPercent: customerStats.returningPct,
       topSellingProducts: topSelling,
       lowStockProducts: lowStock,
+      recentSales,
     };
   }
 
@@ -353,6 +357,31 @@ export class DashboardService {
       default: start.setFullYear(start.getFullYear() - 1); break;
     }
     return { start, end };
+  }
+
+  private async getRecentSales(companyId: string): Promise<RecentSaleDto[]> {
+    const sales = await this.prisma.sale.findMany({
+      where: { companyId, status: { not: 'CANCELLED' } },
+      orderBy: { saleDate: 'desc' },
+      take: 5,
+      include: {
+        customer: { select: { name: true } },
+        items: {
+          take: 1,
+          include: { product: { select: { name: true, category: { select: { name: true } } } } },
+        },
+      },
+    });
+
+    return sales.map((s) => ({
+      id: s.id,
+      customerName: s.customer?.name || s.customerEmail || 'Walk-in Customer',
+      productName: s.items[0]?.product?.name || 'N/A',
+      categoryName: s.items[0]?.product?.category?.name || 'General',
+      totalAmount: Number(s.totalAmount),
+      status: s.status,
+      saleDate: s.saleDate.toISOString(),
+    }));
   }
 
   private pctChange(current: number, previous: number): number {

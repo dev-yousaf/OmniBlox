@@ -31,6 +31,17 @@ export interface DashboardDataDto {
   returnCustomersPercent: number;
   topSellingProducts: TopSellingProductDto[];
   lowStockProducts: LowStockProductDto[];
+  recentSales: RecentSaleDto[];
+}
+
+export interface RecentSaleDto {
+  id: string;
+  customerName: string;
+  productName: string;
+  categoryName: string;
+  totalAmount: number;
+  status: string;
+  saleDate: string;
 }
 
 export interface SalesPurchaseChartItem {
