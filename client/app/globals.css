@@ -261,9 +261,8 @@
   }
 }
 
-/* Force Next.js auto-generated wrapper divs to stay within viewport */
-#__next,
-body > div:first-child {
+/* Force Next.js auto-generated wrapper div to stay within viewport */
+#__next {
   height: 100% !important;
   max-height: 100vh !important;
   overflow: hidden !important;
