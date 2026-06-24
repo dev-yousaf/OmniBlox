@@ -8,4 +8,6 @@ export class UpdateBrandDto {
   description?: string;
   @IsString() @IsOptional()
   status?: string;
+  @IsString() @IsOptional()
+  imageUrl?: string;
 }

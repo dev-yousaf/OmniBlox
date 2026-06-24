@@ -384,6 +384,7 @@ model Brand {
   id          String     @id @default(uuid())
   name        String
   slug        String
+  imageUrl    String?
   description String?
   status      String     @default("ACTIVE") // ACTIVE | INACTIVE
 

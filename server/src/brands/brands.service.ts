@@ -37,6 +37,7 @@ export class BrandsService {
         slug,
         description: dto.description,
         status: dto.status || 'ACTIVE',
+        imageUrl: dto.imageUrl || undefined,
         companyId,
       },
     });
@@ -79,6 +80,7 @@ export class BrandsService {
     if (dto.slug !== undefined) data.slug = dto.slug;
     if (dto.description !== undefined) data.description = dto.description;
     if (dto.status !== undefined) data.status = dto.status;
+    if (dto.imageUrl !== undefined) data.imageUrl = dto.imageUrl;
 
     return this.prisma.brand.update({
       where: { id },

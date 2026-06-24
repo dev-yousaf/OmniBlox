@@ -5,6 +5,7 @@ export interface Brand {
   id: string;
   name: string;
   slug: string;
+  imageUrl?: string;
   description?: string;
   status: string;
   companyId: string;
@@ -15,6 +16,7 @@ export interface Brand {
 export interface CreateBrandDto {
   name: string;
   slug?: string;
+  imageUrl?: string;
   description?: string;
   status?: string;
 }
@@ -22,6 +24,7 @@ export interface CreateBrandDto {
 export interface UpdateBrandDto {
   name?: string;
   slug?: string;
+  imageUrl?: string;
   description?: string;
   status?: string;
 }
