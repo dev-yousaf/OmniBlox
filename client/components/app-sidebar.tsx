@@ -152,8 +152,9 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
   const userRole = (user?.role || "").toUpperCase();
 
   const isActive = (href: string) => {
-    if (href === "/dashboard") return pathname === "/dashboard" || pathname === "/";
-    return pathname === href || pathname.startsWith(href + "/");
+    const hrefPath = href.split("?")[0];
+    if (hrefPath === "/dashboard") return pathname === "/dashboard" || pathname === "/";
+    return pathname === hrefPath;
   };
 
   return (
