@@ -197,7 +197,22 @@ export default function ProductsPage() {
         headers.forEach((h, i) => { row[h] = values[i] || ""; });
         return row;
       });
-      const result = await importCsv(rows);
+      const result = await importCsv(
+        rows.map((row) => ({
+          name: row.name || "",
+          sku: row.sku || "",
+          category: row.category || "",
+          salePrice: parseFloat(row.salePrice || "0"),
+          costPrice: parseFloat(row.costPrice || "0"),
+          description: row.description,
+          brand: row.brand,
+          unit: row.unit,
+          imageUrl: row.imageUrl,
+          stock: row.stock ? parseInt(row.stock, 10) : undefined,
+          reorderLevel: row.reorderLevel ? parseInt(row.reorderLevel, 10) : undefined,
+          status: row.status as "ACTIVE" | "INACTIVE" | "DISCONTINUED" | undefined,
+        }))
+      );
       setImportResult(result);
       toast({ title: "Import Complete", description: `Imported ${result.imported} products.` });
       await loadProducts({ showSpinner: false });
@@ -238,13 +253,10 @@ export default function ProductsPage() {
   return (
     <div className="space-y-0">
       {/* Page Info */}
-      <div className="flex items-center justify-between h-[48px] mb-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Link href="/dashboard" className="hover:text-foreground">Inventory</Link>
-          <span>/</span>
-          <span className="text-foreground font-medium">Products</span>
-        </div>
-        <div className="flex items-center gap-3">
+      <div className="mb-5">
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-3xl font-semibold tracking-tight">Products</h1>
+          <div className="flex items-center gap-3">
           <div className="flex items-center gap-[1px]">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -264,7 +276,7 @@ export default function ProductsPage() {
             </Tooltip>
           </div>
           <div className="flex items-center gap-[1px]">
-            <button className="flex items-center justify-center w-4 h-4 text-muted-foreground hover:text-foreground" onClick={loadProducts} title="Refresh">
+            <button className="flex items-center justify-center w-4 h-4 text-muted-foreground hover:text-foreground" onClick={() => loadProducts()} title="Refresh">
               <RefreshCw className="w-full h-full" />
             </button>
             <button className="flex items-center justify-center w-4 h-4 text-muted-foreground hover:text-foreground" title="Collapse">
@@ -288,6 +300,12 @@ export default function ProductsPage() {
               </Link>
             </div>
           )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+          <span>/</span>
+          <span className="text-foreground font-medium">Products</span>
         </div>
       </div>
 

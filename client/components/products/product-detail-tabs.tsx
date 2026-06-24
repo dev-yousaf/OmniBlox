@@ -15,7 +15,7 @@ interface ProductDetailTabsProps {
 export function ProductDetailTabs({ product }: ProductDetailTabsProps) {
   const stockLedger = mockStockLedger[product.id] || []
   const isLowStock = product.stock <= product.reorderLevel
-  const margin = ((product.price - product.cost) / product.price) * 100
+  const margin = ((product.salePrice - product.costPrice) / product.salePrice) * 100
 
   return (
     <Tabs defaultValue="overview" className="space-y-4">
@@ -33,7 +33,7 @@ export function ProductDetailTabs({ product }: ProductDetailTabsProps) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold">
-                ${product.price.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                ${product.salePrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}
               </div>
             </CardContent>
           </Card>
@@ -44,7 +44,7 @@ export function ProductDetailTabs({ product }: ProductDetailTabsProps) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold">
-                ${product.cost.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                ${product.costPrice.toLocaleString("en-US", { minimumFractionDigits: 2 })}
               </div>
             </CardContent>
           </Card>
@@ -82,7 +82,7 @@ export function ProductDetailTabs({ product }: ProductDetailTabsProps) {
               <div>
                 <div className="text-sm font-medium text-muted-foreground">Status</div>
                 <div className="mt-1">
-                  <Badge variant={product.status === "active" ? "default" : "secondary"} className="capitalize">
+                  <Badge variant={product.status === "ACTIVE" ? "default" : "secondary"} className="capitalize">
                     {product.status}
                   </Badge>
                 </div>
@@ -133,7 +133,7 @@ export function ProductDetailTabs({ product }: ProductDetailTabsProps) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold">
-                ${(product.stock * product.cost).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                ${(product.stock * product.costPrice).toLocaleString("en-US", { minimumFractionDigits: 2 })}
               </div>
             </CardContent>
           </Card>
@@ -202,7 +202,7 @@ export function ProductDetailTabs({ product }: ProductDetailTabsProps) {
                   <TableBody>
                     {stockLedger.map((entry) => (
                       <TableRow key={entry.id}>
-                        <TableCell className="font-medium">{new Date(entry.date).toLocaleDateString()}</TableCell>
+                        <TableCell className="font-medium">{new Date(entry.createdAt).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <Badge
                             variant={
@@ -221,7 +221,7 @@ export function ProductDetailTabs({ product }: ProductDetailTabsProps) {
                           {entry.quantity}
                         </TableCell>
                         <TableCell className="text-right font-medium">{entry.balance}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{entry.notes}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{entry.note}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
