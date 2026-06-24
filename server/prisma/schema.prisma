@@ -29,6 +29,9 @@ model Company {
   productCategories   ProductCategory[]
   subCategories       SubCategory[]
   brands              Brand[]
+  variantAttributes   VariantAttribute[]
+  units               Unit[]
+  warranties          Warranty[]
   warehouses          Warehouse[]
   billers             Biller[]
   customers           Customer[]
@@ -278,13 +281,17 @@ model Product {
   purchaseReturnItems  PurchaseReturnItem[]
   stockAdjustmentItems StockAdjustmentItem[]
   stockLedgerEntries   StockLedger[]
-  subCategoryId        String?
-  subCategory          SubCategory?      @relation(fields: [subCategoryId], references: [id])
-  itemCode             String?
-  manufacturer         String?
-  warranty             String?
-  manufacturedDate     DateTime?
-  expiryDate           DateTime?
+  subCategoryId   String?
+  subCategory     SubCategory?      @relation(fields: [subCategoryId], references: [id])
+  unitId          String?
+  unitRef         Unit?             @relation(fields: [unitId], references: [id])
+  warrantyId      String?
+  warrantyRef     Warranty?         @relation(fields: [warrantyId], references: [id])
+  itemCode        String?
+  manufacturer    String?
+  warranty        String?
+  manufacturedDate DateTime?
+  expiryDate      DateTime?
 
   @@unique([companyId, sku]) // Ensures SKU is unique only within a company
   @@map("products")
@@ -374,18 +381,87 @@ model SubCategory {
 }
 
 model Brand {
-  id   String @id @default(uuid())
-  name String
+  id          String     @id @default(uuid())
+  name        String
+  slug        String
+  description String?
+  status      String     @default("ACTIVE") // ACTIVE | INACTIVE
 
-  // NEW: Link to Company
   companyId String
   company   Company @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   products Product[]
 
-  @@unique([companyId, name]) // Brand names unique per company
+  @@unique([companyId, name])
+  @@unique([companyId, slug])
   @@map("brands")
+}
+
+model VariantAttribute {
+  id          String     @id @default(uuid())
+  name        String
+  slug        String
+  values      Json?      // ["Red", "Blue", "Green"]
+  description String?
+  status      String     @default("ACTIVE")
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, name])
+  @@unique([companyId, slug])
+  @@map("variant_attributes")
+}
+
+model Unit {
+  id          String     @id @default(uuid())
+  name        String     // "Pieces"
+  shortName   String     // "pcs"
+  slug        String
+  description String?
+  status      String     @default("ACTIVE")
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  products Product[]
+
+  @@unique([companyId, name])
+  @@unique([companyId, shortName])
+  @@unique([companyId, slug])
+  @@map("units")
+}
+
+model Warranty {
+  id           String     @id @default(uuid())
+  name         String     // "Standard Warranty"
+  duration     Int        // 12
+  durationType String     @default("MONTHS") // DAYS | MONTHS | YEARS
+  description  String?
+  status       String     @default("ACTIVE")
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  products Product[]
+
+  @@unique([companyId, name])
+  @@map("warranties")
 }
 
 model Warehouse {

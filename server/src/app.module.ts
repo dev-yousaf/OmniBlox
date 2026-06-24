@@ -27,6 +27,10 @@ import { SalesReturnsModule } from './sales-returns/sales-returns.module';
 import { PurchaseReturnsModule } from './purchase-returns/purchase-returns.module';
 import { ReturnsModule } from './returns/returns.module';
 import { SuperadminModule } from './superadmin/superadmin.module';
+import { BrandsModule } from './brands/brands.module';
+import { VariantAttributesModule } from './variant-attributes/variant-attributes.module';
+import { UnitsModule } from './units/units.module';
+import { WarrantiesModule } from './warranties/warranties.module';
 
 @Module({
   imports: [
@@ -55,6 +59,10 @@ import { SuperadminModule } from './superadmin/superadmin.module';
     PurchaseReturnsModule,
     ReturnsModule,
     SuperadminModule,
+    BrandsModule,
+    VariantAttributesModule,
+    UnitsModule,
+    WarrantiesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
