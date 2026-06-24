@@ -36,21 +36,24 @@ function NewProductForm() {
 export default function NewProductPage() {
   return (
     <div className="max-w-[1440px] mx-auto">
-      <div className="flex items-center justify-between h-[48px] mb-4">
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-3xl font-semibold tracking-tight">Add Product</h1>
+          <div className="flex items-center gap-3">
+            <button className="flex items-center justify-center w-4 h-4 text-muted-foreground hover:text-foreground" title="Refresh">
+              <RefreshCw className="w-full h-full" />
+            </button>
+            <button className="flex items-center justify-center w-4 h-4 text-muted-foreground hover:text-foreground" title="Collapse">
+              <Minus className="w-full h-full" />
+            </button>
+          </div>
+        </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Link href="/dashboard" className="hover:text-foreground">Inventory</Link>
           <span>/</span>
           <Link href="/products" className="hover:text-foreground">Products</Link>
           <span>/</span>
           <span className="text-foreground font-medium">Add Product</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center justify-center w-4 h-4 text-muted-foreground hover:text-foreground" title="Refresh">
-            <RefreshCw className="w-full h-full" />
-          </button>
-          <button className="flex items-center justify-center w-4 h-4 text-muted-foreground hover:text-foreground" title="Collapse">
-            <Minus className="w-full h-full" />
-          </button>
         </div>
       </div>
 
