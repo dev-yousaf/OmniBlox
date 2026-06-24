@@ -17,6 +17,7 @@ import { StockAdjustmentsModule } from './stock-adjustments/stock-adjustments.mo
 import { PurchasesModule } from './purchases/purchases.module';
 import { ExpenseCategoriesModule } from './expense-categories/expense-categories.module';
 import { ProductCategoriesModule } from './product-categories/product-categories.module';
+import { SubCategoriesModule } from './sub-categories/sub-categories.module';
 import { ReportsModule } from './reports/reports.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
@@ -47,6 +48,7 @@ import { SuperadminModule } from './superadmin/superadmin.module';
     PurchasesModule,
     ExpenseCategoriesModule,
     ProductCategoriesModule,
+    SubCategoriesModule,
     ReportsModule,
     QuotationsModule,
     SalesReturnsModule,

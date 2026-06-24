@@ -11,6 +11,19 @@ import { ProductResponseDto } from './dto/product-response.dto';
 import { CreateStockAdjustmentDto } from './dto/create-stock-adjustment.dto';
 import { StockAdjustmentResponseDto } from './dto/stock-adjustment-response.dto';
 
+export interface LowStockDetailItem {
+  productId: string;
+  productName: string;
+  sku: string;
+  imageUrl: string | null;
+  category: string;
+  warehouseId: string;
+  warehouseName: string;
+  storeName: string;
+  quantity: number;
+  alertQuantity: number;
+}
+
 @Injectable()
 export class ProductService {
   constructor(private prisma: PrismaService) {}
@@ -712,6 +725,51 @@ export class ProductService {
       );
       return this.transformToDto(product, totalStock);
     });
+  }
+
+  async getLowStockDetails(
+    companyId: string,
+    page = 1,
+    limit = 10,
+  ): Promise<{ items: LowStockDetailItem[]; total: number; pages: number }> {
+    const skip = (page - 1) * limit;
+
+    const allProducts = await this.prisma.product.findMany({
+      where: { status: 'ACTIVE', companyId },
+      include: {
+        category: true,
+        brand: true,
+        inventory: {
+          include: { warehouse: true },
+        },
+      },
+    });
+
+    const items: LowStockDetailItem[] = [];
+    for (const product of allProducts) {
+      for (const inv of product.inventory) {
+        const reorderLevel = product.reorderLevel;
+        if (inv.quantity <= reorderLevel) {
+          items.push({
+            productId: product.id,
+            productName: product.name,
+            sku: product.sku,
+            imageUrl: product.imageUrl,
+            category: product.category?.name || '',
+            warehouseId: inv.warehouseId,
+            warehouseName: inv.warehouse.name,
+            storeName: inv.warehouse.location || inv.warehouse.name,
+            quantity: inv.quantity,
+            alertQuantity: product.alertQuantity ?? product.reorderLevel,
+          });
+        }
+      }
+    }
+
+    const total = items.length;
+    const paged = items.slice(skip, skip + limit);
+
+    return { items: paged, total, pages: Math.ceil(total / limit) };
   }
 
   async getExpiredProducts(

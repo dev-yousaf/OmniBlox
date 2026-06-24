@@ -11,22 +11,32 @@ import { UpdateProductCategoryDto } from './dto/update-product-category.dto';
 export class ProductCategoriesService {
   constructor(private prisma: PrismaService) {}
 
+  private generateSlug(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/[\s_]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+
   async create(dto: CreateProductCategoryDto, companyId: string) {
-    // Check if category with same name already exists for this company
     const existing = await this.prisma.productCategory.findFirst({
-      where: {
-        name: dto.name,
-        companyId,
-      },
+      where: { name: dto.name, companyId },
     });
 
     if (existing) {
       throw new ConflictException('A category with this name already exists');
     }
 
+    const slug = dto.slug || this.generateSlug(dto.name);
+
     return this.prisma.productCategory.create({
       data: {
         name: dto.name,
+        slug,
+        description: dto.description,
+        status: dto.status || 'ACTIVE',
         companyId,
       },
     });
@@ -36,11 +46,6 @@ export class ProductCategoriesService {
     return this.prisma.productCategory.findMany({
       where: { companyId },
       orderBy: { name: 'asc' },
-      select: {
-        id: true,
-        name: true,
-        companyId: true,
-      },
     });
   }
 
@@ -57,71 +62,59 @@ export class ProductCategoriesService {
   }
 
   async update(id: string, dto: UpdateProductCategoryDto, companyId: string) {
-    // Verify category exists and belongs to company
     await this.findOne(id, companyId);
 
-    // Check if another category with same name exists (excluding current one)
-    const existing = await this.prisma.productCategory.findFirst({
-      where: {
-        name: dto.name,
-        companyId,
-        id: { not: id },
-      },
-    });
+    if (dto.name) {
+      const existing = await this.prisma.productCategory.findFirst({
+        where: { name: dto.name, companyId, id: { not: id } },
+      });
 
-    if (existing) {
-      throw new ConflictException('A category with this name already exists');
+      if (existing) {
+        throw new ConflictException('A category with this name already exists');
+      }
     }
+
+    const data: any = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.slug !== undefined) data.slug = dto.slug;
+    if (dto.description !== undefined) data.description = dto.description;
+    if (dto.status !== undefined) data.status = dto.status;
 
     return this.prisma.productCategory.update({
       where: { id },
-      data: { name: dto.name },
+      data,
     });
   }
 
   async remove(id: string, companyId: string) {
-    // Verify category exists and belongs to company
     const category = await this.findOne(id, companyId);
 
-    // Prevent deleting "Uncategorized" category
     if (category.name === 'Uncategorized') {
       throw new ConflictException('Cannot delete the "Uncategorized" category');
     }
 
-    // Get products using this category
     const products = await this.prisma.product.findMany({
       where: { categoryId: id, companyId },
       select: { id: true, name: true, sku: true },
     });
 
     if (products.length > 0) {
-      // Find or create an "Uncategorized" category
       let uncategorizedCategory = await this.prisma.productCategory.findFirst({
-        where: {
-          name: 'Uncategorized',
-          companyId,
-        },
+        where: { name: 'Uncategorized', companyId },
       });
 
       if (!uncategorizedCategory) {
         uncategorizedCategory = await this.prisma.productCategory.create({
-          data: {
-            name: 'Uncategorized',
-            companyId,
-          },
+          data: { name: 'Uncategorized', slug: 'uncategorized', companyId },
         });
       }
 
-      // Update all products to use "Uncategorized" category
       await this.prisma.product.updateMany({
         where: { categoryId: id, companyId },
-        data: { categoryId: uncategorizedCategory.id },
+        data: { categoryId: uncategorizedCategory.id, subCategoryId: null },
       });
 
-      // Return info about affected products
-      await this.prisma.productCategory.delete({
-        where: { id },
-      });
+      await this.prisma.productCategory.delete({ where: { id } });
 
       return {
         message: 'Category deleted successfully',
@@ -133,9 +126,7 @@ export class ProductCategoriesService {
       };
     }
 
-    await this.prisma.productCategory.delete({
-      where: { id },
-    });
+    await this.prisma.productCategory.delete({ where: { id } });
 
     return { message: 'Category deleted successfully', affectedProducts: [] };
   }
@@ -152,75 +143,51 @@ export class ProductCategoriesService {
       }>,
     };
 
-    // Get or create "Uncategorized" category once
     let uncategorizedCategory = await this.prisma.productCategory.findFirst({
-      where: {
-        name: 'Uncategorized',
-        companyId,
-      },
+      where: { name: 'Uncategorized', companyId },
     });
 
     if (!uncategorizedCategory) {
       uncategorizedCategory = await this.prisma.productCategory.create({
-        data: {
-          name: 'Uncategorized',
-          companyId,
-        },
+        data: { name: 'Uncategorized', slug: 'uncategorized', companyId },
       });
     }
 
     for (const id of ids) {
       try {
-        // Verify category exists and belongs to company
         const category = await this.prisma.productCategory.findFirst({
           where: { id, companyId },
         });
 
         if (!category) {
-          results.failed.push({
-            id,
-            error: 'Category not found or access denied',
-          });
+          results.failed.push({ id, error: 'Category not found or access denied' });
           continue;
         }
 
-        // Prevent deleting "Uncategorized" category
         if (category.name === 'Uncategorized') {
-          results.failed.push({
-            id,
-            error: 'Cannot delete the "Uncategorized" category',
-          });
+          results.failed.push({ id, error: 'Cannot delete the "Uncategorized" category' });
           continue;
         }
 
-        // Get products using this category
         const products = await this.prisma.product.findMany({
           where: { categoryId: id, companyId },
           select: { id: true, name: true, sku: true },
         });
 
         if (products.length > 0) {
-          // Update all products to use "Uncategorized" category
           await this.prisma.product.updateMany({
             where: { categoryId: id, companyId },
-            data: { categoryId: uncategorizedCategory.id },
+            data: { categoryId: uncategorizedCategory.id, subCategoryId: null },
           });
 
           results.totalAffectedProducts += products.length;
           results.affectedProductsList.push(...products);
         }
 
-        // Delete the category
-        await this.prisma.productCategory.delete({
-          where: { id },
-        });
-
+        await this.prisma.productCategory.delete({ where: { id } });
         results.deleted.push(id);
       } catch (error) {
-        results.failed.push({
-          id,
-          error: error.message || 'Failed to delete category',
-        });
+        results.failed.push({ id, error: error.message || 'Failed to delete category' });
       }
     }
 

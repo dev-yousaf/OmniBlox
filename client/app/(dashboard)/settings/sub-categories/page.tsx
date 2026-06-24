@@ -18,9 +18,14 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+import {
+  useSubCategoriesApi,
+  SubCategory,
+} from "@/hooks/use-sub-categories-api";
 import {
   useProductCategoriesApi,
   ProductCategory,
@@ -56,12 +61,14 @@ const statusColors: Record<string, string> = {
   INACTIVE: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
 
-export default function CategoriesPage() {
+export default function SubCategoriesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { getCategories, createCategory, updateCategory, deleteCategory, bulkDeleteCategories } =
-    useProductCategoriesApi();
+  const { getSubCategories, createSubCategory, updateSubCategory, deleteSubCategory, bulkDeleteSubCategories } =
+    useSubCategoriesApi();
+  const { getCategories } = useProductCategoriesApi();
 
+  const [items, setItems] = useState<SubCategory[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -71,13 +78,18 @@ export default function CategoriesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
-  const [editing, setEditing] = useState<ProductCategory | null>(null);
+  const [editing, setEditing] = useState<SubCategory | null>(null);
+  const [deleting, setDeleting] = useState<SubCategory | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [filterCategoryId, setFilterCategoryId] = useState<string>("all");
 
   const [formName, setFormName] = useState("");
   const [formSlug, setFormSlug] = useState("");
+  const [formCategoryId, setFormCategoryId] = useState("");
+  const [formCode, setFormCode] = useState("");
+  const [formImageUrl, setFormImageUrl] = useState("");
   const [formDesc, setFormDesc] = useState("");
   const [formStatus, setFormStatus] = useState("ACTIVE");
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const canManage =
     user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
@@ -87,8 +99,12 @@ export default function CategoriesPage() {
   const load = async () => {
     try {
       setIsLoading(true);
-      const data = await getCategories();
-      setCategories(data);
+      const [subs, cats] = await Promise.all([
+        getSubCategories(filterCategoryId !== "all" ? filterCategoryId : undefined),
+        getCategories(),
+      ]);
+      setItems(subs);
+      setCategories(cats);
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to load", variant: "destructive" });
     } finally {
@@ -96,7 +112,9 @@ export default function CategoriesPage() {
     }
   };
 
-  const sorted = [...categories].sort((a, b) => {
+  useEffect(() => { load(); }, [filterCategoryId]);
+
+  const sorted = [...items].sort((a, b) => {
     const d = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     return sortDir === "asc" ? d : -d;
   });
@@ -122,38 +140,65 @@ export default function CategoriesPage() {
     setEditing(null);
     setFormName("");
     setFormSlug("");
+    setFormCategoryId("");
+    setFormCode("");
+    setFormImageUrl("");
     setFormDesc("");
     setFormStatus("ACTIVE");
     setDialogOpen(true);
   };
 
-  const openEdit = (c: ProductCategory) => {
+  const openEdit = (c: SubCategory) => {
     setDialogMode("edit");
     setEditing(c);
     setFormName(c.name);
     setFormSlug(c.slug);
+    setFormCategoryId(c.categoryId);
+    setFormCode(c.code || "");
+    setFormImageUrl(c.imageUrl || "");
     setFormDesc(c.description || "");
     setFormStatus(c.status);
     setDialogOpen(true);
   };
 
-  const openView = (c: ProductCategory) => {
+  const openView = (c: SubCategory) => {
     setDialogMode("view");
     setEditing(c);
     setDialogOpen(true);
   };
 
+  const openDelete = (c: SubCategory) => {
+    setDeleting(c);
+    setDeleteDialogOpen(true);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName.trim()) return;
+    if (!formName.trim() || !formCategoryId) return;
     try {
       setIsSubmitting(true);
       if (editing) {
-        await updateCategory(editing.id, { name: formName.trim(), slug: formSlug.trim() || undefined, description: formDesc.trim() || undefined, status: formStatus });
-        toast({ title: "Success", description: "Category updated" });
+        await updateSubCategory(editing.id, {
+          name: formName.trim(),
+          slug: formSlug.trim() || undefined,
+          categoryId: formCategoryId,
+          code: formCode.trim() || undefined,
+          imageUrl: formImageUrl.trim() || undefined,
+          description: formDesc.trim() || undefined,
+          status: formStatus,
+        });
+        toast({ title: "Success", description: "Sub category updated" });
       } else {
-        await createCategory({ name: formName.trim(), slug: formSlug.trim() || undefined, description: formDesc.trim() || undefined, status: formStatus });
-        toast({ title: "Success", description: "Category created" });
+        await createSubCategory({
+          name: formName.trim(),
+          slug: formSlug.trim() || undefined,
+          categoryId: formCategoryId,
+          code: formCode.trim() || undefined,
+          imageUrl: formImageUrl.trim() || undefined,
+          description: formDesc.trim() || undefined,
+          status: formStatus,
+        });
+        toast({ title: "Success", description: "Sub category created" });
       }
       setDialogOpen(false);
       load();
@@ -164,19 +209,12 @@ export default function CategoriesPage() {
     }
   };
 
-  const [deleting, setDeleting] = useState<ProductCategory | null>(null);
-
-  const openDelete = (c: ProductCategory) => {
-    setDeleting(c);
-    setDeleteDialogOpen(true);
-  };
-
   const handleDelete = async () => {
     if (!deleting) return;
     try {
       setIsSubmitting(true);
-      await deleteCategory(deleting.id);
-      toast({ title: "Success", description: "Category deleted" });
+      await deleteSubCategory(deleting.id);
+      toast({ title: "Success", description: "Sub category deleted" });
       setDeleteDialogOpen(false);
       setDeleting(null);
       load();
@@ -190,8 +228,8 @@ export default function CategoriesPage() {
   const handleBulkDelete = async () => {
     try {
       setIsSubmitting(true);
-      const res = await bulkDeleteCategories(Array.from(selectedIds));
-      toast({ title: "Deleted", description: `${res.deleted.length} categories deleted` });
+      await bulkDeleteSubCategories(Array.from(selectedIds));
+      toast({ title: "Deleted", description: `${selectedIds.size} sub categories deleted` });
       setSelectedIds(new Set());
       setBulkDeleteOpen(false);
       load();
@@ -206,13 +244,13 @@ export default function CategoriesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Category</h1>
-          <p className="text-muted-foreground">Manage your product categories</p>
+          <h1 className="text-3xl font-bold tracking-tight">Sub Category</h1>
+          <p className="text-muted-foreground">Manage your product sub categories</p>
         </div>
         {canManage && (
           <Button onClick={openCreate}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Category
+            Add Sub Category
           </Button>
         )}
       </div>
@@ -220,13 +258,26 @@ export default function CategoriesPage() {
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle>All Categories</CardTitle>
-            {canManage && selectedIds.size > 0 && (
-              <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete ({selectedIds.size})
-              </Button>
-            )}
+            <CardTitle>All Sub Categories</CardTitle>
+            <div className="flex items-center gap-3">
+              <Select value={filterCategoryId} onValueChange={setFilterCategoryId}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {canManage && selectedIds.size > 0 && (
+                <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete ({selectedIds.size})
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -235,50 +286,60 @@ export default function CategoriesPage() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : sorted.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No categories found.</div>
+            <div className="text-center py-8 text-muted-foreground">No sub categories found.</div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   {canManage && <TableHead className="w-[60px]"><Checkbox checked={selectedIds.size === sorted.length && sorted.length > 0} onCheckedChange={toggleAll} /></TableHead>}
-                  <TableHead className="w-[228px]">Category</TableHead>
-                  <TableHead className="w-[227px]">Category Slug</TableHead>
-                  <TableHead className="w-[222px] cursor-pointer select-none" onClick={toggleSort}>
+                  <TableHead className="w-[71px]">Image</TableHead>
+                  <TableHead className="w-[161px]">Sub Category</TableHead>
+                  <TableHead className="w-[163px]">Category</TableHead>
+                  <TableHead className="w-[154px] cursor-pointer select-none" onClick={toggleSort}>
                     <span className="inline-flex items-center gap-1">
-                      Created On
+                      Category Code
                       <ArrowUpDown className="h-3 w-3" />
                     </span>
                   </TableHead>
-                  <TableHead className="w-[206px]">Status</TableHead>
-                  {canManage && <TableHead className="w-[197px]">Actions</TableHead>}
+                  <TableHead className="w-[209px]">Description</TableHead>
+                  <TableHead className="w-[96px]">Status</TableHead>
+                  {canManage && <TableHead className="w-[226px]">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sorted.map((cat) => (
-                  <TableRow key={cat.id}>
+                {sorted.map((item) => (
+                  <TableRow key={item.id}>
                     {canManage && (
                       <TableCell>
-                        <Checkbox checked={selectedIds.has(cat.id)} onCheckedChange={() => toggleSelect(cat.id)} disabled={cat.name === "Uncategorized"} />
+                        <Checkbox checked={selectedIds.has(item.id)} onCheckedChange={() => toggleSelect(item.id)} />
                       </TableCell>
                     )}
-                    <TableCell className="font-medium">{cat.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{cat.slug}</TableCell>
-                    <TableCell>{new Date(cat.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[cat.status] || statusColors.ACTIVE}`}>
-                        {cat.status}
+                      {item.imageUrl ? (
+                        <img src={item.imageUrl} alt="" className="h-8 w-8 rounded object-cover" />
+                      ) : (
+                        <div className="h-8 w-8 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground">N/A</div>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell className="text-muted-foreground">{item.category?.name || "—"}</TableCell>
+                    <TableCell className="font-mono text-xs">{item.code || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground max-w-[209px] truncate">{item.description || "—"}</TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[item.status] || statusColors.ACTIVE}`}>
+                        {item.status}
                       </span>
                     </TableCell>
                     {canManage && (
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openView(cat)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openView(item)}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cat)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(item)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => openDelete(cat)} disabled={cat.name === "Uncategorized"}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => openDelete(item)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -294,28 +355,53 @@ export default function CategoriesPage() {
 
       {/* Create / Edit Dialog */}
       <Dialog open={dialogOpen && dialogMode !== "view"} onOpenChange={(o) => { if (!o) setDialogOpen(false); }}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[500px]">
           <form onSubmit={handleSave}>
             <DialogHeader>
-              <DialogTitle>{editing ? "Edit Category" : "Add Category"}</DialogTitle>
+              <DialogTitle>{editing ? "Edit Sub Category" : "Add Sub Category"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div>
-                <Label htmlFor="cat-name">Category Name</Label>
-                <Input id="cat-name" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Enter category name" required maxLength={100} className="mt-1.5" />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="sub-name">Sub Category Name</Label>
+                  <Input id="sub-name" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Enter name" required maxLength={100} className="mt-1.5" />
+                </div>
+                <div>
+                  <Label htmlFor="sub-slug">Slug</Label>
+                  <Input id="sub-slug" value={formSlug} onChange={(e) => setFormSlug(e.target.value)} placeholder="Auto-generated" maxLength={100} className="mt-1.5" />
+                </div>
               </div>
               <div>
-                <Label htmlFor="cat-slug">Slug</Label>
-                <Input id="cat-slug" value={formSlug} onChange={(e) => setFormSlug(e.target.value)} placeholder="Auto-generated from name" maxLength={100} className="mt-1.5" />
+                <Label htmlFor="sub-category">Category</Label>
+                <Select value={formCategoryId} onValueChange={setFormCategoryId}>
+                  <SelectTrigger className="mt-1.5" id="sub-category">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="sub-code">Code (optional)</Label>
+                  <Input id="sub-code" value={formCode} onChange={(e) => setFormCode(e.target.value)} placeholder="SC001" className="mt-1.5" />
+                </div>
+                <div>
+                  <Label htmlFor="sub-image">Image URL (optional)</Label>
+                  <Input id="sub-image" value={formImageUrl} onChange={(e) => setFormImageUrl(e.target.value)} placeholder="https://..." className="mt-1.5" />
+                </div>
               </div>
               <div>
-                <Label htmlFor="cat-desc">Description (optional)</Label>
-                <Input id="cat-desc" value={formDesc} onChange={(e) => setFormDesc(e.target.value)} placeholder="Enter description" className="mt-1.5" />
+                <Label htmlFor="sub-desc">Description (optional)</Label>
+                <Textarea id="sub-desc" value={formDesc} onChange={(e) => setFormDesc(e.target.value)} placeholder="Enter description" className="mt-1.5" rows={3} />
               </div>
               <div>
-                <Label htmlFor="cat-status">Status</Label>
+                <Label htmlFor="sub-status">Status</Label>
                 <Select value={formStatus} onValueChange={setFormStatus}>
-                  <SelectTrigger className="mt-1.5" id="cat-status">
+                  <SelectTrigger className="mt-1.5" id="sub-status">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -327,7 +413,7 @@ export default function CategoriesPage() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
-              <Button type="submit" disabled={isSubmitting || !formName.trim()}>
+              <Button type="submit" disabled={isSubmitting || !formName.trim() || !formCategoryId}>
                 {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : editing ? "Update" : "Create"}
               </Button>
             </DialogFooter>
@@ -343,6 +429,8 @@ export default function CategoriesPage() {
           </DialogHeader>
           <div className="space-y-3 py-4 text-sm">
             <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground">Slug</span><span>{editing?.slug}</span></div>
+            <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground">Category</span><span>{editing?.category?.name || "—"}</span></div>
+            <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground">Code</span><span>{editing?.code || "—"}</span></div>
             <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground">Description</span><span>{editing?.description || "—"}</span></div>
             <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground">Status</span><span>{editing?.status}</span></div>
             <div className="flex justify-between border-b pb-2"><span className="text-muted-foreground">Created</span><span>{editing ? new Date(editing.createdAt).toLocaleString() : "—"}</span></div>
@@ -357,9 +445,9 @@ export default function CategoriesPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Category?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Sub Category?</AlertDialogTitle>
             <AlertDialogDescription>
-              You are about to delete &quot;{deleting?.name}&quot;. Products using this category will be moved to &quot;Uncategorized&quot;.
+              You are about to delete &quot;{deleting?.name}&quot;. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -375,9 +463,9 @@ export default function CategoriesPage() {
       <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Categories?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Sub Categories?</AlertDialogTitle>
             <AlertDialogDescription>
-              {selectedIds.size} categories will be deleted. Products will be moved to &quot;Uncategorized&quot;.
+              {selectedIds.size} sub categories will be permanently deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

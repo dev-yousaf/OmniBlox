@@ -4,15 +4,26 @@ import { useCallback } from "react";
 export interface ProductCategory {
   id: string;
   name: string;
+  slug: string;
+  description?: string;
+  status: string;
   companyId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateProductCategoryDto {
   name: string;
+  slug?: string;
+  description?: string;
+  status?: string;
 }
 
 export interface UpdateProductCategoryDto {
-  name: string;
+  name?: string;
+  slug?: string;
+  description?: string;
+  status?: string;
 }
 
 export interface AffectedProduct {
