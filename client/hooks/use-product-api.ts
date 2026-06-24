@@ -126,6 +126,17 @@ export function useProductApi() {
     return get("/products/low-stock") as Promise<Product[]>;
   }, [get]);
 
+  const getExpiredProducts = useCallback(
+    async (filters: { page?: number; limit?: number } = {}): Promise<ProductListResponse> => {
+      const params = new URLSearchParams();
+      if (filters.page) params.set("page", filters.page.toString());
+      if (filters.limit) params.set("limit", filters.limit.toString());
+      const query = params.toString();
+      return get(`/products/expired${query ? `?${query}` : ""}`) as Promise<ProductListResponse>;
+    },
+    [get]
+  );
+
   const getProductStats = useCallback(async (): Promise<ProductStats> => {
     return get("/products/stats") as Promise<ProductStats>;
   }, [get]);
@@ -217,6 +228,7 @@ export function useProductApi() {
     getCategories,
     getBrands,
     getLowStockProducts,
+    getExpiredProducts,
     getProductStats,
     getStockLedger,
     getVariants,

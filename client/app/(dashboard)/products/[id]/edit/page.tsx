@@ -1,21 +1,14 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { RefreshCw, Minus } from "lucide-react";
 import Link from "next/link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { ProductForm } from "@/components/products/product-form";
 import { useProductApi } from "@/hooks/use-product-api";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 export default function EditProductPage({
   params,
@@ -28,6 +21,7 @@ export default function EditProductPage({
   const router = useRouter();
   const [productData, setProductData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -63,12 +57,6 @@ export default function EditProductPage({
     return (
       <div className="p-6 space-y-6">
         <div className="flex items-center gap-4">
-          <Link href="/products">
-            <Button variant="ghost" size="sm" className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Products
-            </Button>
-          </Link>
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">
               Product Not Found
@@ -83,44 +71,48 @@ export default function EditProductPage({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/products">
-          <Button variant="ghost" size="sm" className="gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Products
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">
-            Edit Product
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Update product information
-          </p>
+    <div className="max-w-[1440px] mx-auto">
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-3xl font-semibold tracking-tight">Edit Product</h1>
+          <div className="flex items-center gap-3">
+            <button className="flex items-center justify-center w-4 h-4 text-muted-foreground hover:text-foreground" title="Refresh">
+              <RefreshCw className="w-full h-full" />
+            </button>
+            <button className="flex items-center justify-center w-4 h-4 text-muted-foreground hover:text-foreground" title="Collapse">
+              <Minus className="w-full h-full" />
+            </button>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+          <span>/</span>
+          <Link href="/products" className="hover:text-foreground transition-colors">Products</Link>
+          <span>/</span>
+          <Link href={`/products/${productId}`} className="hover:text-foreground transition-colors">{productData.name}</Link>
+          <span>/</span>
+          <span className="text-foreground font-medium">Edit</span>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Product Information</CardTitle>
-          <CardDescription>
-            Update the details for this product. All required fields must be
-            completed.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ProductForm
-            initialData={productData}
-            isEdit={true}
-            productId={productId}
-            onSuccess={handleSuccess}
-          />
-        </CardContent>
-      </Card>
+      <ProductForm
+        ref={formRef}
+        initialData={productData}
+        isEdit={true}
+        productId={productId}
+        onSuccess={handleSuccess}
+      />
+      <div className="flex items-center justify-end gap-2 mt-6">
+        <Link href={`/products/${productId}`}>
+          <Button variant="outline" className="h-[34px] px-4 text-[13px]">Cancel</Button>
+        </Link>
+        <Button
+          className="h-[34px] px-4 text-[13px] bg-[#092c4c] text-white hover:bg-[#092c4c]/90"
+          onClick={() => formRef.current?.requestSubmit()}
+        >
+          Save Product
+        </Button>
+      </div>
     </div>
   );
 }
-
-
-

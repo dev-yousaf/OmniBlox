@@ -196,7 +196,11 @@ export class ProductService {
     }
 
     if (status) {
-      where.status = status;
+      if (status === 'expired') {
+        where.expiryDate = { lt: new Date() };
+      } else {
+        where.status = status as any;
+      }
     }
 
     const [products, total] = await Promise.all([
@@ -708,6 +712,49 @@ export class ProductService {
       );
       return this.transformToDto(product, totalStock);
     });
+  }
+
+  async getExpiredProducts(
+    companyId: string,
+    page = 1,
+    limit = 10,
+  ): Promise<{ products: ProductResponseDto[]; total: number; pages: number }> {
+    const skip = (page - 1) * limit;
+    const now = new Date();
+    const where = {
+      companyId,
+      expiryDate: { lt: now } as const,
+    };
+
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { expiryDate: 'asc' },
+        include: {
+          category: true,
+          brand: true,
+          createdBy: { select: { id: true, name: true, image: true } },
+          inventory: {
+            include: { warehouse: true },
+          },
+        },
+      }),
+      this.prisma.product.count({ where }),
+    ]);
+
+    return {
+      products: products.map((product) => {
+        const totalStock = product.inventory.reduce(
+          (sum, inv) => sum + inv.quantity,
+          0,
+        );
+        return this.transformToDto(product, totalStock);
+      }),
+      total,
+      pages: Math.ceil(total / limit),
+    };
   }
 
   async getCategories(companyId: string): Promise<string[]> {

@@ -38,11 +38,28 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 
+type Role = "OWNER" | "ADMIN" | "MANAGER" | "STAFF" | string;
+
+const MANAGEMENT_ROLES: ReadonlySet<Role> = new Set(["OWNER", "ADMIN", "MANAGER"]);
+
+/** How specifically an item's href matches the current location. Higher wins. */
+const MatchScore = {
+  NONE: 0,
+  DASHBOARD_ROOT_ALIAS: 1,
+  PREFIX: 2,
+  PATH: 3,
+  PATH_AND_QUERY: 4,
+} as const;
+
 interface SidebarItem {
+  /** Stable unique key — independent of display text, used for React keys and active matching. */
+  id: string;
   name: string;
   href: string;
   icon?: typeof LayoutDashboard;
   mutationOnly?: boolean;
+  /** Roles allowed to see this item. Omit to allow everyone. */
+  allowedRoles?: readonly Role[];
 }
 
 interface SidebarSection {
@@ -54,139 +71,153 @@ const sections: SidebarSection[] = [
   {
     label: "Main",
     items: [
-      { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { name: "Super Admin", href: "/superadmin", icon: UserCog },
+      { id: "dashboard", name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { id: "superadmin", name: "Super Admin", href: "/superadmin", icon: UserCog },
     ],
   },
   {
     label: "Inventory",
     items: [
-      { name: "Products", href: "/products", icon: Package },
-      { name: "Create Product", href: "/products/new", icon: Package, mutationOnly: true },
-      { name: "Expired Products", href: "/products?status=expired", icon: PackageX },
-      { name: "Low Stocks", href: "/products", icon: AlertTriangle },
-      { name: "Category", href: "/settings/categories", icon: FolderTree },
-      { name: "Sub Category", href: "/settings/sub-categories", icon: FolderOpen },
-      { name: "Brands", href: "/settings/brands", icon: Tag },
-      { name: "Units", href: "/settings/units", icon: Ruler },
-      { name: "Variant Attributes", href: "/settings/variant-attributes", icon: ListChecks },
-      { name: "Warranties", href: "/settings/warranties", icon: ShieldCheck },
-      { name: "Print Barcode", href: "/products/barcodes", icon: Barcode },
-      { name: "Print QR Code", href: "/products/qrcodes", icon: QrCode },
+      { id: "products", name: "Products", href: "/products", icon: Package },
+      { id: "products-new", name: "Create Product", href: "/products/new", icon: Package, mutationOnly: true },
+      { id: "products-expired", name: "Expired Products", href: "/products/expired", icon: PackageX },
+      { id: "products-low-stock", name: "Low Stocks", href: "/products?status=low-stock", icon: AlertTriangle },
+      { id: "categories", name: "Category", href: "/settings/categories", icon: FolderTree },
+      { id: "sub-categories", name: "Sub Category", href: "/settings/sub-categories", icon: FolderOpen },
+      { id: "brands", name: "Brands", href: "/settings/brands", icon: Tag },
+      { id: "units", name: "Units", href: "/settings/units", icon: Ruler },
+      { id: "variant-attributes", name: "Variant Attributes", href: "/settings/variant-attributes", icon: ListChecks },
+      { id: "warranties", name: "Warranties", href: "/settings/warranties", icon: ShieldCheck },
+      { id: "print-barcode", name: "Print Barcode", href: "/products/barcodes", icon: Barcode },
+      { id: "print-qrcode", name: "Print QR Code", href: "/products/qrcodes", icon: QrCode },
     ],
   },
   {
     label: "Stock",
     items: [
-      { name: "Manage Stock", href: "/inventory", icon: Warehouse },
-      { name: "Stock Adjustment", href: "/products/adjustment", icon: ArrowUpDown, mutationOnly: true },
-      { name: "Stock Transfer", href: "/inventory/transfer", icon: ArrowLeftRight, mutationOnly: true },
+      { id: "inventory", name: "Manage Stock", href: "/inventory", icon: Warehouse },
+      { id: "stock-adjustment", name: "Stock Adjustment", href: "/products/adjustment", icon: ArrowUpDown, mutationOnly: true },
+      { id: "stock-transfer", name: "Stock Transfer", href: "/inventory/transfer", icon: ArrowLeftRight, mutationOnly: true },
     ],
   },
   {
     label: "Sales",
     items: [
-      { name: "Sales", href: "/sales", icon: ShoppingCart },
-      { name: "Invoices", href: "/sales", icon: FileText },
-      { name: "Sales Return", href: "/returns", icon: RotateCcw },
-      { name: "Quotation", href: "/quotations", icon: FileQuestion },
+      { id: "sales", name: "Sales", href: "/sales", icon: ShoppingCart },
+      { id: "invoices", name: "Invoices", href: "/sales/invoices", icon: FileText },
+      { id: "sales-return", name: "Sales Return", href: "/returns", icon: RotateCcw },
+      { id: "quotation", name: "Quotation", href: "/quotations", icon: FileQuestion },
     ],
   },
   {
     label: "Purchases",
-    items: [
-      { name: "Purchases", href: "/purchases", icon: ShoppingBag },
-    ],
+    items: [{ id: "purchases", name: "Purchases", href: "/purchases", icon: ShoppingBag }],
   },
   {
     label: "Finance & Accounts",
-    items: [
-      { name: "Expenses", href: "/expenses", icon: DollarSign },
-    ],
+    items: [{ id: "expenses", name: "Expenses", href: "/expenses", icon: DollarSign }],
   },
   {
     label: "Peoples",
     items: [
-      { name: "Users", href: "/people/users", icon: Users },
-      { name: "Customers", href: "/people/customers", icon: Users },
-      { name: "Suppliers", href: "/people/suppliers", icon: Building },
+      { id: "users", name: "Users", href: "/people/users", icon: Users, allowedRoles: ["OWNER", "ADMIN", "MANAGER"] },
+      { id: "customers", name: "Customers", href: "/people/customers", icon: Users },
+      { id: "suppliers", name: "Suppliers", href: "/people/suppliers", icon: Building },
     ],
   },
   {
     label: "Reports",
     items: [
-      { name: "Reports", href: "/reports", icon: BarChart3 },
+      { id: "reports", name: "Reports", href: "/reports", icon: BarChart3, allowedRoles: ["OWNER", "ADMIN", "MANAGER"] },
     ],
   },
   {
     label: "Settings",
     items: [
-      { name: "Settings", href: "/settings", icon: Settings },
-      { name: "Notifications", href: "/notifications", icon: Bell },
+      { id: "settings", name: "Settings", href: "/settings", icon: Settings },
+      { id: "notifications", name: "Notifications", href: "/notifications", icon: Bell },
     ],
   },
 ];
 
-const roleAccess: Record<string, string[]> = {
-  Users: ["OWNER", "ADMIN", "MANAGER"],
-  Reports: ["OWNER", "ADMIN", "MANAGER"],
-};
+// Computed once at module load — sections is static, no need to re-flatten per render.
+const allSidebarItems: SidebarItem[] = sections.flatMap((s) => s.items);
 
 type AppSidebarProps = {
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
 };
 
-function filterItems(items: SidebarItem[], role: string): SidebarItem[] {
-  const isAllowed = role === "OWNER" || role === "ADMIN" || role === "MANAGER";
+function filterItems(items: SidebarItem[], role: Role): SidebarItem[] {
+  const isManagement = MANAGEMENT_ROLES.has(role);
   return items.filter((item) => {
-    const allowedRoles = roleAccess[item.name];
-    if (allowedRoles && !allowedRoles.includes(role)) return false;
-    if (item.mutationOnly && !isAllowed) return false;
+    if (item.allowedRoles && !item.allowedRoles.includes(role)) return false;
+    if (item.mutationOnly && !isManagement) return false;
     return true;
   });
+}
+
+/** Parses "?a=1&b=2" into a comparable key/value record (avoids substring false-positives). */
+function parseQuery(query: string): Record<string, string> {
+  return Object.fromEntries(new URLSearchParams(query));
+}
+
+function queryIsSubsetMatch(target: Record<string, string>, current: URLSearchParams): boolean {
+  return Object.entries(target).every(([key, value]) => current.get(key) === value);
+}
+
+function matchScore(item: SidebarItem, pathname: string, searchParams: URLSearchParams): number {
+  const [hrefPath, hrefQuery] = item.href.split("?");
+
+  if (hrefQuery) {
+    if (pathname !== hrefPath) return MatchScore.NONE;
+    return queryIsSubsetMatch(parseQuery(hrefQuery), searchParams) ? MatchScore.PATH_AND_QUERY : MatchScore.NONE;
+  }
+
+  if (pathname === hrefPath) return MatchScore.PATH;
+
+  if (hrefPath === "/dashboard" && pathname === "/") return MatchScore.DASHBOARD_ROOT_ALIAS;
+
+  // parent prefix: /products matches /products/123, /products/new, etc.
+  if (pathname.startsWith(hrefPath + "/")) return MatchScore.PREFIX;
+
+  return MatchScore.NONE;
+}
+
+function getInitials(name: string | null | undefined, fallback: string): string {
+  if (!name) return fallback;
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 }
 
 export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const userRole = (user?.role || "").toUpperCase();
+  const userRole = (user?.role || "").toUpperCase() as Role;
 
-  // Compute active hrefs with dedup: query-param matches (more specific) win over bare path matches
-  const activeHrefs = useMemo(() => {
-    const result = new Set<string>();
-    const allItems = sections.flatMap((s) => s.items);
+  // Exactly one item is ever marked active: the single best match across
+  // the whole nav (by id, not display name), so two items that resolve to
+  // the same path can never both light up at once.
+  const activeItemId = useMemo(() => {
+    let bestItem: SidebarItem | null = null;
+    let bestScore: number = MatchScore.NONE;
 
-    // First pass: query-param-specific items
-    for (const item of allItems) {
-      const [hrefPath, hrefQuery] = item.href.split("?");
-      if (!hrefQuery) continue;
-      if (pathname === hrefPath && searchParams.toString().includes(hrefQuery)) {
-        result.add(item.href);
+    for (const item of allSidebarItems) {
+      const score = matchScore(item, pathname, searchParams);
+      if (score > bestScore) {
+        bestScore = score;
+        bestItem = item;
       }
     }
 
-    // Second pass: bare path items, skip if path already claimed by a query match
-    const claimed = new Set([...result].map((h) => h.split("?")[0]));
-    for (const item of allItems) {
-      const [hrefPath, hrefQuery] = item.href.split("?");
-      if (hrefQuery) continue;
-      if (claimed.has(hrefPath)) continue;
-
-      const active =
-        hrefPath === "/dashboard"
-          ? pathname === "/dashboard" || pathname === "/"
-          : pathname === hrefPath;
-
-      if (active) {
-        result.add(item.href);
-        claimed.add(hrefPath);
-      }
-    }
-
-    return result;
+    return bestItem?.id ?? null;
   }, [pathname, searchParams]);
+
+  const initials = getInitials(user?.name, "AD");
 
   return (
     <div
@@ -240,12 +271,12 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
 
               <div className="space-y-1">
                 {visibleItems.map((item) => {
-                  const active = activeHrefs.has(item.href);
+                  const active = item.id === activeItemId;
                   const Icon = item.icon;
 
                   if (collapsed) {
                     return (
-                      <Link key={item.name} href={item.href} title={item.name}>
+                      <Link key={item.id} href={item.href} title={item.name}>
                         <Button
                           variant="ghost"
                           className={cn(
@@ -262,7 +293,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
                   }
 
                   return (
-                    <Link key={item.name} href={item.href}>
+                    <Link key={item.id} href={item.href}>
                       <div
                         className={cn(
                           "flex items-center gap-2 px-3 py-2 rounded-lg transition-colors",
@@ -290,11 +321,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
         {!collapsed ? (
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-hover text-xs font-medium text-sidebar-foreground">
-              {user?.name
-                ?.split(" ")
-                .map((n) => n[0])
-                .join("")
-                .toUpperCase() || "AD"}
+              {initials}
             </div>
             <div className="flex-1 text-sm">
               <div className="font-medium text-sidebar-foreground">{user?.name || "Admin User"}</div>
@@ -304,11 +331,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
         ) : (
           <div className="flex justify-center">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-hover text-xs font-medium text-sidebar-foreground">
-              {user?.name
-                ?.split(" ")
-                .map((n) => n[0])
-                .join("")
-                .toUpperCase() || "AD"}
+              {initials}
             </div>
           </div>
         )}

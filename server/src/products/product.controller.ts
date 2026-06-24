@@ -81,6 +81,18 @@ export class ProductController {
     return this.productService.getLowStockProducts(companyId);
   }
 
+  @Get('expired')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
+  async getExpiredProducts(
+    @CompanyId() companyId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? parseInt(page) : 1;
+    const limitNum = limit ? parseInt(limit) : 10;
+    return this.productService.getExpiredProducts(companyId, pageNum, limitNum);
+  }
+
   @Get('stats')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async getStats(@CompanyId() companyId: string) {
