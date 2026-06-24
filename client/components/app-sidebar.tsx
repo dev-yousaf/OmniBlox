@@ -1,7 +1,8 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
   Package,
@@ -148,14 +149,44 @@ function filterItems(items: SidebarItem[], role: string): SidebarItem[] {
 
 export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const userRole = (user?.role || "").toUpperCase();
 
-  const isActive = (href: string) => {
-    const hrefPath = href.split("?")[0];
-    if (hrefPath === "/dashboard") return pathname === "/dashboard" || pathname === "/";
-    return pathname === hrefPath;
-  };
+  // Compute active hrefs with dedup: query-param matches (more specific) win over bare path matches
+  const activeHrefs = useMemo(() => {
+    const result = new Set<string>();
+    const allItems = sections.flatMap((s) => s.items);
+
+    // First pass: query-param-specific items
+    for (const item of allItems) {
+      const [hrefPath, hrefQuery] = item.href.split("?");
+      if (!hrefQuery) continue;
+      if (pathname === hrefPath && searchParams.toString().includes(hrefQuery)) {
+        result.add(item.href);
+      }
+    }
+
+    // Second pass: bare path items, skip if path already claimed by a query match
+    const claimed = new Set([...result].map((h) => h.split("?")[0]));
+    for (const item of allItems) {
+      const [hrefPath, hrefQuery] = item.href.split("?");
+      if (hrefQuery) continue;
+      if (claimed.has(hrefPath)) continue;
+
+      const active =
+        hrefPath === "/dashboard"
+          ? pathname === "/dashboard" || pathname === "/"
+          : pathname === hrefPath;
+
+      if (active) {
+        result.add(item.href);
+        claimed.add(hrefPath);
+      }
+    }
+
+    return result;
+  }, [pathname, searchParams]);
 
   return (
     <div
@@ -209,7 +240,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
 
               <div className="space-y-1">
                 {visibleItems.map((item) => {
-                  const active = isActive(item.href);
+                  const active = activeHrefs.has(item.href);
                   const Icon = item.icon;
 
                   if (collapsed) {
