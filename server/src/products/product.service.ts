@@ -163,11 +163,16 @@ export class ProductService {
 
       // Only create inventory for physical products (STANDARD or COMBO)
       if (createProductDto.type !== 'DIGITAL' && createProductDto.type !== 'SERVICE') {
-        const defaultWarehouse = await this.prisma.warehouse.findFirst({
-          where: { companyId },
-        });
+        let targetWarehouseId = createProductDto.warehouseId;
 
-        if (!defaultWarehouse) {
+        if (!targetWarehouseId) {
+          const firstWarehouse = await this.prisma.warehouse.findFirst({
+            where: { companyId },
+          });
+          targetWarehouseId = firstWarehouse?.id;
+        }
+
+        if (!targetWarehouseId) {
           const warehouse = await this.prisma.warehouse.create({
             data: {
               name: 'Default Warehouse',
@@ -175,23 +180,16 @@ export class ProductService {
               companyId,
             },
           });
-
-          await this.prisma.inventory.create({
-            data: {
-              productId: product.id,
-              warehouseId: warehouse.id,
-              quantity: stock,
-            },
-          });
-        } else {
-          await this.prisma.inventory.create({
-            data: {
-              productId: product.id,
-              warehouseId: defaultWarehouse.id,
-              quantity: stock,
-            },
-          });
+          targetWarehouseId = warehouse.id;
         }
+
+        await this.prisma.inventory.create({
+          data: {
+            productId: product.id,
+            warehouseId: targetWarehouseId,
+            quantity: stock,
+          },
+        });
       }
 
       return this.transformToDto(product, stock);

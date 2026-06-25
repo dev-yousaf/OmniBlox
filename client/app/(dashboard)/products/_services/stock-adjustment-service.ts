@@ -1,15 +1,16 @@
 import { useAuthenticatedApi } from "@/hooks/use-authenticated-api";
 
-export interface StockAdjustmentItem {
+export interface StockAdjustmentItemInput {
   productId: string;
+  warehouseId: string;
+  previousQuantity: number;
   newQuantity: number;
 }
 
 export interface CreateStockAdjustmentPayload {
-  warehouseId: string;
-  adjustmentDate: string;
   notes?: string;
-  items: StockAdjustmentItem[];
+  type?: "ADDITION" | "REMOVAL";
+  items: StockAdjustmentItemInput[];
 }
 
 export interface StockAdjustmentItemResponse {
@@ -19,6 +20,8 @@ export interface StockAdjustmentItemResponse {
   difference: number;
   productId: string;
   productName: string;
+  productSku: string;
+  productImage: string | null;
   warehouseId: string;
   warehouseName: string;
 }
@@ -28,6 +31,7 @@ export interface StockAdjustmentResponse {
   referenceNumber: string;
   adjustmentDate: string;
   notes?: string;
+  type: string;
   totalItems: number;
   netChange: number;
   createdAt: string;

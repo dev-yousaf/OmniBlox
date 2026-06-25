@@ -26,6 +26,7 @@ export interface InventoryItem {
   productId: string;
   productName: string;
   productSku: string;
+  imageUrl: string | null;
   warehouseId: string;
   warehouseName: string;
   quantity: number;
@@ -36,6 +37,7 @@ export interface InventoryItem {
   status: "in_stock" | "low_stock" | "out_of_stock";
   category: string;
   brand?: string;
+  updatedAt: string;
 }
 
 export interface InventoryListResponse {
@@ -59,6 +61,24 @@ export interface StockTransferData {
   toWarehouseId: string;
   quantity: number;
   notes?: string;
+}
+
+export interface BulkStockTransferItem {
+  productId: string;
+  quantity: number;
+}
+
+export interface BulkStockTransferData {
+  fromWarehouseId: string;
+  toWarehouseId: string;
+  notes?: string;
+  items: BulkStockTransferItem[];
+}
+
+export interface TransferListResponse {
+  transfers: StockAdjustment[];
+  total: number;
+  pages: number;
 }
 
 export interface StockAdjustmentData {
@@ -213,6 +233,30 @@ export function useInventoryApi() {
     [post]
   );
 
+  const bulkTransferStock = useCallback(
+    async (data: BulkStockTransferData): Promise<StockAdjustment> => {
+      return post("/inventory/transfers/bulk", data) as Promise<StockAdjustment>;
+    },
+    [post]
+  );
+
+  const getTransfers = useCallback(
+    async (page = 1, limit = 20): Promise<TransferListResponse> => {
+      const params = new URLSearchParams();
+      params.set("page", page.toString());
+      params.set("limit", limit.toString());
+      return get(`/inventory/transfers?${params.toString()}`) as Promise<TransferListResponse>;
+    },
+    [get]
+  );
+
+  const getTransfer = useCallback(
+    async (id: string): Promise<StockAdjustment> => {
+      return get(`/inventory/transfers/${id}`) as Promise<StockAdjustment>;
+    },
+    [get]
+  );
+
   // === STOCK ADJUSTMENT OPERATIONS ===
   const createStockAdjustment = useCallback(
     async (data: StockAdjustmentData): Promise<StockAdjustment> => {
@@ -260,6 +304,9 @@ export function useInventoryApi() {
 
     // Stock operations
     transferStock,
+    bulkTransferStock,
+    getTransfers,
+    getTransfer,
     createStockAdjustment,
     getStockAdjustments,
   };

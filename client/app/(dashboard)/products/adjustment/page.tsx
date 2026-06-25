@@ -1,151 +1,204 @@
 "use client";
 
-import type React from "react";
-
-import { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Save, Plus, Trash2, Loader2 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import Link from "next/link";
+import {
+  Plus, Save, Trash2, Loader2, ChevronRight, Search, Package, AlertCircle,
+  ChevronLeft,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAllProducts } from "@/hooks/use-products";
 import { useWarehouses } from "@/hooks/use-warehouses";
 import { useStockAdjustmentService } from "../_services/stock-adjustment-service";
+import { useInventoryApi } from "@/hooks/use-inventory-api";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
+import type { Product } from "@/lib/types";
+import type { Warehouse } from "@/hooks/use-warehouses";
 
 type AdjustmentItem = {
   id: string;
   productId: string;
+  productName: string;
+  productSku: string;
+  productImage: string | null;
   warehouseId: string;
-  currentStock: number;
-  newStock: number;
-  difference: number;
+  warehouseName: string;
+  previousQuantity: number;
+  newQuantity: number;
 };
 
 export default function StockAdjustmentPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>("");
+  const { user } = useAuth();
+  const { products, loading: productsLoading } = useAllProducts();
+  const { warehouses, loading: warehousesLoading } = useWarehouses();
+  const { createStockAdjustment } = useStockAdjustmentService();
+  const inventoryApi = useInventoryApi();
+
   const [items, setItems] = useState<AdjustmentItem[]>([]);
   const [notes, setNotes] = useState("");
+  const [type, setType] = useState<"ADDITION" | "REMOVAL">("ADDITION");
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [productSearch, setProductSearch] = useState("");
+  const [productSelectOpen, setProductSelectOpen] = useState(false);
 
-  const {
-    products,
-    loading: productsLoading,
-    refreshing: productsRefreshing,
-    error: productsError,
-    reload: reloadProducts,
-  } = useAllProducts();
+  const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
 
-  const {
-    warehouses,
-    loading: warehousesLoading,
-    error: warehousesError,
-    reload: reloadWarehouses,
-  } = useWarehouses();
-
-  const { createStockAdjustment } = useStockAdjustmentService();
-
-  // Auto-select first warehouse when warehouses load
   useEffect(() => {
-    if (warehouses.length > 0 && !selectedWarehouseId) {
-      setSelectedWarehouseId(warehouses[0].id);
-    }
-  }, [warehouses, selectedWarehouseId]);
+    if (!canManage) router.push("/inventory");
+  }, [canManage, router]);
+
+  const filteredProducts = useMemo(() => {
+    if (!productSearch) return products.slice(0, 50);
+    const q = productSearch.toLowerCase();
+    return products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        (p.sku && p.sku.toLowerCase().includes(q))
+    ).slice(0, 50);
+  }, [products, productSearch]);
+
+  const usedProductIds = useMemo(
+    () => new Set(items.map((i) => i.productId)),
+    [items]
+  );
+
+  const fetchCurrentStock = useCallback(
+    async (productId: string, warehouseId: string): Promise<number> => {
+      try {
+        const inv = await inventoryApi.getProductInventory(productId);
+        const found = inv.find((i) => i.warehouseId === warehouseId);
+        return found?.quantity ?? 0;
+      } catch {
+        return 0;
+      }
+    },
+    [inventoryApi]
+  );
 
   const addItem = () => {
-    if (productsLoading || products.length === 0 || !selectedWarehouseId) {
-      return;
-    }
+    const availableProducts = products.filter(
+      (p) => !usedProductIds.has(p.id)
+    );
+    if (availableProducts.length === 0 || warehouses.length === 0) return;
+
+    const firstProduct = availableProducts[0];
+    const firstWarehouse = warehouses[0];
 
     setItems((prev) => [
       ...prev,
       {
-        id: Date.now().toString(),
-        productId: "",
-        warehouseId: selectedWarehouseId,
-        currentStock: 0,
-        newStock: 0,
-        difference: 0,
+        id: crypto.randomUUID?.() || Date.now().toString(),
+        productId: firstProduct.id,
+        productName: firstProduct.name,
+        productSku: firstProduct.sku || "",
+        productImage: firstProduct.imageUrl || null,
+        warehouseId: firstWarehouse.id,
+        warehouseName: firstWarehouse.name,
+        previousQuantity: 0,
+        newQuantity: 0,
       },
     ]);
+
+    fetchCurrentStock(firstProduct.id, firstWarehouse.id).then((qty) => {
+      setItems((prev) =>
+        prev.map((item) =>
+          item.productId === firstProduct.id && item.warehouseId === firstWarehouse.id
+            ? { ...item, previousQuantity: qty }
+            : item
+        )
+      );
+    });
   };
 
   const removeItem = (id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const updateItem = (
+  const updateItemField = async (
     id: string,
     field: keyof AdjustmentItem,
     value: unknown
   ) => {
-    setItems((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) {
-          return item;
-        }
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
 
-        const updated: AdjustmentItem = { ...item };
+    if (field === "productId") {
+      const productId = value as string;
+      const product = products.find((p) => p.id === productId);
+      if (!product) return;
 
-        if (field === "productId") {
-          const nextProductId = value as string;
-          updated.productId = nextProductId;
-          const product = products.find((p) => p.id === nextProductId);
-          updated.currentStock = product?.stock ?? 0;
-          updated.warehouseId = selectedWarehouseId;
-        } else if (field === "newStock") {
-          const parsed = Number(value);
-          updated.newStock = Number.isFinite(parsed) ? parsed : 0;
-        }
+      const whId = item.warehouseId;
+      const qty = await fetchCurrentStock(productId, whId);
 
-        updated.difference = updated.newStock - updated.currentStock;
-        return updated;
-      })
-    );
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === id
+            ? {
+                ...i,
+                productId,
+                productName: product.name,
+                productSku: product.sku || "",
+                productImage: product.imageUrl || null,
+                previousQuantity: qty,
+                newQuantity: qty,
+              }
+            : i
+        )
+      );
+    } else if (field === "warehouseId") {
+      const warehouseId = value as string;
+      const warehouse = warehouses.find((w) => w.id === warehouseId);
+      const qty = await fetchCurrentStock(item.productId, warehouseId);
+
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === id
+            ? {
+                ...i,
+                warehouseId,
+                warehouseName: warehouse?.name || "",
+                previousQuantity: qty,
+                newQuantity: qty,
+              }
+            : i
+        )
+      );
+    } else if (field === "newQuantity") {
+      const parsed = Number(value);
+      const newQty = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+      setItems((prev) =>
+        prev.map((i) => (i.id === id ? { ...i, newQuantity: newQty } : i))
+      );
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const netChange = useMemo(
+    () => items.reduce((sum, i) => sum + (i.newQuantity - i.previousQuantity), 0),
+    [items]
+  );
+
+  const allFilled = items.length > 0 && items.every((i) => i.productId && i.warehouseId);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (items.length === 0) {
-      setSubmitError("Please add at least one adjustment item");
+    if (!allFilled) {
+      setSubmitError("Please fill in all product and warehouse selections");
       return;
     }
-
-    if (!selectedWarehouseId) {
-      setSubmitError(
-        "Please select a warehouse before creating the adjustment."
-      );
-      return;
-    }
-
-    const invalidItems = items.filter(
-      (item) => !item.productId || item.newStock < 0
-    );
-    if (invalidItems.length > 0) {
-      setSubmitError(
-        "Please ensure all items have a product selected and valid stock quantities"
-      );
+    if (items.some((i) => i.newQuantity < 0)) {
+      setSubmitError("Quantities cannot be negative");
       return;
     }
 
@@ -153,336 +206,285 @@ export default function StockAdjustmentPage() {
     setSubmitError(null);
 
     try {
-      const payload = {
-        warehouseId: selectedWarehouseId,
-        adjustmentDate: new Date().toISOString(),
+      const result = await createStockAdjustment({
         notes: notes.trim() || undefined,
+        type,
         items: items.map((item) => ({
           productId: item.productId,
-          newQuantity: item.newStock,
+          warehouseId: item.warehouseId,
+          previousQuantity: item.previousQuantity,
+          newQuantity: item.newQuantity,
         })),
-      };
-
-      const result = await createStockAdjustment(payload);
+      });
 
       toast({
         title: "Stock Adjustment Created",
-        description: `Stock adjustment has been successfully created.`,
+        description: `Reference: ${result.referenceNumber} — ${result.totalItems} item(s) adjusted (net: ${result.netChange >= 0 ? "+" : ""}${result.netChange})`,
       });
 
-      router.push("/products");
-    } catch (error) {
-      setSubmitError(
-        error instanceof Error
-          ? error.message
-          : "Failed to create stock adjustment"
-      );
+      router.push("/inventory");
+    } catch (error: any) {
+      setSubmitError(error?.message || "Failed to create stock adjustment");
     } finally {
       setSaving(false);
     }
   };
 
+  if (!canManage) return null;
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/products">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">
-            Stock Adjustment
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Adjust inventory levels for products
-          </p>
+          <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+            <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+            <ChevronRight className="h-3.5 w-3.5" />
+            <Link href="/inventory" className="hover:text-foreground transition-colors">Manage Stock</Link>
+            <ChevronRight className="h-3.5 w-3.5" />
+            <span className="text-foreground">Stock Adjustment</span>
+          </div>
+          <h1 className="text-[18px] font-bold text-foreground">Stock Adjustment</h1>
         </div>
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="grid gap-6 md:grid-cols-3">
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle>Adjustment Items</CardTitle>
-              <CardDescription>
-                Select a warehouse and adjust stock levels for products
-              </CardDescription>
-              <div className="pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="warehouse">Warehouse *</Label>
-                  <Select
-                    value={selectedWarehouseId}
-                    onValueChange={(value) => {
-                      setSelectedWarehouseId(value);
-                      // Clear items when warehouse changes
-                      setItems([]);
-                    }}
-                    disabled={warehousesLoading}
-                  >
-                    <SelectTrigger id="warehouse">
-                      <SelectValue placeholder="Select warehouse" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {warehousesLoading && (
-                        <SelectItem value="LOADING" disabled>
-                          Loading warehouses...
-                        </SelectItem>
-                      )}
-                      {!warehousesLoading && warehousesError && (
-                        <SelectItem value="ERROR" disabled>
-                          {warehousesError}
-                        </SelectItem>
-                      )}
-                      {!warehousesLoading &&
-                        !warehousesError &&
-                        warehouses.length === 0 && (
-                          <SelectItem value="NO_WAREHOUSES" disabled>
-                            No warehouses available
-                          </SelectItem>
-                        )}
-                      {!warehousesLoading &&
-                        !warehousesError &&
-                        warehouses.map((warehouse) => (
-                          <SelectItem key={warehouse.id} value={warehouse.id}>
-                            {warehouse.name}
-                            {warehouse.location && ` - ${warehouse.location}`}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+        <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+          {/* Main: Item Editor */}
+          <div className="border rounded-[5px] bg-card shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-[15px] border-b">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Adjustment Items</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Select products and set new stock quantities
+                </p>
               </div>
-              <div className="flex items-center justify-between pt-4">
-                <div>
-                  <p className="text-sm font-medium">Products</p>
-                  <p className="text-xs text-muted-foreground">
-                    Add products to adjust their stock levels
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  onClick={addItem}
-                  size="sm"
-                  className="gap-2"
-                  disabled={
-                    products.length === 0 ||
-                    !selectedWarehouseId ||
-                    warehousesLoading ||
-                    productsLoading
-                  }
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Item
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {warehousesError && (
-                  <Alert variant="destructive">
-                    <AlertDescription>
-                      {warehousesError}
-                      <Button
-                        variant="link"
-                        type="button"
-                        onClick={() => reloadWarehouses()}
-                        className="ml-2 h-auto p-0"
-                      >
-                        Retry
-                      </Button>
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {productsError && (
-                  <Alert variant="destructive">
-                    <AlertDescription>
-                      {productsError}
-                      <Button
-                        variant="link"
-                        type="button"
-                        onClick={() => reloadProducts()}
-                        className="ml-2 h-auto p-0"
-                      >
-                        Retry
-                      </Button>
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {submitError && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{submitError}</AlertDescription>
-                  </Alert>
-                )}
-                {items.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    {warehousesLoading || productsLoading
-                      ? "Loading..."
-                      : !selectedWarehouseId
-                      ? "Please select a warehouse first."
-                      : products.length === 0
-                      ? "No products available. Add products before creating adjustments."
-                      : 'No items added yet. Click "Add Item" to start.'}
-                  </p>
-                ) : (
-                  items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="border border-border rounded-lg p-4 space-y-4"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 grid gap-4 md:grid-cols-4">
-                          <div className="space-y-2">
-                            <Label>Product</Label>
-                            <Select
-                              value={item.productId}
-                              onValueChange={(value) =>
-                                updateItem(item.id, "productId", value)
-                              }
-                              disabled={products.length === 0}
-                            >
-                              <SelectTrigger>
-                                <SelectValue
-                                  placeholder={
-                                    products.length === 0
-                                      ? productsLoading
-                                        ? "Loading..."
-                                        : "No products available"
-                                      : productsRefreshing
-                                      ? "Refreshing products..."
-                                      : "Select product"
-                                  }
-                                />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {products.length === 0 && productsLoading ? (
-                                  <SelectItem value="LOADING" disabled>
-                                    <span className="flex items-center gap-2">
-                                      <Loader2 className="h-3 w-3 animate-spin" />{" "}
-                                      Loading products...
-                                    </span>
-                                  </SelectItem>
-                                ) : products.length > 0 ? (
-                                  products.map((product) => (
-                                    <SelectItem
-                                      key={product.id}
-                                      value={product.id}
-                                    >
-                                      {product.name}
-                                    </SelectItem>
-                                  ))
-                                ) : (
-                                  <SelectItem value="NO_PRODUCTS" disabled>
-                                    No products available
-                                  </SelectItem>
-                                )}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          {/* Warehouse column removed because warehouse is selected above */}
-                          <div className="space-y-2">
-                            <Label>Current Stock</Label>
-                            <Input value={item.currentStock} disabled />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>New Stock</Label>
-                            <Input
-                              type="number"
-                              value={item.newStock}
-                              onChange={(e) =>
-                                updateItem(item.id, "newStock", e.target.value)
-                              }
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Difference</Label>
-                            <Input
-                              value={item.difference}
-                              disabled
-                              className={
-                                item.difference > 0
-                                  ? "text-success"
-                                  : item.difference < 0
-                                  ? "text-destructive"
-                                  : ""
-                              }
-                            />
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeItem(item.id)}
-                          className="ml-2"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
+              <Button
+                type="button"
+                onClick={addItem}
+                size="sm"
+                className="h-[34px] rounded-[5px] text-[13px]"
+                disabled={products.length === 0 || warehouses.length === 0}
+              >
+                <Plus className="mr-1.5 h-3.5 w-3.5" />Add Item
+              </Button>
+            </div>
 
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Adjustment Notes</CardTitle>
-              </CardHeader>
-              <CardContent>
+            {submitError && (
+              <div className="flex items-center gap-2 px-5 py-3 bg-destructive/10 text-destructive text-sm border-b">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {submitError}
+              </div>
+            )}
+
+            {items.length === 0 ? (
+              <div className="flex flex-col items-center py-16 text-muted-foreground">
+                <Package className="h-12 w-12 mb-3 text-muted-foreground/50" />
+                {products.length === 0 || warehouses.length === 0 ? (
+                  <>
+                    <p className="font-medium">Missing data</p>
+                    <p className="text-sm mt-1">
+                      {products.length === 0 && "No products found. "}
+                      {warehouses.length === 0 && "No warehouses found. "}
+                      Add them first before creating adjustments.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-medium">No items added yet</p>
+                    <p className="text-sm mt-1">Click &quot;Add Item&quot; to start adjusting stock levels.</p>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted h-[33px]">
+                      <th className="w-[40px] px-3 py-2 text-left font-semibold text-foreground text-xs">#</th>
+                      <th className="px-3 py-2 text-left font-semibold text-foreground text-xs min-w-[180px]">Product</th>
+                      <th className="w-[150px] px-3 py-2 text-left font-semibold text-foreground text-xs">Warehouse</th>
+                      <th className="w-[90px] px-3 py-2 text-right font-semibold text-foreground text-xs">Current</th>
+                      <th className="w-[100px] px-3 py-2 text-right font-semibold text-foreground text-xs">New Qty</th>
+                      <th className="w-[80px] px-3 py-2 text-right font-semibold text-foreground text-xs">Change</th>
+                      <th className="w-[40px] px-3 py-2" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, idx) => (
+                      <tr key={item.id} className="h-[56px] border-b hover:bg-muted/30 transition-colors">
+                        <td className="w-[40px] px-3 text-center text-muted-foreground text-xs">{idx + 1}</td>
+                        <td className="px-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="bg-muted rounded-[5px] size-[30px] flex items-center justify-center overflow-hidden shrink-0">
+                              {item.productImage ? (
+                                <img
+                                  src={item.productImage}
+                                  alt=""
+                                  className="size-full object-cover"
+                                />
+                              ) : (
+                                <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <ProductSelect
+                                products={filteredProducts}
+                                value={item.productId}
+                                usedIds={usedProductIds}
+                                search={productSearch}
+                                onSearchChange={setProductSearch}
+                                onChange={(pid) => updateItemField(item.id, "productId", pid)}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 w-[150px]">
+                          <Select
+                            value={item.warehouseId}
+                            onValueChange={(v) => updateItemField(item.id, "warehouseId", v)}
+                          >
+                            <SelectTrigger className="h-[34px] text-xs rounded-[5px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {warehouses.map((wh) => (
+                                <SelectItem key={wh.id} value={wh.id} className="text-xs">
+                                  {wh.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-3 text-right">
+                          <span className={`font-semibold tabular-nums text-sm ${item.previousQuantity === 0 ? "text-muted-foreground" : "text-foreground"}`}>
+                            {item.previousQuantity}
+                          </span>
+                        </td>
+                        <td className="px-3 w-[100px]">
+                          <Input
+                            type="number"
+                            min={0}
+                            value={item.newQuantity}
+                            onChange={(e) => updateItemField(item.id, "newQuantity", e.target.value)}
+                            className="h-[34px] text-sm text-right rounded-[5px] tabular-nums"
+                          />
+                        </td>
+                        <td className="px-3 text-right">
+                          <span
+                            className={`font-semibold tabular-nums text-sm ${
+                              item.newQuantity > item.previousQuantity
+                                ? "text-emerald-600"
+                                : item.newQuantity < item.previousQuantity
+                                ? "text-destructive"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {item.newQuantity > item.previousQuantity ? "+" : ""}
+                            {item.newQuantity - item.previousQuantity}
+                          </span>
+                        </td>
+                        <td className="w-[40px] px-3">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => removeItem(item.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {items.length > 0 && (
+              <div className="flex items-center justify-between px-5 py-[15px] border-t text-sm">
+                <span className="text-muted-foreground">{items.length} item(s)</span>
+                <span className="font-semibold">
+                  Net change:{" "}
+                  <span className={netChange > 0 ? "text-emerald-600" : netChange < 0 ? "text-destructive" : "text-muted-foreground"}>
+                    {netChange >= 0 ? "+" : ""}{netChange}
+                  </span>
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar: Summary & Controls */}
+          <div className="space-y-4">
+            <div className="border rounded-[5px] bg-card shadow-sm p-5 space-y-4">
+              <div>
+                <Label className="text-sm font-medium">Adjustment Type</Label>
+                <Select value={type} onValueChange={(v) => setType(v as "ADDITION" | "REMOVAL")}>
+                  <SelectTrigger className="mt-1.5 h-[38px] rounded-[5px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ADDITION">Addition (Stock In)</SelectItem>
+                    <SelectItem value="REMOVAL">Removal (Stock Out)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">Notes</Label>
                 <Textarea
-                  placeholder="Enter reason for adjustment..."
+                  placeholder="Reason for adjustment..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  rows={6}
+                  rows={4}
+                  className="mt-1.5 rounded-[5px] resize-none"
                 />
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium">Total Items</p>
-                  <p className="text-2xl font-semibold">{items.length}</p>
+            <div className="border rounded-[5px] bg-card shadow-sm p-5 space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">Summary</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Items</span>
+                  <span className="font-semibold">{items.length}</span>
                 </div>
-                <div>
-                  <p className="text-sm font-medium">Net Change</p>
-                  <p className="text-2xl font-semibold">
-                    {items.reduce((sum, item) => sum + item.difference, 0)}
-                  </p>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Type</span>
+                  <span className="font-semibold">{type === "ADDITION" ? "Stock In" : "Stock Out"}</span>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="flex justify-between border-t pt-2">
+                  <span className="text-muted-foreground">Net Change</span>
+                  <span
+                    className={`font-bold text-base ${
+                      netChange > 0
+                        ? "text-emerald-600"
+                        : netChange < 0
+                        ? "text-destructive"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {netChange >= 0 ? "+" : ""}{netChange}
+                  </span>
+                </div>
+              </div>
+            </div>
 
             <div className="flex flex-col gap-2">
               <Button
                 type="submit"
-                disabled={
-                  items.length === 0 ||
-                  products.length === 0 ||
-                  !selectedWarehouseId ||
-                  saving
-                }
-                className="gap-2"
+                disabled={!allFilled || saving || items.length === 0}
+                className="h-[38px] rounded-[5px] text-sm"
               >
                 {saving ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
                 ) : (
-                  <Save className="h-4 w-4" />
+                  <><Save className="mr-2 h-4 w-4" /> Save Adjustment</>
                 )}
-                {saving ? "Saving..." : "Save Adjustment"}
               </Button>
-              <Link href="/products">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full bg-transparent"
-                >
+              <Link href="/inventory">
+                <Button type="button" variant="outline" className="w-full h-[38px] rounded-[5px] text-sm">
                   Cancel
                 </Button>
               </Link>
@@ -491,5 +493,76 @@ export default function StockAdjustmentPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+function ProductSelect({
+  products,
+  value,
+  usedIds,
+  search,
+  onSearchChange,
+  onChange,
+}: {
+  products: Product[];
+  value: string;
+  usedIds: Set<string>;
+  search: string;
+  onSearchChange: (v: string) => void;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const availableProducts = useMemo(
+    () => products.filter((p) => p.id === value || !usedIds.has(p.id)),
+    [products, value, usedIds]
+  );
+
+  const selected = products.find((p) => p.id === value);
+
+  return (
+    <Select value={value} onValueChange={onChange} open={open} onOpenChange={setOpen}>
+      <SelectTrigger className="h-[34px] text-xs rounded-[5px] max-w-full">
+        <SelectValue placeholder="Select product" />
+      </SelectTrigger>
+      <SelectContent className="min-w-[260px]">
+        <div
+          className="flex items-center gap-2 px-2 py-1.5 border-b"
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <input
+            className="flex-1 bg-transparent text-sm outline-none"
+            placeholder="Search products..."
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            autoFocus
+          />
+        </div>
+        {availableProducts.length === 0 ? (
+          <div className="px-2 py-4 text-center text-sm text-muted-foreground">No products found</div>
+        ) : (
+          <div className="max-h-[240px] overflow-y-auto">
+            {availableProducts.map((product) => (
+              <SelectItem key={product.id} value={product.id} className="text-xs py-1.5">
+                <div className="flex items-center gap-2">
+                  {product.imageUrl ? (
+                    <img src={product.imageUrl} alt="" className="size-5 rounded object-cover bg-muted" />
+                  ) : (
+                    <div className="size-5 rounded bg-muted flex items-center justify-center">
+                      <Package className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate max-w-[160px]">{product.name}</p>
+                    {product.sku && <p className="text-[10px] text-muted-foreground font-mono">{product.sku}</p>}
+                  </div>
+                </div>
+              </SelectItem>
+            ))}
+          </div>
+        )}
+      </SelectContent>
+    </Select>
   );
 }

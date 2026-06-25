@@ -20,6 +20,7 @@ interface CreateProductData {
   attributes?: Record<string, string>;
   parentId?: string;
   comboItems?: { productId: string; quantity: number }[];
+  warehouseId?: string;
 }
 
 interface UpdateProductData extends Partial<CreateProductData> {}

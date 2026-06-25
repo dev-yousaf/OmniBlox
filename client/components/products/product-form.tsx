@@ -22,6 +22,7 @@ import { useUnitsApi } from "@/hooks/use-units-api";
 import { useSubCategoriesApi } from "@/hooks/use-sub-categories-api";
 import { useWarrantiesApi } from "@/hooks/use-warranties-api";
 import { useVariantAttributesApi, VariantAttribute } from "@/hooks/use-variant-attributes-api";
+import { useInventoryApi } from "@/hooks/use-inventory-api";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import {
@@ -167,6 +168,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
     const { getSubCategories } = useSubCategoriesApi();
     const { getWarranties } = useWarrantiesApi();
     const { getVariantAttributes } = useVariantAttributesApi();
+    const { getWarehouses } = useInventoryApi();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [categories, setCategories] = useState<
@@ -178,6 +180,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
     const [warranties, setWarranties] = useState<Array<{ id: string; name: string; duration: number; durationType: string }>>([]);
     const [savedAttributes, setSavedAttributes] = useState<VariantAttribute[]>([]);
     const [showCustomCategory, setShowCustomCategory] = useState(false);
+    const [warehouses, setWarehouses] = useState<{ id: string; name: string }[]>([]);
 
     const [customFieldsEnabled, setCustomFieldsEnabled] = useState({
       warranties: !!initialData?.warranty,
@@ -238,17 +241,19 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
       manufacturedDate: initialData?.manufacturedDate || "",
       expiryDate: initialData?.expiryDate || "",
     });
+    const [selectedWarehouseId, setSelectedWarehouseId] = useState("");
 
     useEffect(() => {
       const loadData = async () => {
         try {
-          const [categoriesData, brandsData, unitsData, subCatsData, warrantiesData, attrsData] = await Promise.all([
+          const [categoriesData, brandsData, unitsData, subCatsData, warrantiesData, attrsData, whData] = await Promise.all([
             getCategories(),
             getBrands(),
             getUnits(),
             getSubCategories(),
             getWarranties(),
             getVariantAttributes(),
+            getWarehouses(),
           ]);
           setCategories(categoriesData);
           setBrands(brandsData);
@@ -256,6 +261,8 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
           setSubCategories(subCatsData);
           setWarranties(warrantiesData);
           setSavedAttributes(attrsData);
+          setWarehouses(whData);
+          if (whData.length > 0 && !selectedWarehouseId) setSelectedWarehouseId(whData[0].id);
         } catch (error) {
           console.error("Failed to load form data:", error);
           toast({
@@ -480,8 +487,10 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
           await updateProduct(productId, productData);
           toast({ title: "Success", description: "Product updated successfully" });
         } else {
+          if (selectedWarehouseId) productData.warehouseId = selectedWarehouseId;
           await createProduct(productData as any);
-          toast({ title: "Success", description: "Product created successfully" });
+          const whName = warehouses.find((w) => w.id === selectedWarehouseId)?.name || "Default Warehouse";
+          toast({ title: "Success", description: `Product created with ${formData.stock || 0} units in ${whName}` });
         }
 
         if (onSuccess) onSuccess();
@@ -687,6 +696,21 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                 <Input type="number" placeholder="0" value={formData.stock}
                   onChange={(e) => handleInputChange("stock", e.target.value)}
                   className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+              </FormField>
+              <FormField label="Warehouse" className="flex-1">
+                <Select value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
+                  <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {warehouses.length > 0 ? warehouses.map((wh) => (
+                      <SelectItem key={wh.id} value={wh.id}>{wh.name}</SelectItem>
+                    )) : (
+                      <SelectItem value="__none" disabled>No warehouses (auto-created)</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground mt-1">Stock will be assigned to this warehouse</p>
               </FormField>
               <FormField label="Price" required className="flex-1">
                 <Input type="number" step="0.01" placeholder="0.00" value={formData.salePrice}

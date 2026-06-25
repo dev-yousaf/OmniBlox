@@ -11,6 +11,7 @@ import {
   InventoryQueryDto,
   UpdateInventoryDto,
   StockTransferDto,
+  BulkStockTransferDto,
   CreateStockAdjustmentDto,
   InventoryStatsDto,
   InventoryItemDto,
@@ -205,6 +206,7 @@ export class InventoryService {
       productId: item.productId,
       productName: item.product.name,
       productSku: item.product.sku,
+      imageUrl: item.product.imageUrl,
       warehouseId: item.warehouseId,
       warehouseName: item.warehouse.name,
       quantity: item.quantity,
@@ -215,6 +217,7 @@ export class InventoryService {
       status: this.getStockStatus(item.quantity, item.product.reorderLevel),
       category: item.product.category.name,
       brand: item.product.brand?.name,
+      updatedAt: item.updatedAt.toISOString(),
     }));
 
     return {
@@ -262,6 +265,7 @@ export class InventoryService {
       productId: item.productId,
       productName: item.product.name,
       productSku: item.product.sku,
+      imageUrl: item.product.imageUrl,
       warehouseId: item.warehouseId,
       warehouseName: item.warehouse.name,
       quantity: item.quantity,
@@ -272,6 +276,7 @@ export class InventoryService {
       status: this.getStockStatus(item.quantity, item.product.reorderLevel),
       category: item.product.category.name,
       brand: item.product.brand?.name,
+      updatedAt: item.updatedAt.toISOString(),
     }));
   }
 
@@ -303,6 +308,7 @@ export class InventoryService {
       productId: item.productId,
       productName: item.product.name,
       productSku: item.product.sku,
+      imageUrl: item.product.imageUrl,
       warehouseId: item.warehouseId,
       warehouseName: warehouse.name,
       quantity: item.quantity,
@@ -313,6 +319,7 @@ export class InventoryService {
       status: this.getStockStatus(item.quantity, item.product.reorderLevel),
       category: item.product.category.name,
       brand: item.product.brand?.name,
+      updatedAt: item.updatedAt.toISOString(),
     }));
 
     const totalStockValue = inventory.reduce(
@@ -503,6 +510,132 @@ export class InventoryService {
     });
   }
 
+  // === BULK STOCK TRANSFER ===
+  async bulkTransferStock(
+    companyId: string,
+    userId: string,
+    dto: BulkStockTransferDto,
+  ) {
+    const { fromWarehouseId, toWarehouseId, notes, items } = dto;
+
+    if (fromWarehouseId === toWarehouseId) {
+      throw new BadRequestException('Cannot transfer to the same warehouse');
+    }
+
+    // Verify warehouses
+    const [fromWarehouse, toWarehouse] = await Promise.all([
+      this.prisma.warehouse.findFirst({ where: { id: fromWarehouseId, companyId } }),
+      this.prisma.warehouse.findFirst({ where: { id: toWarehouseId, companyId } }),
+    ]);
+
+    if (!fromWarehouse) throw new NotFoundException('Source warehouse not found');
+    if (!toWarehouse) throw new NotFoundException('Destination warehouse not found');
+
+    const referenceNumber = `TRF-${Date.now()}`;
+
+    return this.prisma.$transaction(async (prisma) => {
+      // Create stock adjustment record
+      const stockAdjustment = await prisma.stockAdjustment.create({
+        data: {
+          referenceNumber,
+          adjustmentDate: new Date(),
+          notes: notes || `Bulk transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
+          totalItems: items.length * 2,
+          netChange: 0,
+          companyId,
+          userId,
+        },
+      });
+
+      const adjustmentItems: any[] = [];
+
+      for (const item of items) {
+        // Verify product
+        const product = await prisma.product.findFirst({
+          where: { id: item.productId, companyId },
+        });
+        if (!product) throw new NotFoundException(`Product ${item.productId} not found`);
+
+        // Check source inventory
+        const sourceInventory = await prisma.inventory.findUnique({
+          where: {
+            productId_warehouseId: {
+              productId: item.productId,
+              warehouseId: fromWarehouseId,
+            },
+          },
+        });
+
+        if (!sourceInventory || sourceInventory.quantity < item.quantity) {
+          throw new BadRequestException(
+            `Insufficient stock for product ${product.name}. Available: ${sourceInventory?.quantity || 0}, Requested: ${item.quantity}`,
+          );
+        }
+
+        // Decrement source
+        await prisma.inventory.update({
+          where: {
+            productId_warehouseId: {
+              productId: item.productId,
+              warehouseId: fromWarehouseId,
+            },
+          },
+          data: { quantity: { decrement: item.quantity } },
+        });
+
+        // Increment destination
+        await prisma.inventory.upsert({
+          where: {
+            productId_warehouseId: {
+              productId: item.productId,
+              warehouseId: toWarehouseId,
+            },
+          },
+          update: { quantity: { increment: item.quantity } },
+          create: {
+            productId: item.productId,
+            warehouseId: toWarehouseId,
+            quantity: item.quantity,
+          },
+        });
+
+        adjustmentItems.push(
+          {
+            stockAdjustmentId: stockAdjustment.id,
+            productId: item.productId,
+            warehouseId: fromWarehouseId,
+            previousQuantity: sourceInventory.quantity,
+            newQuantity: sourceInventory.quantity - item.quantity,
+            difference: -item.quantity,
+          },
+          {
+            stockAdjustmentId: stockAdjustment.id,
+            productId: item.productId,
+            warehouseId: toWarehouseId,
+            previousQuantity: 0,
+            newQuantity: item.quantity,
+            difference: item.quantity,
+          },
+        );
+      }
+
+      await prisma.stockAdjustmentItem.createMany({ data: adjustmentItems });
+
+      return prisma.stockAdjustment.findUnique({
+        where: { id: stockAdjustment.id },
+        include: {
+          user: { select: { name: true, email: true } },
+          items: {
+            include: {
+              product: { select: { name: true, sku: true, imageUrl: true } },
+              warehouse: { select: { name: true } },
+            },
+          },
+        },
+      });
+    });
+  }
+
   // === STOCK ADJUSTMENTS ===
   async createStockAdjustment(
     companyId: string,
@@ -645,6 +778,72 @@ export class InventoryService {
       adjustments,
       total,
       pages: Math.ceil(total / limit),
+    };
+  }
+
+  // === TRANSFER HISTORY ===
+  async getTransfers(companyId: string, page = 1, limit = 20) {
+    const skip = (page - 1) * limit;
+
+    const where = {
+      companyId,
+      referenceNumber: { startsWith: 'TRF-' },
+    };
+
+    const [adjustments, total] = await Promise.all([
+      this.prisma.stockAdjustment.findMany({
+        where,
+        include: {
+          user: { select: { name: true, email: true } },
+          items: {
+            include: {
+              product: { select: { name: true, sku: true, imageUrl: true } },
+              warehouse: { select: { name: true } },
+            },
+          },
+        },
+        skip,
+        take: limit,
+        orderBy: { adjustmentDate: 'desc' },
+      }),
+      this.prisma.stockAdjustment.count({ where }),
+    ]);
+
+    return {
+      transfers: adjustments,
+      total,
+      pages: Math.ceil(total / limit),
+    };
+  }
+
+  async getTransfer(companyId: string, id: string) {
+    const transfer = await this.prisma.stockAdjustment.findFirst({
+      where: { id, companyId, referenceNumber: { startsWith: 'TRF-' } },
+      include: {
+        user: { select: { name: true, email: true } },
+        items: {
+          include: {
+            product: { select: { name: true, sku: true, imageUrl: true } },
+            warehouse: { select: { name: true } },
+          },
+        },
+      },
+    });
+
+    if (!transfer) {
+      throw new NotFoundException('Transfer not found');
+    }
+
+    // Group items by direction (from/to)
+    const fromItems = transfer.items.filter((i) => i.difference < 0);
+    const toItems = transfer.items.filter((i) => i.difference > 0);
+
+    return {
+      ...transfer,
+      fromWarehouse: fromItems[0]?.warehouse.name || 'Unknown',
+      toWarehouse: toItems[0]?.warehouse.name || 'Unknown',
+      fromItems,
+      toItems,
     };
   }
 

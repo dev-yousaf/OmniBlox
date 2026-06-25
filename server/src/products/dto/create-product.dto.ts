@@ -131,4 +131,8 @@ export class CreateProductDto {
   @ValidateNested({ each: true })
   @Type(() => ComboItemDto)
   comboItems?: ComboItemDto[];
+
+  @IsString()
+  @IsOptional()
+  warehouseId?: string;
 }

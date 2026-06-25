@@ -5,6 +5,8 @@ import {
   IsUUID,
   Min,
   IsEnum,
+  IsArray,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -78,6 +80,32 @@ export class StockTransferDto {
   notes?: string;
 }
 
+export class BulkStockTransferItemDto {
+  @IsUUID()
+  productId: string;
+
+  @IsInt()
+  @Min(1)
+  quantity: number;
+}
+
+export class BulkStockTransferDto {
+  @IsUUID()
+  fromWarehouseId: string;
+
+  @IsUUID()
+  toWarehouseId: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BulkStockTransferItemDto)
+  items: BulkStockTransferItemDto[];
+}
+
 export class CreateStockAdjustmentDto {
   @IsString()
   notes?: string;
@@ -110,6 +138,7 @@ export interface InventoryItemDto {
   productId: string;
   productName: string;
   productSku: string;
+  imageUrl: string | null;
   warehouseId: string;
   warehouseName: string;
   quantity: number;
@@ -120,6 +149,7 @@ export interface InventoryItemDto {
   status: 'in_stock' | 'low_stock' | 'out_of_stock';
   category: string;
   brand?: string;
+  updatedAt: string;
 }
 
 export interface WarehouseInventoryDto {

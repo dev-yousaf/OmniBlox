@@ -22,6 +22,7 @@ import {
   InventoryQueryDto,
   UpdateInventoryDto,
   StockTransferDto,
+  BulkStockTransferDto,
   CreateStockAdjustmentDto,
 } from './dto/inventory.dto';
 
@@ -133,6 +134,37 @@ export class InventoryController {
     @Body() dto: StockTransferDto,
   ) {
     return this.inventoryService.transferStock(companyId, userId, dto);
+  }
+
+  @Post('transfers/bulk')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
+  bulkTransferStock(
+    @CompanyId() companyId: string,
+    @UserId() userId: string,
+    @Body() dto: BulkStockTransferDto,
+  ) {
+    return this.inventoryService.bulkTransferStock(companyId, userId, dto);
+  }
+
+  @Get('transfers')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
+  getTransfers(
+    @CompanyId() companyId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const parsedPage = page ? parseInt(page, 10) : 1;
+    const parsedLimit = limit ? parseInt(limit, 10) : 20;
+    return this.inventoryService.getTransfers(companyId, parsedPage, parsedLimit);
+  }
+
+  @Get('transfers/:id')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
+  getTransfer(
+    @CompanyId() companyId: string,
+    @Param('id') id: string,
+  ) {
+    return this.inventoryService.getTransfer(companyId, id);
   }
 
   // === STOCK ADJUSTMENT ENDPOINTS ===
