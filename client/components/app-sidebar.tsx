@@ -22,7 +22,6 @@ import {
   FolderTree,
   FolderOpen,
   Barcode,
-  QrCode,
   ArrowUpDown,
   ArrowLeftRight,
   ShoppingBag,
@@ -89,7 +88,6 @@ const sections: SidebarSection[] = [
       { id: "variant-attributes", name: "Variant Attributes", href: "/settings/variant-attributes", icon: ListChecks },
       { id: "warranties", name: "Warranties", href: "/settings/warranties", icon: ShieldCheck },
       { id: "print-barcode", name: "Print Barcode", href: "/products/barcodes", icon: Barcode },
-      { id: "print-qrcode", name: "Print QR Code", href: "/products/qrcodes", icon: QrCode },
     ],
   },
   {
