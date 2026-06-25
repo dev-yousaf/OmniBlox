@@ -19,7 +19,6 @@ import {
   Users,
   Building,
   Calculator,
-  X,
   Check,
   Loader2,
 } from "lucide-react";
