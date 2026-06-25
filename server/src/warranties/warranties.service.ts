@@ -36,6 +36,7 @@ export class WarrantiesService {
     return this.prisma.warranty.findMany({
       where: { companyId },
       orderBy: { name: 'asc' },
+      include: { _count: { select: { products: true } } },
     });
   }
 
