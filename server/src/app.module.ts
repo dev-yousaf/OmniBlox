@@ -32,7 +32,6 @@ import { VariantAttributesModule } from './variant-attributes/variant-attributes
 import { UnitsModule } from './units/units.module';
 import { WarrantiesModule } from './warranties/warranties.module';
 import { NotificationsModule } from './notifications/notifications.module';
-import { InboxModule } from './inbox/inbox.module';
 
 @Module({
   imports: [
@@ -66,7 +65,6 @@ import { InboxModule } from './inbox/inbox.module';
     UnitsModule,
     WarrantiesModule,
     NotificationsModule,
-    InboxModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -46,7 +46,6 @@ model Company {
   stockAdjustments    StockAdjustment[]
   deliveries          Delivery[]
   notifications       Notification[]
-  inboxMessages       InboxMessage[]
 
   @@map("companies")
 }
@@ -91,7 +90,6 @@ model User {
   createdProducts Product[] @relation("CreatedProducts")
 
   notifications   Notification[]
-  inboxMessages   InboxMessage[]
 
   // Stock Ledger
   stockLedgerEntries StockLedger[]
@@ -885,24 +883,6 @@ model Notification {
   @@index([userId])
   @@index([read])
   @@map("notifications")
-}
-
-model InboxMessage {
-  id         String   @id @default(uuid())
-  companyId  String
-  fromUserId String?
-  subject    String
-  body       String
-  read       Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  company  Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  fromUser User?   @relation(fields: [fromUserId], references: [id], onDelete: SetNull)
-
-  @@index([companyId])
-  @@index([read])
-  @@map("inbox_messages")
 }
 
 // --- ENUMS ---

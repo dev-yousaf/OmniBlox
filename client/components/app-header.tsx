@@ -12,7 +12,6 @@ import {
   Moon,
   Sun,
   Plus,
-  Mail,
   Package,
   ShoppingCart,
   ShoppingBag,
@@ -142,15 +141,6 @@ interface NotificationItem {
   createdAt: string;
 }
 
-interface InboxItem {
-  id: string;
-  subject: string;
-  body: string;
-  read: boolean;
-  fromUserName?: string;
-  createdAt: string;
-}
-
 function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
@@ -209,74 +199,6 @@ function NotificationBell() {
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
                   </div>
                   {!n.read && <div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" />}
-                </div>
-              </div>
-            ))
-          )}
-        </ScrollArea>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-function InboxPopover() {
-  const [open, setOpen] = useState(false);
-  const [items, setItems] = useState<InboxItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [unread, setUnread] = useState(0);
-  const { get, put } = useAuthenticatedApi();
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await get("/inbox?limit=5") as { messages: InboxItem[]; unreadCount: number };
-      setItems(data.messages || []);
-      setUnread(data.unreadCount || 0);
-    } catch { /* ignore */ }
-    setLoading(false);
-  }, [get]);
-
-  useEffect(() => { if (open) load(); }, [open, load]);
-
-  const markRead = async (id: string) => {
-    try {
-      await put(`/inbox/${id}/read`, {});
-      setItems((prev) => prev.map((m) => (m.id === id ? { ...m, read: true } : m)));
-      setUnread((u) => Math.max(0, u - 1));
-    } catch { /* ignore */ }
-  };
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <div className="relative flex h-[34px] w-[34px] items-center justify-center rounded-[8px] bg-header-icon-bg text-header-icon-color cursor-pointer">
-          <Mail className="h-4 w-4" />
-          {unread > 0 && (
-            <div className="absolute -top-1 -right-1 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-header-notification-dot">
-              <span className="text-[9px] font-semibold text-header-primary-text leading-[13px]">{unread > 9 ? "9+" : unread}</span>
-            </div>
-          )}
-        </div>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-[320px] p-0">
-        <div className="flex items-center justify-between px-4 py-3 border-b">
-          <span className="text-sm font-semibold">Inbox</span>
-        </div>
-        <ScrollArea className="max-h-[300px]">
-          {loading ? (
-            <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-          ) : items.length === 0 ? (
-            <div className="text-center py-6 text-sm text-muted-foreground">No messages</div>
-          ) : (
-            items.map((m) => (
-              <div key={m.id} className={`px-4 py-3 border-b last:border-0 cursor-pointer hover:bg-muted/50 ${!m.read ? "bg-muted/30" : ""}`} onClick={() => markRead(m.id)}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{m.subject}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{m.body}</p>
-                    {m.fromUserName && <p className="text-[11px] text-muted-foreground mt-1">From: {m.fromUserName}</p>}
-                  </div>
-                  {!m.read && <div className="h-2 w-2 rounded-full bg-primary mt-1 shrink-0" />}
                 </div>
               </div>
             ))
@@ -403,9 +325,6 @@ export function AppHeader(_props: AppHeaderProps) {
 
           {/* Calculator */}
           <CalculatorPopover />
-
-          {/* Inbox */}
-          <InboxPopover />
 
           {/* Notifications */}
           <NotificationBell />
