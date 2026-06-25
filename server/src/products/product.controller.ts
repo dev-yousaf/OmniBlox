@@ -49,6 +49,7 @@ export class ProductController {
     @Query('search') search?: string,
     @Query('category') category?: string,
     @Query('status') status?: string,
+    @Query('warehouseId') warehouseId?: string,
   ) {
     const pageNum = page ? parseInt(page) : 1;
     const limitNum = limit ? parseInt(limit) : 10;
@@ -60,6 +61,7 @@ export class ProductController {
       search,
       category,
       status,
+      warehouseId,
     );
   }
 

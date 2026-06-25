@@ -62,6 +62,7 @@ interface ProductFilters {
   search?: string;
   category?: string;
   status?: string;
+  warehouseId?: string;
 }
 
 export function useProductApi() {
@@ -82,6 +83,7 @@ export function useProductApi() {
       if (filters.search) params.set("search", filters.search);
       if (filters.category) params.set("category", filters.category);
       if (filters.status) params.set("status", filters.status);
+      if (filters.warehouseId) params.set("warehouseId", filters.warehouseId);
 
       const query = params.toString();
       return get(

@@ -207,6 +207,7 @@ export class ProductService {
     search?: string,
     category?: string,
     status?: string,
+    warehouseId?: string,
   ): Promise<{ products: ProductResponseDto[]; total: number; pages: number }> {
     const skip = (page - 1) * limit;
 
@@ -214,11 +215,20 @@ export class ProductService {
       companyId, // Golden Rule: always filter by companyId
     };
 
+    if (warehouseId) {
+      where.inventory = {
+        some: {
+          warehouseId,
+        },
+      };
+    }
+
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { sku: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
+        { itemCode: { contains: search, mode: 'insensitive' } },
       ];
     }
 
@@ -271,11 +281,19 @@ export class ProductService {
 
     return {
       products: products.map((product) => {
-        const totalStock = product.inventory.reduce(
-          (sum, inv) => sum + inv.quantity,
-          0,
-        );
-        return this.transformToDto(product, totalStock);
+        let stock: number;
+        if (warehouseId) {
+          const warehouseInv = product.inventory.find(
+            (inv) => inv.warehouseId === warehouseId,
+          );
+          stock = warehouseInv ? warehouseInv.quantity : 0;
+        } else {
+          stock = product.inventory.reduce(
+            (sum, inv) => sum + inv.quantity,
+            0,
+          );
+        }
+        return this.transformToDto(product, stock);
       }),
       total,
       pages: Math.ceil(total / limit),

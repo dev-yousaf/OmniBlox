@@ -217,7 +217,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
       customCategory: "",
       subCategory: initialData?.subCategory || "",
       brand: initialData?.brand || "",
-      unit: initialData?.unit || "pcs",
+      unit: initialData?.unit || "",
       imageUrl: initialData?.imageUrl || "",
       type: initialData?.type || "STANDARD",
       hasVariants: initialData?.hasVariants || false,
@@ -450,7 +450,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
           sku: formData.sku,
           description: formData.description || undefined,
           category: finalCategory,
-          subCategory: customFieldsEnabled.warranties ? formData.subCategory || undefined : undefined,
+          subCategory: formData.subCategory || undefined,
           brand: formData.brand || undefined,
           unit: formData.unit,
           imageUrl: formData.imageUrl || undefined,
@@ -787,27 +787,31 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
               </label>
             </div>
 
-            {customFieldsEnabled.warranties && (
+            {(customFieldsEnabled.warranties || customFieldsEnabled.manufacturer) && (
               <div className="flex gap-4">
-                <FormField label="Warranty" required className="flex-1">
-                  <Select value={formData.warranty} onValueChange={(value) => handleInputChange("warranty", value)}>
-                    <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {warranties.length > 0 ? warranties.map((w) => (
-                        <SelectItem key={w.id} value={w.name}>{w.name} ({w.duration} {w.durationType})</SelectItem>
-                      )) : (
-                        <SelectItem value="__no_warranties" disabled>No warranties available</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </FormField>
-                <FormField label="Manufacturer" required className="flex-1">
-                  <Input placeholder="Enter manufacturer name" value={formData.manufacturer}
-                    onChange={(e) => handleInputChange("manufacturer", e.target.value)}
-                    className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
-                </FormField>
+                {customFieldsEnabled.warranties && (
+                  <FormField label="Warranty" required className="flex-1">
+                    <Select value={formData.warranty} onValueChange={(value) => handleInputChange("warranty", value)}>
+                      <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {warranties.length > 0 ? warranties.map((w) => (
+                          <SelectItem key={w.id} value={w.name}>{w.name} ({w.duration} {w.durationType})</SelectItem>
+                        )) : (
+                          <SelectItem value="__no_warranties" disabled>No warranties available</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </FormField>
+                )}
+                {customFieldsEnabled.manufacturer && (
+                  <FormField label="Manufacturer" required className="flex-1">
+                    <Input placeholder="Enter manufacturer name" value={formData.manufacturer}
+                      onChange={(e) => handleInputChange("manufacturer", e.target.value)}
+                      className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+                  </FormField>
+                )}
               </div>
             )}
 
