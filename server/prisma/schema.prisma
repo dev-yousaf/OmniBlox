@@ -45,6 +45,8 @@ model Company {
   expenseCategories   ExpenseCategory[]
   stockAdjustments    StockAdjustment[]
   deliveries          Delivery[]
+  notifications       Notification[]
+  inboxMessages       InboxMessage[]
 
   @@map("companies")
 }
@@ -87,6 +89,9 @@ model User {
 
   // Created products
   createdProducts Product[] @relation("CreatedProducts")
+
+  notifications   Notification[]
+  inboxMessages   InboxMessage[]
 
   // Stock Ledger
   stockLedgerEntries StockLedger[]
@@ -859,6 +864,45 @@ model PurchaseReturnItem {
   purchaseReturn   PurchaseReturn @relation(fields: [purchaseReturnId], references: [id], onDelete: Cascade)
 
   @@map("purchase_return_items")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  companyId String
+  userId    String?
+  type      String   // low_stock, payment, order, expiry, quotation, system
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([read])
+  @@map("notifications")
+}
+
+model InboxMessage {
+  id         String   @id @default(uuid())
+  companyId  String
+  fromUserId String?
+  subject    String
+  body       String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  company  Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  fromUser User?   @relation(fields: [fromUserId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([read])
+  @@map("inbox_messages")
 }
 
 // --- ENUMS ---

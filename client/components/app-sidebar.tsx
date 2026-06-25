@@ -232,7 +232,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
               O
             </div>
             <span className="text-sm font-semibold text-sidebar-section-label">
-              {user?.company?.name || "OmniBlox"}
+              OmniBlox
             </span>
           </Link>
         )}

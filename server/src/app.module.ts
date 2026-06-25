@@ -31,6 +31,8 @@ import { BrandsModule } from './brands/brands.module';
 import { VariantAttributesModule } from './variant-attributes/variant-attributes.module';
 import { UnitsModule } from './units/units.module';
 import { WarrantiesModule } from './warranties/warranties.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { InboxModule } from './inbox/inbox.module';
 
 @Module({
   imports: [
@@ -63,6 +65,8 @@ import { WarrantiesModule } from './warranties/warranties.module';
     VariantAttributesModule,
     UnitsModule,
     WarrantiesModule,
+    NotificationsModule,
+    InboxModule,
   ],
   controllers: [AppController],
   providers: [AppService],

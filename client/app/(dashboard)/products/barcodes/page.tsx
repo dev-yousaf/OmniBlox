@@ -94,7 +94,6 @@ export default function BarcodesPage() {
   const { warehouses, loading: warehousesLoading } = useWarehouses();
 
   const [warehouseId, setWarehouseId] = useState("");
-  const [storeId, setStoreId] = useState("");
   const [searchCode, setSearchCode] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
@@ -218,7 +217,6 @@ export default function BarcodesPage() {
 
   const handleReset = () => {
     setWarehouseId("");
-    setStoreId("");
     setSearchCode("");
     setProducts([]);
     setCopies({});
@@ -228,10 +226,6 @@ export default function BarcodesPage() {
     setShowPrice(true);
     setLabelSize("1x2");
   };
-
-  const stores = warehouses
-    .filter((w) => w.location)
-    .map((w) => ({ id: w.id, name: w.location! }));
 
   return (
     <div className="space-y-5">
@@ -259,48 +253,27 @@ export default function BarcodesPage() {
       <div className="border rounded-[5px] bg-card shadow-sm p-5">
         <div className="space-y-4">
 
-          {/* Row 1: Warehouse + Store selects */}
-          <div className="flex gap-[15px]">
-            <div className="flex-1 max-w-[300.5px] space-y-[4px]">
-              <label className="text-[14px] font-medium text-foreground">
-                Warehouse <span className="text-red-500">*</span>
-              </label>
-              <Select value={warehouseId} onValueChange={setWarehouseId}>
-                <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  {warehousesLoading ? (
-                    <SelectItem value="__loading" disabled>Loading...</SelectItem>
-                  ) : warehouses.length === 0 ? (
-                    <SelectItem value="__none" disabled>No warehouses</SelectItem>
-                  ) : (
-                    warehouses.map((w) => (
-                      <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex-1 max-w-[300.5px] space-y-[4px]">
-              <label className="text-[14px] font-medium text-foreground">
-                Store <span className="text-red-500">*</span>
-              </label>
-              <Select value={storeId} onValueChange={setStoreId}>
-                <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  {stores.length === 0 ? (
-                    <SelectItem value="__none" disabled>No stores available</SelectItem>
-                  ) : (
-                    stores.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Row 1: Warehouse select */}
+          <div className="max-w-[616px] space-y-[4px]">
+            <label className="text-[14px] font-medium text-foreground">
+              Warehouse <span className="text-red-500">*</span>
+            </label>
+            <Select value={warehouseId} onValueChange={setWarehouseId}>
+              <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                {warehousesLoading ? (
+                  <SelectItem value="__loading" disabled>Loading...</SelectItem>
+                ) : warehouses.length === 0 ? (
+                  <SelectItem value="__none" disabled>No warehouses</SelectItem>
+                ) : (
+                  warehouses.map((w) => (
+                    <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Row 2: Product search */}
