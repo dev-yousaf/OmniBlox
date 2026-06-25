@@ -1,8 +1,8 @@
-﻿// Re-export types from lib for consistency
-import type { Expense } from "@/lib/types"
+// Re-export types from lib for consistency
+import type { Expense } from "@/hooks/use-expenses-api"
 export type { Expense }
 
-export type ExpenseStatus = 
+export type ExpenseStatus = "PENDING" | "APPROVED" | "PAID" | "REJECTED"
 
 export type ExpenseStats = {
   totalExpenses: number

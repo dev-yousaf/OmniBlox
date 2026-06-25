@@ -1,5 +1,5 @@
-﻿import { Expense, ExpenseFormData } from "../_types"
-import { mockExpenses } from "@/lib/mock-data"
+import { Expense, ExpenseFormData } from "../_types"
+const mockExpenses: Expense[] = [];
 
 export class ExpenseService {
   // Get all expenses
@@ -51,7 +51,7 @@ export class ExpenseService {
   }> {
     const items = await this.getExpenses()
     const totalExpenses = items.length
-    const activeExpenses = items.filter(i => i.status === "active" || i.status === "approved").length
+    const activeExpenses = items.filter(i => i.status === "PENDING" || i.status === "APPROVED").length
     
     return { totalExpenses, activeExpenses }
   }

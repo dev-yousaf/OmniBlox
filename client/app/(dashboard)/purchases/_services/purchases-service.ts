@@ -1,5 +1,5 @@
-﻿import { Purchase, PurchaseFormData } from "../_types"
-import { mockPurchases } from "@/lib/mock-data"
+import { Purchase, PurchaseFormData } from "../_types"
+const mockPurchases: Purchase[] = [];
 
 export class PurchaseService {
   // Get all purchases
@@ -51,7 +51,7 @@ export class PurchaseService {
   }> {
     const items = await this.getPurchases()
     const totalPurchases = items.length
-    const activePurchases = items.filter(i => i.status === "active" || i.status === "approved").length
+    const activePurchases = items.filter(i => i.status === "PENDING" || i.status === "RECEIVED").length
     
     return { totalPurchases, activePurchases }
   }

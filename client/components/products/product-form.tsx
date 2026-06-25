@@ -18,6 +18,9 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { useProductApi } from "@/hooks/use-product-api";
 import { useProductCategoriesApi } from "@/hooks/use-product-categories-api";
+import { useUnitsApi } from "@/hooks/use-units-api";
+import { useSubCategoriesApi } from "@/hooks/use-sub-categories-api";
+import { useWarrantiesApi } from "@/hooks/use-warranties-api";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import {
@@ -88,18 +91,6 @@ interface ProductFormProps {
   onSuccess?: () => void;
 }
 
-const UNIT_OPTIONS = [
-  { value: "pcs", label: "Pieces" },
-  { value: "kg", label: "Kilograms" },
-  { value: "g", label: "Grams" },
-  { value: "liters", label: "Liters" },
-  { value: "ml", label: "Milliliters" },
-  { value: "m", label: "Meters" },
-  { value: "cm", label: "Centimeters" },
-  { value: "hours", label: "Hours" },
-  { value: "sqm", label: "Square Meters" },
-];
-
 const BARCODE_OPTIONS = [
   { value: "CODE128", label: "Code 128" },
   { value: "EAN13", label: "EAN-13" },
@@ -107,15 +98,7 @@ const BARCODE_OPTIONS = [
   { value: "QR", label: "QR Code" },
 ];
 
-const WARRANTY_OPTIONS = [
-  { value: "no_warranty", label: "No Warranty" },
-  { value: "30_days", label: "30 Days" },
-  { value: "3_months", label: "3 Months" },
-  { value: "6_months", label: "6 Months" },
-  { value: "1_year", label: "1 Year" },
-  { value: "2_years", label: "2 Years" },
-  { value: "lifetime", label: "Lifetime" },
-];
+
 
 function CardSection({
   icon,
@@ -179,12 +162,18 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
     const { createProduct, updateProduct, getBrands, getProducts } =
       useProductApi();
     const { getCategories } = useProductCategoriesApi();
+    const { getUnits } = useUnitsApi();
+    const { getSubCategories } = useSubCategoriesApi();
+    const { getWarranties } = useWarrantiesApi();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [categories, setCategories] = useState<
       Array<{ id: string; name: string }>
     >([]);
     const [brands, setBrands] = useState<string[]>([]);
+    const [units, setUnits] = useState<Array<{ shortName: string; name: string }>>([]);
+    const [subCategories, setSubCategories] = useState<Array<{ id: string; name: string; categoryId: string }>>([]);
+    const [warranties, setWarranties] = useState<Array<{ id: string; name: string; duration: number; durationType: string }>>([]);
     const [showCustomCategory, setShowCustomCategory] = useState(false);
 
     const [customFieldsEnabled, setCustomFieldsEnabled] = useState({
@@ -250,23 +239,29 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
     useEffect(() => {
       const loadData = async () => {
         try {
-          const [categoriesData, brandsData] = await Promise.all([
+          const [categoriesData, brandsData, unitsData, subCatsData, warrantiesData] = await Promise.all([
             getCategories(),
             getBrands(),
+            getUnits(),
+            getSubCategories(),
+            getWarranties(),
           ]);
           setCategories(categoriesData);
           setBrands(brandsData);
+          setUnits(unitsData);
+          setSubCategories(subCatsData);
+          setWarranties(warrantiesData);
         } catch (error) {
-          console.error("Failed to load categories and brands:", error);
+          console.error("Failed to load form data:", error);
           toast({
             title: "Error",
-            description: "Failed to load categories and brands",
+            description: "Failed to load form data",
             variant: "destructive",
           });
         }
       };
       loadData();
-    }, [getCategories, getBrands, toast]);
+    }, [getCategories, getBrands, getUnits, getSubCategories, getWarranties, toast]);
 
     useEffect(() => {
       if (formData.comboItems.length > 0) {
@@ -279,9 +274,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
 
       if (field === "category") {
         setShowCustomCategory(value === "Other");
-        if (value !== "Other") {
-          setFormData((prev) => ({ ...prev, customCategory: "" }));
-        }
+        setFormData((prev) => ({ ...prev, subCategory: "", customCategory: "" }));
       }
     };
 
@@ -564,9 +557,30 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                 </div>
               </FormField>
               <FormField label="Sub Category" className="flex-1">
-                <Input placeholder="e.g. Electronics > Phones" value={formData.subCategory}
-                  onChange={(e) => handleInputChange("subCategory", e.target.value)}
-                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+                <Select value={formData.subCategory} onValueChange={(value) => handleInputChange("subCategory", value)}>
+                  <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" disabled={!formData.category}>
+                    <SelectValue placeholder={formData.category ? "Select sub category" : "Select a category first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subCategories
+                      .filter(sc => {
+                        if (!formData.category) return false;
+                        if (formData.category === "Other") return true;
+                        const catId = categories.find(c => c.name === formData.category)?.id;
+                        return sc.categoryId === catId;
+                      })
+                      .map((sc) => (
+                        <SelectItem key={sc.id} value={sc.name}>{sc.name}</SelectItem>
+                      ))}
+                    {formData.category && subCategories.filter(sc => {
+                      if (formData.category === "Other") return true;
+                      const catId = categories.find(c => c.name === formData.category)?.id;
+                      return sc.categoryId === catId;
+                    }).length === 0 && (
+                      <SelectItem value="__no_subcats" disabled>No sub categories for this category</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </FormField>
             </div>
 
@@ -591,9 +605,11 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    {UNIT_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
+                    {units.length > 0 ? units.map((u) => (
+                      <SelectItem key={u.shortName} value={u.shortName}>{u.name} ({u.shortName})</SelectItem>
+                    )) : (
+                      <SelectItem value="__no_units" disabled>No units available</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </FormField>
@@ -774,9 +790,11 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent>
-                      {WARRANTY_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                      ))}
+                      {warranties.length > 0 ? warranties.map((w) => (
+                        <SelectItem key={w.id} value={w.name}>{w.name} ({w.duration} {w.durationType})</SelectItem>
+                      )) : (
+                        <SelectItem value="__no_warranties" disabled>No warranties available</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </FormField>

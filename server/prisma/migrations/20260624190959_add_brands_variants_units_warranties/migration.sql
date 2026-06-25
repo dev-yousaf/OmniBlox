@@ -64,3 +64,5 @@ CREATE TABLE "warranties" (
 );
 CREATE UNIQUE INDEX "warranties_companyId_name_key" ON "warranties"("companyId", "name");
 ALTER TABLE "warranties" ADD CONSTRAINT "warranties_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+

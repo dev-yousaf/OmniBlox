@@ -107,16 +107,37 @@ export class ProductService {
       }
 
       // Create product with companyId (Golden Rule applied)
-      const { type, manufacturedDate, expiryDate, ...restProductData } = productData;
+      const { type, manufacturedDate, expiryDate, unit, warranty, ...restProductData } = productData;
       const dateData: Record<string, Date> = {};
       if (manufacturedDate) dateData.manufacturedDate = new Date(manufacturedDate);
       if (expiryDate) dateData.expiryDate = new Date(expiryDate);
+
+      let unitId: string | undefined;
+      if (unit) {
+        const unitRecord = await this.prisma.unit.findFirst({
+          where: { shortName: unit, companyId },
+        });
+        if (unitRecord) unitId = unitRecord.id;
+      }
+
+      let warrantyId: string | undefined;
+      if (warranty) {
+        const warrantyRecord = await this.prisma.warranty.findFirst({
+          where: { name: warranty, companyId },
+        });
+        if (warrantyRecord) warrantyId = warrantyRecord.id;
+      }
+
       const product = await this.prisma.product.create({
         data: {
           sku,
           type: type || 'STANDARD',
+          unit,
+          warranty,
           ...restProductData,
           ...dateData,
+          unitId: unitId || null,
+          warrantyId: warrantyId || null,
           categoryId: categoryRecord.id,
           brandId: brandRecord?.id || null,
           companyId,
@@ -400,6 +421,20 @@ export class ProductService {
           }
           updateData.brandId = brandRecord.id;
         }
+      }
+
+      if (updateData.unit !== undefined) {
+        const unitRecord = await this.prisma.unit.findFirst({
+          where: { shortName: updateData.unit, companyId },
+        });
+        updateData.unitId = unitRecord?.id || null;
+      }
+
+      if (updateData.warranty !== undefined) {
+        const warrantyRecord = await this.prisma.warranty.findFirst({
+          where: { name: updateData.warranty, companyId },
+        });
+        updateData.warrantyId = warrantyRecord?.id || null;
       }
 
       // Handle combo items update

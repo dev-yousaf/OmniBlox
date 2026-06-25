@@ -1,5 +1,5 @@
-﻿import { Quotation, QuotationFormData } from "../_types"
-import { mockQuotations } from "@/lib/mock-data"
+import { Quotation, QuotationFormData } from "../_types"
+const mockQuotations: Quotation[] = [];
 
 export class QuotationService {
   // Get all quotations
@@ -51,7 +51,7 @@ export class QuotationService {
   }> {
     const items = await this.getQuotations()
     const totalQuotations = items.length
-    const activeQuotations = items.filter(i => i.status === "active" || i.status === "approved").length
+    const activeQuotations = items.filter(i => i.status === "PENDING" || i.status === "DRAFT").length
     
     return { totalQuotations, activeQuotations }
   }

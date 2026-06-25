@@ -30,6 +30,25 @@ export interface ProductListResponse {
   pages: number;
 }
 
+export interface LowStockDetailItem {
+  productId: string;
+  productName: string;
+  sku: string;
+  imageUrl: string | null;
+  category: string;
+  warehouseId: string;
+  warehouseName: string;
+  storeName: string;
+  quantity: number;
+  alertQuantity: number;
+}
+
+export interface LowStockDetailsResponse {
+  items: LowStockDetailItem[];
+  total: number;
+  pages: number;
+}
+
 export interface ProductStats {
   totalProducts: number;
   lowStockCount: number;
@@ -125,6 +144,17 @@ export function useProductApi() {
   const getLowStockProducts = useCallback(async (): Promise<Product[]> => {
     return get("/products/low-stock") as Promise<Product[]>;
   }, [get]);
+
+  const getLowStockDetails = useCallback(
+    async (filters: { page?: number; limit?: number } = {}): Promise<LowStockDetailsResponse> => {
+      const params = new URLSearchParams();
+      if (filters.page) params.set("page", filters.page.toString());
+      if (filters.limit) params.set("limit", filters.limit.toString());
+      const query = params.toString();
+      return get(`/products/low-stock/details${query ? `?${query}` : ""}`) as Promise<LowStockDetailsResponse>;
+    },
+    [get]
+  );
 
   const getExpiredProducts = useCallback(
     async (filters: { page?: number; limit?: number } = {}): Promise<ProductListResponse> => {
@@ -228,6 +258,7 @@ export function useProductApi() {
     getCategories,
     getBrands,
     getLowStockProducts,
+    getLowStockDetails,
     getExpiredProducts,
     getProductStats,
     getStockLedger,

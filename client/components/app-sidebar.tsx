@@ -81,7 +81,7 @@ const sections: SidebarSection[] = [
       { id: "products", name: "Products", href: "/products", icon: Package },
       { id: "products-new", name: "Create Product", href: "/products/new", icon: Package, mutationOnly: true },
       { id: "products-expired", name: "Expired Products", href: "/products/expired", icon: PackageX },
-      { id: "products-low-stock", name: "Low Stocks", href: "/products?status=low-stock", icon: AlertTriangle },
+      { id: "products-low-stock", name: "Low Stocks", href: "/products/low-stock", icon: AlertTriangle },
       { id: "categories", name: "Category", href: "/settings/categories", icon: FolderTree },
       { id: "sub-categories", name: "Sub Category", href: "/settings/sub-categories", icon: FolderOpen },
       { id: "brands", name: "Brands", href: "/settings/brands", icon: Tag },

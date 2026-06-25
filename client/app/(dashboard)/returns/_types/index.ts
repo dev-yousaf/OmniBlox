@@ -1,8 +1,7 @@
-﻿// Re-export types from lib for consistency
-import type { Return } from "@/lib/types"
+import type { UnifiedReturn as Return } from "@/hooks/use-returns-api"
 export type { Return }
 
-export type ReturnStatus = 
+export type ReturnStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "CANCELLED"
 
 export type ReturnStats = {
   totalReturns: number

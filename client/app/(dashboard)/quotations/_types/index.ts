@@ -1,8 +1,7 @@
-﻿// Re-export types from lib for consistency
-import type { Quotation } from "@/lib/types"
+import type { Quotation } from "@/hooks/use-quotations-api"
 export type { Quotation }
 
-export type QuotationStatus = 
+export type QuotationStatus = "DRAFT" | "PENDING" | "COMPLETED" | "CANCELLED"
 
 export type QuotationStats = {
   totalQuotations: number

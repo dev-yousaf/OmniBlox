@@ -147,7 +147,7 @@ export default function BrandsPage() {
             <ChevronRight className="h-3.5 w-3.5" />
             <span className="text-foreground">Brands</span>
           </div>
-          <h1 className="text-[18px] font-bold text-[#212b36]">Brands</h1>
+          <h1 className="text-[18px] font-bold text-foreground">Brands</h1>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" className="h-[34px] w-[34px] rounded-[5px]" title="Export PDF"><FileText className="h-4 w-4" /></Button>
@@ -155,7 +155,7 @@ export default function BrandsPage() {
           <Button variant="outline" size="icon" className="h-[34px] w-[34px] rounded-[5px]" title="Refresh" onClick={load}><RefreshCw className="h-4 w-4" /></Button>
           <Button variant="outline" size="icon" className="h-[34px] w-[34px] rounded-[5px]" title="Collapse"><ChevronUp className="h-4 w-4" /></Button>
           {canManage && (
-            <Button className="h-[34px] rounded-[5px] bg-[#ff9025] hover:bg-[#ff9025]/90 text-white text-[13px] font-medium px-3" onClick={openCreate}>
+            <Button className="h-[34px] rounded-[5px] bg-primary hover:bg-primary/90 text-primary-foreground text-[13px] font-medium px-3" onClick={openCreate}>
               <Plus className="mr-1.5 h-3.5 w-3.5" />Add Brand
             </Button>
           )}
@@ -163,13 +163,13 @@ export default function BrandsPage() {
       </div>
 
       {/* Table */}
-      <div className="border border-[#e6eaed] rounded-[5px] bg-white shadow-[0px_1px_0.5px_rgba(198,198,198,0.2)] overflow-hidden">
+      <div className="border rounded-[5px] bg-card shadow-sm overflow-hidden">
         {/* Table Toolbar */}
-        <div className="flex items-center gap-4 px-5 py-[15px] border-b border-[#e6eaed]">
-          <div className="flex items-center gap-2 border border-[#e6eaed] rounded-[5px] px-2.5 py-1.5 w-[200px]">
-            <Search className="h-3.5 w-3.5 text-[#a6aaaf]" />
+        <div className="flex items-center gap-4 px-5 py-[15px] border-b">
+          <div className="flex items-center gap-2 border rounded-[5px] px-2.5 py-1.5 w-[200px]">
+            <Search className="h-3.5 w-3.5 text-muted-foreground" />
             <input
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-[#a6aaaf]"
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               placeholder="Search"
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
@@ -177,7 +177,7 @@ export default function BrandsPage() {
           </div>
           <div className="flex items-center gap-2 ml-auto">
             <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
-              <SelectTrigger className="h-[34px] w-[100px] text-sm rounded-[5px] border-[#e6eaed]">
+              <SelectTrigger className="h-[34px] w-[100px] text-sm rounded-[5px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -186,10 +186,10 @@ export default function BrandsPage() {
                 <SelectItem value="INACTIVE">Inactive</SelectItem>
               </SelectContent>
             </Select>
-            <div className="flex items-center gap-1.5 text-sm text-[#212b36] font-semibold">
+            <div className="flex items-center gap-1.5 text-sm text-foreground font-semibold">
               Sort By :
               <Select defaultValue="last7">
-                <SelectTrigger className="h-[34px] w-[130px] text-sm rounded-[5px] border-[#e6eaed]">
+                <SelectTrigger className="h-[34px] w-[130px] text-sm rounded-[5px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -211,41 +211,41 @@ export default function BrandsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-[#f2f2f2] h-[33px]">
-                  <th className="w-[60px] px-5 py-2 text-left font-semibold text-[#212b36]">
+                <tr className="bg-muted h-[33px]">
+                  <th className="w-[60px] px-5 py-2 text-left font-semibold text-foreground">
                     <Checkbox checked={selectedIds.size === paged.length && paged.length > 0} onCheckedChange={toggleAll} />
                   </th>
-                  <th className="w-[244px] px-5 py-2 text-left font-semibold text-[#212b36]">Brand</th>
-                  <th className="w-[215px] px-5 py-2 text-left font-semibold text-[#212b36]">Image</th>
-                  <th className="w-[230px] px-5 py-2 text-left font-semibold text-[#212b36] cursor-pointer select-none" onClick={toggleSort}>
+                  <th className="w-[244px] px-5 py-2 text-left font-semibold text-foreground">Brand</th>
+                  <th className="w-[215px] px-5 py-2 text-left font-semibold text-foreground">Image</th>
+                  <th className="w-[230px] px-5 py-2 text-left font-semibold text-foreground cursor-pointer select-none" onClick={toggleSort}>
                     <span className="inline-flex items-center gap-1.5">
                       Created Date
                       <ArrowUpDown className="h-3 w-3" />
                     </span>
                   </th>
-                  <th className="w-[198px] px-5 py-2 text-left font-semibold text-[#212b36]">Status</th>
-                  {canManage && <th className="w-[193px] px-5 py-2 text-left font-semibold text-[#212b36]">Actions</th>}
+                  <th className="w-[198px] px-5 py-2 text-left font-semibold text-foreground">Status</th>
+                  {canManage && <th className="w-[193px] px-5 py-2 text-left font-semibold text-foreground">Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {paged.map(item => (
-                  <tr key={item.id} className="h-[56px] border-b border-[#e6eaed]">
+                  <tr key={item.id} className="h-[56px] border-b">
                     <td className="w-[60px] px-5">
                       <Checkbox checked={selectedIds.has(item.id)} onCheckedChange={() => toggleSelect(item.id)} />
                     </td>
-                    <td className="w-[244px] px-5 text-[#212b36]">{item.name}</td>
+                    <td className="w-[244px] px-5 text-foreground">{item.name}</td>
                     <td className="w-[215px] px-5">
                       <div className="flex items-center gap-2">
                         {item.imageUrl ? (
-                          <img src={item.imageUrl} alt="" className="h-[30px] w-[30px] rounded-[5px] object-cover bg-[#f2f2f2]" />
+                          <img src={item.imageUrl} alt="" className="h-[30px] w-[30px] rounded-[5px] object-cover bg-muted" />
                         ) : (
-                          <div className="h-[30px] w-[30px] rounded-[5px] bg-[#f2f2f2] flex items-center justify-center text-xs text-muted-foreground">
+                          <div className="h-[30px] w-[30px] rounded-[5px] bg-muted flex items-center justify-center text-xs text-muted-foreground">
                             {item.name.charAt(0).toUpperCase()}
                           </div>
                         )}
                       </div>
                     </td>
-                    <td className="w-[230px] px-5 text-[#212b36]">
+                    <td className="w-[230px] px-5 text-foreground">
                       {new Date(item.createdAt).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}
                     </td>
                     <td className="w-[198px] px-5">
@@ -277,11 +277,11 @@ export default function BrandsPage() {
 
         {/* Table Footer */}
         {!isLoading && paged.length > 0 && (
-          <div className="flex items-center justify-between px-5 py-[15px] border-t border-[#e6eaed]">
-            <div className="flex items-center gap-2 text-sm text-[#646b72]">
+          <div className="flex items-center justify-between px-5 py-[15px] border-t">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Row Per Page</span>
               <Select defaultValue="10">
-                <SelectTrigger className="h-8 w-16 text-xs rounded-[5px] border-[#e5e7eb]">
+                <SelectTrigger className="h-8 w-16 text-xs rounded-[5px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -298,7 +298,7 @@ export default function BrandsPage() {
                 disabled={page <= 1}
                 onClick={() => setPage(p => Math.max(1, p - 1))}
               >
-                <ChevronLeft className="h-4 w-4 text-[#646b72]" />
+                <ChevronLeft className="h-4 w-4 text-muted-foreground" />
               </button>
               <div className="flex items-center gap-2">
                 {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
@@ -310,7 +310,7 @@ export default function BrandsPage() {
                   return (
                     <button
                       key={pageNum}
-                      className={`h-6 w-6 rounded-full text-xs flex items-center justify-center border border-[#e6eaed] ${pageNum === page ? "bg-[#fe9f43] text-white border-[#fe9f43]" : "text-[#646b72]"}`}
+                      className={`h-6 w-6 rounded-full text-xs flex items-center justify-center border ${pageNum === page ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground"}`}
                       onClick={() => setPage(pageNum)}
                     >
                       {pageNum}
@@ -318,11 +318,11 @@ export default function BrandsPage() {
                   );
                 })}
                 {totalPages > 5 && page < totalPages - 2 && (
-                  <span className="text-xs text-[#646b72]">...</span>
+                  <span className="text-xs text-muted-foreground">...</span>
                 )}
                 {totalPages > 5 && page < totalPages - 2 && (
                   <button
-                    className={`h-6 w-6 rounded-full text-xs flex items-center justify-center border border-[#e6eaed] text-[#646b72]`}
+                    className={`h-6 w-6 rounded-full text-xs flex items-center justify-center border text-muted-foreground`}
                     onClick={() => setPage(totalPages)}
                   >
                     {totalPages}
@@ -334,7 +334,7 @@ export default function BrandsPage() {
                 disabled={page >= totalPages}
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               >
-                <ChevronRight className="h-4 w-4 text-[#646b72]" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </button>
             </div>
           </div>
@@ -378,7 +378,7 @@ export default function BrandsPage() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={submitting} className="rounded-[5px]">Cancel</Button>
-              <Button type="submit" disabled={submitting || !fName.trim()} className="rounded-[5px] bg-[#ff9025] hover:bg-[#ff9025]/90 text-white">
+              <Button type="submit" disabled={submitting || !fName.trim()} className="rounded-[5px] bg-primary hover:bg-primary/90 text-primary-foreground">
                 {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : editing ? "Update" : "Create"}
               </Button>
             </DialogFooter>

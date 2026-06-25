@@ -55,6 +55,7 @@ export class UnitsService {
     return this.prisma.unit.findMany({
       where: { companyId },
       orderBy: { name: 'asc' },
+      include: { _count: { select: { products: true } } },
     });
   }
 

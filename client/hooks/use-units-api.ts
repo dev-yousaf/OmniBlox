@@ -11,6 +11,7 @@ export interface Unit {
   companyId: string;
   createdAt: string;
   updatedAt: string;
+  _count?: { products: number };
 }
 
 export interface CreateUnitDto {

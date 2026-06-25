@@ -1,5 +1,5 @@
-﻿import { Return, ReturnFormData } from "../_types"
-import { mockReturns } from "@/lib/mock-data"
+import { Return, ReturnFormData } from "../_types"
+const mockReturns: Return[] = [];
 
 export class ReturnService {
   // Get all returns

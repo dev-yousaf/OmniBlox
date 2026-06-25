@@ -26,6 +26,15 @@ export interface Product {
   status: "ACTIVE" | "INACTIVE" | "DISCONTINUED"
   comboItems?: ComboItem[]
   createdBy?: { id: string; name: string; image?: string | null } | null
+  warranty?: string | null
+  manufacturer?: string | null
+  manufacturedDate?: string | null
+  expiryDate?: string | null
+  itemCode?: string | null
+  barcodeSymbology?: string | null
+  subCategory?: string | null
+  alertQuantity?: number | null
+  taxRate?: number | null
   createdAt: string
   updatedAt: string
 }
