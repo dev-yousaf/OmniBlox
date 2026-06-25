@@ -21,6 +21,7 @@ import { useProductCategoriesApi } from "@/hooks/use-product-categories-api";
 import { useUnitsApi } from "@/hooks/use-units-api";
 import { useSubCategoriesApi } from "@/hooks/use-sub-categories-api";
 import { useWarrantiesApi } from "@/hooks/use-warranties-api";
+import { useVariantAttributesApi, VariantAttribute } from "@/hooks/use-variant-attributes-api";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import {
@@ -165,6 +166,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
     const { getUnits } = useUnitsApi();
     const { getSubCategories } = useSubCategoriesApi();
     const { getWarranties } = useWarrantiesApi();
+    const { getVariantAttributes } = useVariantAttributesApi();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [categories, setCategories] = useState<
@@ -174,6 +176,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
     const [units, setUnits] = useState<Array<{ shortName: string; name: string }>>([]);
     const [subCategories, setSubCategories] = useState<Array<{ id: string; name: string; categoryId: string }>>([]);
     const [warranties, setWarranties] = useState<Array<{ id: string; name: string; duration: number; durationType: string }>>([]);
+    const [savedAttributes, setSavedAttributes] = useState<VariantAttribute[]>([]);
     const [showCustomCategory, setShowCustomCategory] = useState(false);
 
     const [customFieldsEnabled, setCustomFieldsEnabled] = useState({
@@ -239,18 +242,20 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
     useEffect(() => {
       const loadData = async () => {
         try {
-          const [categoriesData, brandsData, unitsData, subCatsData, warrantiesData] = await Promise.all([
+          const [categoriesData, brandsData, unitsData, subCatsData, warrantiesData, attrsData] = await Promise.all([
             getCategories(),
             getBrands(),
             getUnits(),
             getSubCategories(),
             getWarranties(),
+            getVariantAttributes(),
           ]);
           setCategories(categoriesData);
           setBrands(brandsData);
           setUnits(unitsData);
           setSubCategories(subCatsData);
           setWarranties(warrantiesData);
+          setSavedAttributes(attrsData);
         } catch (error) {
           console.error("Failed to load form data:", error);
           toast({
@@ -261,7 +266,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
         }
       };
       loadData();
-    }, [getCategories, getBrands, getUnits, getSubCategories, getWarranties, toast]);
+    }, [getCategories, getBrands, getUnits, getSubCategories, getWarranties, getVariantAttributes, toast]);
 
     useEffect(() => {
       if (formData.comboItems.length > 0) {
@@ -890,10 +895,31 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
         {!isEdit && formData.hasVariants && (
           <CardSection icon={<List className="h-4 w-4" />} title="Variants">
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-[14px] font-medium text-[#212b36] dark:text-card-foreground">Attributes</span>
-                <Button type="button" variant="outline" size="sm" onClick={addAttribute}
-                  className="text-[12px] h-[34px]">Add Attribute</Button>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[14px] font-medium text-[#212b36] dark:text-card-foreground shrink-0">Attributes</span>
+                <div className="flex items-center gap-2">
+                  {savedAttributes.length > 0 && (
+                    <Select onValueChange={(value) => {
+                      const attr = savedAttributes.find(a => a.id === value);
+                      if (attr && Array.isArray(attr.values) && !attributesList.some(a => a.name === attr.name)) {
+                        setAttributesList(prev => [...prev, { name: attr.name, values: (attr.values as string[]).join(", ") }]);
+                      }
+                    }}>
+                      <SelectTrigger className="h-[34px] w-[160px] text-[12px] rounded-[5px]">
+                        <SelectValue placeholder="Select preset" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {savedAttributes.map(a => (
+                          <SelectItem key={a.id} value={a.id} disabled={attributesList.some(at => at.name === a.name)}>
+                            {a.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <Button type="button" variant="outline" size="sm" onClick={addAttribute}
+                    className="text-[12px] h-[34px]">Add Custom</Button>
+                </div>
               </div>
               {attributesList.map((attr, index) => (
                 <div key={index} className="flex items-start gap-2 rounded border p-3">
