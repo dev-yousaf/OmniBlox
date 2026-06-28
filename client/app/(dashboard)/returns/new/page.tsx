@@ -290,19 +290,32 @@ export default function NewReturnPage() {
   };
 
   useEffect(() => {
-    if (preselectedSaleId && sales.length > 0 && !selectedSaleId) {
-      const sale = sales.find((s: any) => s.id === preselectedSaleId);
-      if (sale) {
-        handleSaleSelect(preselectedSaleId);
-      } else {
-        getSale(preselectedSaleId)
-          .then((s: any) => {
-            if (s) handleSaleSelect(preselectedSaleId);
-          })
-          .catch(() => {});
+    if (!preselectedSaleId || selectedSaleId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const sale = await getSale(preselectedSaleId);
+        if (cancelled || !sale) return;
+        setSelectedSaleId(preselectedSaleId);
+        setCustomerForm({
+          warehouseId: sale.warehouseId || sale.warehouse?.id || "",
+          reason: `Return for sale ${sale.invoiceNumber}`,
+          saleId: sale.id,
+          items: sale.items.map((item: any) => ({
+            id: crypto.randomUUID(),
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: Number(item.unitPrice),
+            saleItemId: item.id,
+            maxQuantity: item.quantity,
+          })),
+        });
+      } catch (err) {
+        console.error("Failed to pre-fill sale:", err);
       }
-    }
-  }, [preselectedSaleId, sales, selectedSaleId]);
+    })();
+    return () => { cancelled = true; };
+  }, [preselectedSaleId, selectedSaleId, getSale]);
 
   const productsById = useMemo(() => {
     const map = new Map<string, any>();

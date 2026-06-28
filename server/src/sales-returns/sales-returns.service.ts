@@ -86,28 +86,13 @@ export class SalesReturnsService {
           },
         });
 
-        // Note: Inventory will be incremented when status changes to COMPLETED
-        // Update inventory - ADD stock back (customer returning goods)
-        // for (const item of dto.items) {
-        //   await tx.inventory.upsert({
-        //     where: {
-        //       productId_warehouseId: {
-        //         productId: item.productId,
-        //         warehouseId: dto.warehouseId,
-        //       },
-        //     },
-        //     update: {
-        //       quantity: {
-        //         increment: item.quantity, // Atomic increment
-        //       },
-        //     },
-        //     create: {
-        //       productId: item.productId,
-        //       warehouseId: dto.warehouseId,
-        //       quantity: item.quantity,
-        //     },
-        //   });
-        // }
+        // Mark the sale as having returns if linked (even for PENDING returns)
+        if (dto.saleId) {
+          await tx.sale.update({
+            where: { id: dto.saleId },
+            data: { hasReturns: true },
+          });
+        }
 
         return salesReturn;
       },
