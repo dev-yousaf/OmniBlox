@@ -3,10 +3,11 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { ChevronRight, Loader2, Plus, Save, Trash2, Package } from "lucide-react";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -71,8 +72,6 @@ const PAYMENT_METHOD_OPTIONS: Array<{
   { value: "BANK_TRANSFER", label: "Bank Transfer" },
   { value: "CHECK", label: "Check" },
 ];
-
-const WAREHOUSE_NAME = "Main Warehouse";
 
 const normalizeError = (error: unknown): string => {
   if (typeof error === "string" && error.trim().length > 0) {
@@ -349,22 +348,78 @@ export default function EditSalePage() {
   }
 
   if (!sale) {
-    return <div className="p-6">Sale not found.</div>;
+    return (
+      <div className="space-y-5 p-6">
+        <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+          <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <Link href="/sales" className="hover:text-foreground transition-colors">Sales</Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <span className="text-foreground">Edit Sale</span>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm py-12 text-center text-muted-foreground">
+          <Package className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+          <p className="font-medium">Sale not found</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href={`/sales/${sale.id}`}>
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+    <div className="space-y-5">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+        <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <Link href="/sales" className="hover:text-foreground transition-colors">Sales</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <Link href={`/sales/${sale.id}`} className="hover:text-foreground transition-colors">{sale.invoiceNumber}</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-foreground">Edit</span>
+      </div>
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Edit Sale</h1>
-          <p className="text-sm text-muted-foreground">
-            Update sale information and invoice items
-          </p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-[18px] font-bold text-foreground">Edit Sale</h1>
+            <Badge variant="outline" className="font-medium text-xs">
+              {sale.invoiceNumber}
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground">{sale.customerName}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href={`/sales/${sale.id}`}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-[34px] rounded-[5px] text-[13px]"
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+          </Link>
+          <Button
+            type="submit"
+            form="edit-sale-form"
+            disabled={items.length === 0 || saving}
+            size="sm"
+            className="h-[34px] rounded-[5px] text-[13px] gap-1.5"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <Save className="h-3.5 w-3.5" />
+                <span>Save Changes</span>
+              </>
+            )}
+          </Button>
         </div>
       </div>
 
@@ -379,19 +434,18 @@ export default function EditSalePage() {
         </Alert>
       )}
 
-      <form onSubmit={handleSubmit} className="grid gap-6 md:grid-cols-3">
-        <div className="space-y-6 md:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Customer & Invoice</CardTitle>
-              <CardDescription>
-                Update customer and invoice details
-              </CardDescription>
+      <form id="edit-sale-form" onSubmit={handleSubmit} className="grid gap-5 lg:grid-cols-[1fr_320px]">
+        {/* Left Column */}
+        <div className="space-y-5">
+          <Card className="border rounded-[5px] bg-card shadow-sm">
+            <CardHeader className="px-5 py-[15px] border-b">
+              <CardTitle className="text-sm font-semibold">Customer & Invoice</CardTitle>
+              <CardDescription className="text-xs">Update customer and invoice details</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="p-5 space-y-4">
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label htmlFor="customerName">Customer Name *</Label>
+                  <Label htmlFor="customerName" className="text-xs font-medium">Customer Name *</Label>
                   <Input
                     id="customerName"
                     placeholder="Enter customer name"
@@ -403,10 +457,11 @@ export default function EditSalePage() {
                       }))
                     }
                     required
+                    className="h-[34px] rounded-[5px] text-sm"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="customerEmail">Customer Email *</Label>
+                  <Label htmlFor="customerEmail" className="text-xs font-medium">Customer Email *</Label>
                   <Input
                     id="customerEmail"
                     type="email"
@@ -419,10 +474,11 @@ export default function EditSalePage() {
                       }))
                     }
                     required
+                    className="h-[34px] rounded-[5px] text-sm"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="status">Invoice Status</Label>
+                  <Label htmlFor="status" className="text-xs font-medium">Invoice Status</Label>
                   <Select
                     value={formData.status}
                     onValueChange={(value) =>
@@ -432,7 +488,7 @@ export default function EditSalePage() {
                       }))
                     }
                   >
-                    <SelectTrigger id="status">
+                    <SelectTrigger id="status" className="h-[34px] rounded-[5px] text-sm">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -448,7 +504,7 @@ export default function EditSalePage() {
 
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label htmlFor="paymentStatus">Payment Status</Label>
+                  <Label htmlFor="paymentStatus" className="text-xs font-medium">Payment Status</Label>
                   <Select
                     value={formData.paymentStatus}
                     onValueChange={(value) =>
@@ -458,7 +514,7 @@ export default function EditSalePage() {
                       }))
                     }
                   >
-                    <SelectTrigger id="paymentStatus">
+                    <SelectTrigger id="paymentStatus" className="h-[34px] rounded-[5px] text-sm">
                       <SelectValue placeholder="Select payment status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -471,7 +527,7 @@ export default function EditSalePage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="paymentMethod">Payment Method</Label>
+                  <Label htmlFor="paymentMethod" className="text-xs font-medium">Payment Method</Label>
                   <Select
                     value={formData.paymentMethod ?? "NONE"}
                     onValueChange={(value) =>
@@ -484,7 +540,7 @@ export default function EditSalePage() {
                       }))
                     }
                   >
-                    <SelectTrigger id="paymentMethod">
+                    <SelectTrigger id="paymentMethod" className="h-[34px] rounded-[5px] text-sm">
                       <SelectValue placeholder="Select payment method" />
                     </SelectTrigger>
                     <SelectContent>
@@ -498,14 +554,18 @@ export default function EditSalePage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Warehouse</Label>
-                  <Input value={WAREHOUSE_NAME} readOnly />
+                  <Label className="text-xs font-medium">Warehouse</Label>
+                  <Input
+                    value={sale.warehouseName || "—"}
+                    readOnly
+                    className="h-[34px] rounded-[5px] text-sm"
+                  />
                 </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="date">Invoice Date *</Label>
+                  <Label htmlFor="date" className="text-xs font-medium">Invoice Date *</Label>
                   <Input
                     id="date"
                     type="date"
@@ -517,10 +577,11 @@ export default function EditSalePage() {
                       }))
                     }
                     required
+                    className="h-[34px] rounded-[5px] text-sm"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="dueDate">Due Date *</Label>
+                  <Label htmlFor="dueDate" className="text-xs font-medium">Due Date *</Label>
                   <Input
                     id="dueDate"
                     type="date"
@@ -532,12 +593,13 @@ export default function EditSalePage() {
                       }))
                     }
                     required
+                    className="h-[34px] rounded-[5px] text-sm"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
+                <Label htmlFor="notes" className="text-xs font-medium">Notes</Label>
                 <Textarea
                   id="notes"
                   placeholder="Add any additional notes for this sale"
@@ -549,152 +611,153 @@ export default function EditSalePage() {
                     }))
                   }
                   rows={3}
+                  className="rounded-[5px] text-sm"
                 />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
+          {/* Invoice Items Card */}
+          <Card className="border rounded-[5px] bg-card shadow-sm">
+            <CardHeader className="px-5 py-[15px] border-b">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Invoice Items</CardTitle>
-                  <CardDescription>
-                    Manage the products included in this sale
-                  </CardDescription>
+                  <CardTitle className="text-sm font-semibold">Invoice Items</CardTitle>
+                  <CardDescription className="text-xs">Manage the products included in this sale</CardDescription>
                 </div>
                 <Button
                   type="button"
                   size="sm"
-                  className="gap-2"
+                  className="h-[34px] rounded-[5px] text-[13px] gap-1.5"
                   onClick={addItem}
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-3.5 w-3.5" />
                   Add Item
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {items.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-muted-foreground">
-                    No items added yet. Click "Add Item" to start.
-                  </p>
-                ) : (
-                  items.map((item) => (
+            <CardContent className="p-5">
+              {items.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  No items added yet. Click &quot;Add Item&quot; to start.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {items.map((item) => (
                     <div
                       key={item.id}
-                      className="space-y-4 rounded-lg border border-border p-4"
+                      className="flex items-start justify-between gap-4 border rounded-[5px] p-4"
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 grid gap-4 md:grid-cols-4">
-                          <div className="space-y-2">
-                            <Label>Product</Label>
-                            <Select
-                              value={item.productId}
-                              onValueChange={(value) =>
-                                updateItem(item.id, "productId", value)
-                              }
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select product" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {productsLoading && (
-                                  <SelectItem value="LOADING" disabled>
-                                    Loading products...
+                      <div className="flex-1 grid gap-4 md:grid-cols-4">
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">Product</Label>
+                          <Select
+                            value={item.productId}
+                            onValueChange={(value) =>
+                              updateItem(item.id, "productId", value)
+                            }
+                          >
+                            <SelectTrigger className="h-[34px] rounded-[5px] text-sm">
+                              <SelectValue placeholder="Select product" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {productsLoading && (
+                                <SelectItem value="LOADING" disabled>
+                                  Loading products...
+                                </SelectItem>
+                              )}
+                              {!productsLoading && productsError && (
+                                <SelectItem value="ERROR" disabled>
+                                  {productsError}
+                                </SelectItem>
+                              )}
+                              {!productsLoading &&
+                                !productsError &&
+                                products.length === 0 && (
+                                  <SelectItem value="NO_PRODUCTS" disabled>
+                                    No products available
                                   </SelectItem>
                                 )}
-                                {!productsLoading && productsError && (
-                                  <SelectItem value="ERROR" disabled>
-                                    {productsError}
+                              {!productsLoading &&
+                                !productsError &&
+                                products.map((product) => (
+                                  <SelectItem
+                                    key={product.id}
+                                    value={product.id}
+                                  >
+                                    {product.name}
                                   </SelectItem>
-                                )}
-                                {!productsLoading &&
-                                  !productsError &&
-                                  products.length === 0 && (
-                                    <SelectItem value="NO_PRODUCTS" disabled>
-                                      No products available
-                                    </SelectItem>
-                                  )}
-                                {!productsLoading &&
-                                  !productsError &&
-                                  products.map((product) => (
-                                    <SelectItem
-                                      key={product.id}
-                                      value={product.id}
-                                    >
-                                      {product.name}
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Quantity</Label>
-                            <Input
-                              type="number"
-                              min={1}
-                              value={item.quantity}
-                              onChange={(event) =>
-                                updateItem(
-                                  item.id,
-                                  "quantity",
-                                  Number(event.target.value) || 0
-                                )
-                              }
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Price</Label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              min={0}
-                              value={item.unitPrice}
-                              onChange={(event) =>
-                                updateItem(
-                                  item.id,
-                                  "unitPrice",
-                                  Number(event.target.value) || 0
-                                )
-                              }
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Total</Label>
-                            <Input
-                              value={currencyFormatter.format(item.total)}
-                              readOnly
-                            />
-                          </div>
+                                ))}
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeItem(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">Quantity</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={item.quantity}
+                            onChange={(event) =>
+                              updateItem(
+                                item.id,
+                                "quantity",
+                                Number(event.target.value) || 0
+                              )
+                            }
+                            className="h-[34px] rounded-[5px] text-sm"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">Price</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min={0}
+                            value={item.unitPrice}
+                            onChange={(event) =>
+                              updateItem(
+                                item.id,
+                                "unitPrice",
+                                Number(event.target.value) || 0
+                              )
+                            }
+                            className="h-[34px] rounded-[5px] text-sm"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs font-medium">Total</Label>
+                          <Input
+                            value={currencyFormatter.format(item.total)}
+                            readOnly
+                            className="h-[34px] rounded-[5px] text-sm"
+                          />
+                        </div>
                       </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeItem(item.id)}
+                        className="mt-6 h-[34px] w-[34px] rounded-[5px] text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Invoice Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        {/* Right Column */}
+        <div className="space-y-4">
+          <Card className="border rounded-[5px] bg-card shadow-sm p-5">
+            <h3 className="text-sm font-semibold text-foreground mb-4">Invoice Summary</h3>
+            <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-medium">
+                <span className="font-medium tabular-nums">
                   {currencyFormatter.format(subtotal)}
                 </span>
               </div>
@@ -708,10 +771,10 @@ export default function EditSalePage() {
                     onChange={(event) =>
                       setTaxRate(Math.max(0, Number(event.target.value) || 0))
                     }
-                    className="h-7 w-16 text-xs"
+                    className="h-7 w-16 text-xs rounded-[5px]"
                   />
-                  <span className="text-xs">%</span>
-                  <span className="font-medium">
+                  <span className="text-xs text-muted-foreground">%</span>
+                  <span className="font-medium tabular-nums min-w-[60px] text-right">
                     {currencyFormatter.format(taxAmount)}
                   </span>
                 </div>
@@ -727,74 +790,39 @@ export default function EditSalePage() {
                     onChange={(event) =>
                       setDiscount(Math.max(0, Number(event.target.value) || 0))
                     }
-                    className="h-7 w-20 text-xs"
+                    className="h-7 w-20 text-xs rounded-[5px]"
                   />
-                  <span className="font-medium">
+                  <span className="font-medium tabular-nums min-w-[60px] text-right">
                     {currencyFormatter.format(discount)}
                   </span>
                 </div>
               </div>
-              <div className="flex justify-between border-t border-border pt-4">
-                <span className="font-semibold">Total</span>
-                <span className="text-2xl font-semibold">
+              <div className="flex justify-between border-t border-border pt-3">
+                <span className="font-semibold text-foreground">Total</span>
+                <span className="text-xl font-bold tabular-nums">
                   {currencyFormatter.format(total)}
                 </span>
               </div>
-            </CardContent>
+            </div>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Stats</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm font-medium">Total Items</p>
-                <p className="text-2xl font-semibold">{items.length}</p>
+          <Card className="border rounded-[5px] bg-card shadow-sm p-5 space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Quick Stats</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Items</span>
+                <span className="font-semibold">{items.length}</span>
               </div>
-              <div>
-                <p className="text-sm font-medium">Total Units</p>
-                <p className="text-2xl font-semibold">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Units</span>
+                <span className="font-semibold">
                   {items.reduce((sum, item) => sum + item.quantity, 0)}
-                </p>
+                </span>
               </div>
-            </CardContent>
+            </div>
           </Card>
-
-          <div className="flex flex-col gap-2">
-            <Button
-              type="submit"
-              disabled={items.length === 0 || saving}
-              className="gap-2"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  <span>Save Changes</span>
-                </>
-              )}
-            </Button>
-            <Link href={`/sales/${sale.id}`}>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full bg-transparent"
-                disabled={saving}
-              >
-                Cancel
-              </Button>
-            </Link>
-          </div>
         </div>
       </form>
     </div>
   );
 }
-
-
-

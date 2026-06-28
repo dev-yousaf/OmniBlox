@@ -5,37 +5,33 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
-  ArrowLeft,
-  Edit,
-  Printer,
-  Download,
-  Mail,
-  Loader2,
-  CheckCircle2,
-  RotateCcw,
+  ArrowLeft, Edit, Trash2, Loader2, CheckCircle2, Package, RotateCcw, Mail,
+  ChevronRight, Undo2,
 } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useSaleDetail } from "../_hooks/use-sales";
 import { useAuth } from "@/contexts/auth-context";
+import { useState } from "react";
+
+const statusStyles: Record<string, string> = {
+  PAID: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+  PENDING: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+  PARTIAL: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800",
+  OVERDUE: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800",
+};
+
+const statusLabels: Record<string, string> = {
+  PAID: "Paid",
+  PENDING: "Pending",
+  PARTIAL: "Partial",
+  OVERDUE: "Overdue",
+};
 
 export default function SaleDetailPage() {
   const { user } = useAuth();
@@ -43,313 +39,362 @@ export default function SaleDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const saleId = params?.id ?? "";
-
-  const { sale, loading, updating, error, markAsPaid } = useSaleDetail(saleId);
+  const { sale, loading, updating, error, markAsPaid, deleteSale } = useSaleDetail(saleId);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const formatCurrency = useMemo(
-    () =>
-      new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-        minimumFractionDigits: 2,
-      }),
+    () => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }),
     []
   );
 
-  const statusBadge = useMemo(() => {
-    if (!sale) return { label: "", variant: "secondary" as const };
-    if (sale.paymentStatus === "PAID")
-      return { label: "Paid", variant: "default" as const };
-    if (sale.isOverdue)
-      return { label: "Overdue", variant: "destructive" as const };
-    if (sale.paymentStatus === "PARTIAL")
-      return { label: "Partial", variant: "secondary" as const };
-    return { label: "Pending", variant: "secondary" as const };
-  }, [sale]);
+  const getStatus = () => {
+    if (!sale) return "PENDING";
+    if (sale.paymentStatus === "PAID") return "PAID";
+    if (sale.isOverdue) return "OVERDUE";
+    if (sale.paymentStatus === "PARTIAL") return "PARTIAL";
+    return "PENDING";
+  };
 
-  if (!saleId) {
-    return <div className="p-6">Sale identifier is missing.</div>;
-  }
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteSale();
+      router.push("/sales");
+    } catch { /* handled */ }
+    setDeleting(false);
+  };
 
-  if (loading) {
-    return <PageLoadingSkeleton />;
-  }
+  if (!saleId) return <div className="p-6">Sale identifier is missing.</div>;
+  if (loading) return <PageLoadingSkeleton />;
 
   if (!sale) {
-    return <div className="p-6">Sale not found.</div>;
+    return (
+      <div className="space-y-5">
+        <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+          <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <Link href="/sales" className="hover:text-foreground transition-colors">Sales</Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <span className="text-foreground">Sale Detail</span>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm py-12 text-center text-muted-foreground">
+          <Package className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+          <p className="font-medium">Sale not found</p>
+        </div>
+      </div>
+    );
   }
 
+  const status = getStatus();
+  const statusLabel = statusLabels[status] || status;
+  const totalUnits = sale.items.reduce((sum, item) => sum + item.quantity, 0);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+        <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <Link href="/sales" className="hover:text-foreground transition-colors">Sales</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-foreground">{sale.invoiceNumber}</span>
+      </div>
+
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/sales">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="h-7 w-7">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight">
-              {sale.invoiceNumber}
-            </h1>
             <div className="flex items-center gap-2">
-              <p className="text-sm text-muted-foreground">
-                {sale.customerName}
-              </p>
+              <h1 className="text-[18px] font-bold text-foreground">{sale.invoiceNumber}</h1>
+              <Badge variant="outline" className={`font-medium text-xs ${statusStyles[status] || ""}`}>
+                {statusLabel}
+              </Badge>
               {sale.hasReturns && (
-                <Badge
-                  variant="outline"
-                  className="text-orange-600 border-orange-600"
-                >
-                  <RotateCcw className="mr-1 h-3 w-3" />
-                  Has Returns
-                </Badge>
+                <Link href={`/returns?search=${sale.invoiceNumber}`}>
+                  <Badge variant="outline" className="font-medium text-xs text-orange-600 border-orange-200 bg-orange-50 hover:bg-orange-100 cursor-pointer transition-colors">
+                    <RotateCcw className="mr-1 h-3 w-3" /> Returns
+                  </Badge>
+                </Link>
               )}
             </div>
+            <p className="text-sm text-muted-foreground">{sale.customerName}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2 bg-transparent"
-            disabled={!sale.customerEmail}
-          >
-            <Mail className="h-4 w-4" />
-            Email
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-            <Download className="h-4 w-4" />
-            Download
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-            <Printer className="h-4 w-4" />
-            Print
-          </Button>
           {canManage && (
-            <Link href={`/sales/${sale.id}/edit`}>
-              <Button size="sm" className="gap-2">
-                <Edit className="h-4 w-4" />
-                Edit
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-[34px] rounded-[5px] text-[13px]"
+                disabled={!sale.customerEmail}
+              >
+                <Mail className="mr-1.5 h-3.5 w-3.5" /> Email
               </Button>
-            </Link>
+              {sale.paymentStatus !== "PAID" && (
+                <Button
+                  size="sm"
+                  className="h-[34px] rounded-[5px] text-[13px]"
+                  disabled={updating}
+                  onClick={() => markAsPaid().catch(() => {})}
+                >
+                  {updating ? (
+                    <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Marking...</>
+                  ) : (
+                    <><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Mark Paid</>
+                  )}
+                </Button>
+              )}
+              <Link href={`/returns/new?saleId=${sale.id}`}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-[34px] rounded-[5px] text-[13px]"
+                >
+                  <Undo2 className="mr-1.5 h-3.5 w-3.5" /> Return
+                </Button>
+              </Link>
+              <Link href={`/sales/${sale.id}/edit`}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-[34px] rounded-[5px] text-[13px]"
+                >
+                  <Edit className="mr-1.5 h-3.5 w-3.5" /> Edit
+                </Button>
+              </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-[34px] rounded-[5px] text-[13px] text-destructive hover:text-destructive"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
+              </Button>
+            </>
           )}
         </div>
       </div>
 
       {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+        <div className="flex items-center gap-2 px-5 py-3 bg-destructive/10 text-destructive text-sm border rounded-[5px]">
+          {error}
+        </div>
       )}
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Invoice Details</CardTitle>
-                <CardDescription>Complete invoice information</CardDescription>
-              </div>
-              <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
+      {/* Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Items</p>
+          <p className="text-2xl font-bold">{sale.items.length}</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Total Units</p>
+          <p className="text-2xl font-bold">{totalUnits}</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Invoice Date</p>
+          <p className="text-lg font-semibold">
+            {new Date(sale.saleDate).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}
+          </p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Due Date</p>
+          <p className="text-lg font-semibold">
+            {new Date(sale.dueDate).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}
+          </p>
+        </div>
+      </div>
+
+      {/* Main Content: Two Columns */}
+      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+        {/* Left: Invoice Details & Items */}
+        <div className="border rounded-[5px] bg-card shadow-sm overflow-hidden">
+          <div className="px-5 py-[15px] border-b">
+            <h2 className="text-sm font-semibold text-foreground">Invoice Details</h2>
+          </div>
+          <div className="p-5 space-y-5">
+            {/* Customer Info */}
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Invoice Number
-                </p>
-                <p className="text-sm font-mono">{sale.invoiceNumber}</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Customer</p>
+                <p className="font-semibold text-foreground">{sale.customerName}</p>
+                {sale.customerEmail && (
+                  <a href={`mailto:${sale.customerEmail}`} className="text-sm text-primary hover:underline">{sale.customerEmail}</a>
+                )}
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Customer
-                </p>
-                <p className="text-sm font-medium">{sale.customerName}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Customer Email
-                </p>
-                <p className="text-sm font-medium">
-                  {sale.customerEmail ? (
-                    <a
-                      href={`mailto:${sale.customerEmail}`}
-                      className="underline"
-                    >
-                      {sale.customerEmail}
-                    </a>
-                  ) : (
-                    "—"
-                  )}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Invoice Date
-                </p>
-                <p className="text-sm">
-                  {new Date(sale.saleDate).toLocaleDateString()}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Due Date
-                </p>
-                <p className="text-sm">
-                  {new Date(sale.dueDate).toLocaleDateString()}
-                </p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Warehouse</p>
+                <p className="font-semibold text-foreground">{sale.warehouseName || "—"}</p>
               </div>
             </div>
 
+            {/* Items Table */}
             <div>
-              <h3 className="mb-4 font-semibold">Items</h3>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead className="text-right">Quantity</TableHead>
-                    <TableHead className="text-right">Returned</TableHead>
-                    <TableHead className="text-right">Price</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sale.items.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">
-                        {item.productName}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {item.quantity}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {item.returnedQuantity > 0 && (
-                          <span className="text-orange-600 font-medium">
-                            {item.returnedQuantity}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency.format(item.unitPrice)}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold">
-                        {formatCurrency.format(item.total)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Items</p>
+              <div className="overflow-x-auto border rounded-[5px]">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted h-[33px]">
+                      <th className="px-4 py-2 text-left font-semibold text-foreground text-xs">Product</th>
+                      <th className="w-[80px] px-4 py-2 text-right font-semibold text-foreground text-xs">Qty</th>
+                      <th className="w-[80px] px-4 py-2 text-right font-semibold text-foreground text-xs">Returned</th>
+                      <th className="w-[100px] px-4 py-2 text-right font-semibold text-foreground text-xs">Price</th>
+                      <th className="w-[110px] px-4 py-2 text-right font-semibold text-foreground text-xs">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sale.items.map((item) => (
+                      <tr key={item.id} className="h-[52px] border-b hover:bg-muted/30 transition-colors">
+                        <td className="px-4">
+                          <div className="flex items-center gap-2.5">
+                            <div className="bg-muted rounded-[5px] size-[30px] flex items-center justify-center overflow-hidden shrink-0">
+                              <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                            </div>
+                            <span className="font-medium text-foreground">{item.productName}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 text-right tabular-nums">{item.quantity}</td>
+                        <td className="px-4 text-right">
+                          {item.returnedQuantity > 0 ? (
+                            <span className="text-orange-600 font-medium tabular-nums">{item.returnedQuantity}</span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 text-right tabular-nums">{formatCurrency.format(item.unitPrice)}</td>
+                        <td className="px-4 text-right font-semibold tabular-nums">{formatCurrency.format(item.total)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            <div className="border-t border-border pt-4 space-y-2">
+            {/* Totals */}
+            <div className="border-t pt-4 space-y-2 max-w-[320px] ml-auto">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-medium">
-                  {formatCurrency.format(sale.subtotal)}
-                </span>
+                <span className="font-medium tabular-nums">{formatCurrency.format(sale.subtotal)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Tax</span>
-                <span className="font-medium">
-                  {formatCurrency.format(sale.tax)}
-                </span>
+                <span className="font-medium tabular-nums">{formatCurrency.format(sale.tax)}</span>
               </div>
               {sale.discount > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Discount</span>
-                  <span className="font-medium">
-                    - {formatCurrency.format(sale.discount)}
-                  </span>
+                  <span className="font-medium tabular-nums text-destructive">-{formatCurrency.format(sale.discount)}</span>
                 </div>
               )}
-              <div className="flex justify-between border-t border-border pt-2">
-                <span className="font-semibold">Total</span>
-                <span className="text-2xl font-semibold">
-                  {formatCurrency.format(sale.totalAmount)}
+              <div className="flex justify-between border-t pt-2">
+                <span className="font-semibold text-foreground">Total</span>
+                <span className="text-xl font-bold tabular-nums">{formatCurrency.format(sale.totalAmount)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Payment & Summary */}
+        <div className="space-y-4">
+          <div className="border rounded-[5px] bg-card shadow-sm p-5 space-y-4">
+            <h3 className="text-sm font-semibold text-foreground">Payment</h3>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Status</p>
+              <Badge variant="outline" className={`font-medium text-xs mt-1 ${statusStyles[status] || ""}`}>
+                {statusLabel}
+              </Badge>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Amount Due</p>
+              <p className="text-2xl font-bold">
+                {formatCurrency.format(sale.paymentStatus === "PAID" ? 0 : sale.balanceDue)}
+              </p>
+            </div>
+            {sale.paymentMethod && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Method</p>
+                <p className="font-semibold">{sale.paymentMethod}</p>
+              </div>
+            )}
+            {sale.paymentStatus !== "PAID" && canManage && (
+              <Button
+                className="w-full h-[38px] rounded-[5px] text-sm"
+                disabled={updating}
+                onClick={() => markAsPaid().catch(() => {})}
+              >
+                {updating ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Marking...</>
+                ) : (
+                  <><CheckCircle2 className="mr-2 h-4 w-4" /> Mark as Paid</>
+                )}
+              </Button>
+            )}
+          </div>
+
+          <div className="border rounded-[5px] bg-card shadow-sm p-5 space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Summary</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Items</span>
+                <span className="font-semibold">{sale.items.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Units</span>
+                <span className="font-semibold">{totalUnits}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Customer</span>
+                <span className="font-semibold text-xs truncate max-w-[140px] text-right">{sale.customerName}</span>
+              </div>
+              <div className="flex justify-between border-t pt-2">
+                <span className="text-muted-foreground">Balance</span>
+                <span className={`font-bold text-base ${
+                  sale.paymentStatus === "PAID" ? "text-emerald-600" : "text-destructive"
+                }`}>
+                  {formatCurrency.format(sale.paymentStatus === "PAID" ? 0 : sale.balanceDue)}
                 </span>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Payment Status</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Status
-                </p>
-                <Badge variant={statusBadge.variant} className="mt-1">
-                  {statusBadge.label}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Amount Due
-                </p>
-                <p className="mt-1 text-2xl font-semibold">
-                  {formatCurrency.format(
-                    sale.paymentStatus === "PAID" ? 0 : sale.balanceDue
-                  )}
-                </p>
-              </div>
-              {sale.paymentStatus !== "PAID" && (
-                <Button
-                  className="w-full gap-2"
-                  disabled={updating}
-                  onClick={() =>
-                    markAsPaid().catch(() => {
-                      /* error handled by hook */
-                    })
-                  }
-                >
-                  {updating ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Marking...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span>Mark as Paid</span>
-                    </>
-                  )}
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Invoice Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total Items
-                </p>
-                <p className="text-2xl font-semibold">{sale.items.length}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total Units
-                </p>
-                <p className="text-2xl font-semibold">
-                  {sale.items.reduce((sum, item) => sum + item.quantity, 0)}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Notes */}
+          {sale.notes && (
+            <div className="border rounded-[5px] bg-card shadow-sm p-5">
+              <h3 className="text-sm font-semibold text-foreground mb-2">Notes</h3>
+              <p className="text-sm text-muted-foreground">{sale.notes}</p>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this sale?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. Sale {sale.invoiceNumber} for {sale.customerName} will be removed permanently.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting} className="rounded-[5px]">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="rounded-[5px] bg-destructive hover:bg-destructive/90"
+              disabled={deleting}
+            >
+              {deleting ? "Deleting..." : "Delete Sale"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
-
-
-

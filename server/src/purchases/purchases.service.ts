@@ -300,6 +300,31 @@ export class PurchasesService {
           ),
         );
 
+          // Create stock ledger entries for each received item
+          for (const item of purchaseOrder.items) {
+            const inv = await tx.inventory.findUnique({
+              where: {
+                productId_warehouseId: {
+                  productId: item.productId,
+                  warehouseId,
+                },
+              },
+            });
+
+            await tx.stockLedger.create({
+              data: {
+                productId: item.productId,
+                warehouseId,
+                userId: purchaseOrder.userId,
+                quantity: item.quantity,
+                balance: inv?.quantity ?? item.quantity,
+                type: 'PURCHASE',
+                reference: purchaseOrder.referenceNumber,
+                note: `Purchase order #${purchaseOrder.referenceNumber} received`,
+              },
+            });
+          }
+
         // 4. Return the updated purchase order
         const po = await tx.purchaseOrder.findUnique({
           where: { id },

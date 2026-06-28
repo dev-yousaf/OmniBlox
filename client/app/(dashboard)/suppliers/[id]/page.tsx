@@ -1,379 +1,324 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
-  ArrowLeft,
-  Edit,
-  Trash2,
-  Phone,
-  Mail,
-  MapPin,
-  Globe,
-  Building,
-  CreditCard,
-  TrendingUp,
-  Calendar,
-  Star,
+  ArrowLeft, Edit, Trash2, ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { SupplierService } from "../_services/supplier-service";
-import { Supplier } from "../_types";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useSuppliersApi, type Supplier } from "@/hooks/use-suppliers-api";
+import { usePurchasesApi, type PurchaseOrder } from "@/hooks/use-purchases-api";
 import { useAuth } from "@/contexts/auth-context";
+
+const statusStyles: Record<string, string> = {
+  PENDING: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+  RECEIVED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+  CANCELLED: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800",
+};
+
+const statusLabels: Record<string, string> = {
+  PENDING: "Pending",
+  RECEIVED: "Received",
+  CANCELLED: "Cancelled",
+};
 
 export default function SupplierDetailPage() {
   const { user } = useAuth();
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
-  const params = useParams();
+  const params = useParams<{ id: string }>();
   const router = useRouter();
+  const supplierId = params?.id ?? "";
+  const { getSupplier, deleteSupplier } = useSuppliersApi();
+  const { list: listPurchases } = usePurchasesApi();
   const [supplier, setSupplier] = useState<Supplier | null>(null);
+  const [purchases, setPurchases] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const formatCurrency = useMemo(
+    () => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }),
+    []
+  );
+
+  const getInitials = (name: string) =>
+    name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
 
   useEffect(() => {
-    const fetchSupplier = async () => {
+    if (!supplierId) return;
+    let cancelled = false;
+
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        setLoading(true);
-        const supplierId = params.id as string;
-        const data = await SupplierService.getSupplierById(supplierId);
-        setSupplier(data);
-      } catch (error) {
-        console.error("Failed to fetch supplier:", error);
+        const [supplierData, purchasesData] = await Promise.all([
+          getSupplier(supplierId),
+          listPurchases(),
+        ]);
+        if (cancelled) return;
+        setSupplier(supplierData);
+        setPurchases(
+          Array.isArray(purchasesData)
+            ? purchasesData.filter((p) => p.supplier?.id === supplierId)
+            : []
+        );
+      } catch (err) {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "Failed to load supplier details");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    fetchSupplier();
-  }, [params.id]);
+    fetchData();
+    return () => { cancelled = true; };
+  }, [supplierId, getSupplier, listPurchases]);
 
-  const renderStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return (
-          <Badge variant="default" className="bg-green-500">
-            Active
-          </Badge>
-        );
-      case "inactive":
-        return <Badge variant="secondary">Inactive</Badge>;
-      case "blocked":
-        return <Badge variant="destructive">Blocked</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteSupplier(supplierId);
+      router.push("/suppliers");
+    } catch { /* handled */ }
+    setDeleting(false);
   };
 
-  const renderRating = (rating: number) => {
-    return (
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`w-4 h-4 ${
-              star <= rating
-                ? "fill-yellow-400 text-yellow-400"
-                : "text-gray-300"
-            }`}
-          />
-        ))}
-      </div>
-    );
-  };
-
-  if (loading) {
-    return <PageLoadingSkeleton />;
-  }
+  if (!supplierId) return <div className="p-6">Supplier identifier is missing.</div>;
+  if (loading) return <PageLoadingSkeleton />;
 
   if (!supplier) {
     return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <p className="text-xl font-semibold mb-2">Supplier not found</p>
-            <p className="text-muted-foreground mb-4">
-              The supplier you're looking for doesn't exist.
-            </p>
-            <Button onClick={() => router.push("/suppliers")}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Suppliers
-            </Button>
-          </div>
+      <div className="space-y-5">
+        <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+          <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <Link href="/suppliers" className="hover:text-foreground transition-colors">Suppliers</Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <span className="text-foreground">Supplier Detail</span>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm py-12 text-center text-muted-foreground">
+          <p className="font-medium">Supplier not found</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 ">
+    <div className="space-y-5">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+        <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <Link href="/suppliers" className="hover:text-foreground transition-colors">Suppliers</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-foreground">{supplier.name}</span>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+          <Link href="/suppliers">
+            <Button variant="ghost" size="icon" className="h-7 w-7">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <Avatar className="size-9">
+            <AvatarFallback className="text-xs font-semibold">{getInitials(supplier.name)}</AvatarFallback>
+          </Avatar>
           <div>
-            <h1 className="text-3xl font-bold">{supplier.name}</h1>
-            <p className="text-muted-foreground">{supplier.company}</p>
+            <h1 className="text-[18px] font-bold text-foreground">{supplier.name}</h1>
           </div>
-          {renderStatusBadge(supplier.status)}
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           {canManage && (
             <>
+              <Link href={`/suppliers/${supplier.id}/edit`}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-[34px] rounded-[5px] text-[13px]"
+                >
+                  <Edit className="mr-1.5 h-3.5 w-3.5" /> Edit
+                </Button>
+              </Link>
               <Button
                 variant="outline"
-                onClick={() => router.push(`/suppliers/${supplier.id}/edit`)}
+                size="sm"
+                className="h-[34px] rounded-[5px] text-[13px] text-destructive hover:text-destructive"
+                onClick={() => setDeleteOpen(true)}
               >
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
-              </Button>
-              <Button variant="destructive">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
               </Button>
             </>
           )}
         </div>
       </div>
 
-      <Separator />
+      {error && (
+        <div className="flex items-center gap-2 px-5 py-3 bg-destructive/10 text-destructive text-sm border rounded-[5px]">
+          {error}
+        </div>
+      )}
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Purchases
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-green-500" />
-              <span className="text-2xl font-bold">
-                ${supplier.totalPurchases?.toLocaleString() || "0"}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Outstanding Balance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4 text-orange-500" />
-              <span className="text-2xl font-bold">
-                ${supplier.balance?.toLocaleString() || "0"}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Rating
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              {renderRating(supplier.rating || 0)}
-              <span className="text-sm text-muted-foreground">
-                ({supplier.rating || 0}/5)
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Email</p>
+          <p className="text-sm font-semibold truncate">{supplier.email || "—"}</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Phone</p>
+          <p className="text-sm font-semibold">{supplier.phone || "—"}</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Address</p>
+          <p className="text-sm font-semibold truncate">{supplier.address || "—"}</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Total Orders</p>
+          <p className="text-lg font-semibold">{purchases.length}</p>
+        </div>
       </div>
 
-      {/* Detailed Information Tabs */}
-      <Tabs defaultValue="info" className="w-full">
-        <TabsList>
-          <TabsTrigger value="info">Information</TabsTrigger>
-          <TabsTrigger value="contacts">Contacts</TabsTrigger>
-          <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="info" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Basic Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Building className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Company Name
-                    </p>
-                    <p className="font-medium">{supplier.company}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Email</p>
-                    <p className="font-medium">{supplier.email}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Phone</p>
-                    <p className="font-medium">{supplier.phone}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Building className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Tax ID</p>
-                    <p className="font-medium">{supplier.taxId || "N/A"}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <TrendingUp className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Last Purchase
-                    </p>
-                    <p className="font-medium">
-                      {supplier.lastPurchase || "N/A"}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Address Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Address</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="font-medium">{supplier.address}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {supplier.city}, {supplier.country}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Financial Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Financial Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Payment Terms</p>
-                  <p className="font-medium">
-                    {supplier.paymentTerms || "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Outstanding Balance
-                  </p>
-                  <p className="font-medium">
-                    ${supplier.balance?.toLocaleString() || "0"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Total Purchases
-                  </p>
-                  <p className="font-medium">
-                    ${supplier.totalPurchases?.toLocaleString() || "0"}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Performance Metrics */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance Metrics</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Supplier Rating
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    {renderRating(supplier.rating || 0)}
-                    <span className="text-sm font-medium">
-                      ({supplier.rating || 0}/5)
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Status</p>
-                  <div className="mt-1">
-                    {renderStatusBadge(supplier.status)}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+      {/* Main Content: Two Columns */}
+      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+        {/* Left: Supplier Information + Supplier Purchases */}
+        <div className="space-y-5">
+          {/* Supplier Information Card */}
+          <div className="border rounded-[5px] bg-card shadow-sm p-5">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Supplier Information</h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-start gap-3">
+                <p className="text-muted-foreground w-20 shrink-0">Name</p>
+                <p className="text-foreground font-medium">{supplier.name}</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <p className="text-muted-foreground w-20 shrink-0">Email</p>
+                <p className="text-foreground">{supplier.email || "—"}</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <p className="text-muted-foreground w-20 shrink-0">Phone</p>
+                <p className="text-foreground">{supplier.phone || "—"}</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <p className="text-muted-foreground w-20 shrink-0">Address</p>
+                <p className="text-foreground">{supplier.address || "—"}</p>
+              </div>
+            </div>
           </div>
-        </TabsContent>
 
-        <TabsContent value="contacts">
-          <Card>
-            <CardHeader>
-              <CardTitle>Contact Persons</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Contact management coming soon...
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
+          {/* Supplier Purchases Table */}
+          <div className="border rounded-[5px] bg-card shadow-sm overflow-hidden">
+            <div className="px-5 py-[15px] border-b">
+              <h2 className="text-sm font-semibold text-foreground">Supplier Purchases</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted h-[33px]">
+                    <th className="px-4 py-2 text-left font-semibold text-foreground text-xs">Date</th>
+                    <th className="px-4 py-2 text-left font-semibold text-foreground text-xs">Reference</th>
+                    <th className="px-4 py-2 text-left font-semibold text-foreground text-xs">Status</th>
+                    <th className="w-[120px] px-4 py-2 text-right font-semibold text-foreground text-xs">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {purchases.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                        No purchase orders found.
+                      </td>
+                    </tr>
+                  ) : (
+                    purchases.map((purchase) => {
+                      const statusKey = purchase.status in statusLabels ? purchase.status : "PENDING";
+                      return (
+                        <tr key={purchase.id} className="h-[52px] border-b hover:bg-muted/30 transition-colors">
+                          <td className="px-4 text-muted-foreground">
+                            {new Date(purchase.orderDate).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}
+                          </td>
+                          <td className="px-4">
+                            <Link href={`/purchases/${purchase.id}`} className="font-medium text-foreground hover:text-primary transition-colors">
+                              {purchase.referenceNumber}
+                            </Link>
+                          </td>
+                          <td className="px-4">
+                            <Badge variant="outline" className={`font-medium text-xs ${statusStyles[statusKey] || ""}`}>
+                              {statusLabels[statusKey] || statusKey}
+                            </Badge>
+                          </td>
+                          <td className="px-4 text-right font-semibold tabular-nums">{formatCurrency.format(purchase.totalAmount)}</td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
 
-        <TabsContent value="transactions">
-          <Card>
-            <CardHeader>
-              <CardTitle>Transaction History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Transaction history coming soon...
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {/* Right: Summary Card */}
+        <div className="border rounded-[5px] bg-card shadow-sm p-5 space-y-4 h-fit">
+          <h3 className="text-sm font-semibold text-foreground">Summary</h3>
+          <div className="space-y-3 text-sm">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Name</p>
+              <p className="font-semibold text-foreground mt-0.5">{supplier.name}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</p>
+              <p className="text-foreground mt-0.5 break-all">{supplier.email || "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Phone</p>
+              <p className="text-foreground mt-0.5">{supplier.phone || "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Address</p>
+              <p className="text-foreground mt-0.5">{supplier.address || "—"}</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        <TabsContent value="documents">
-          <Card>
-            <CardHeader>
-              <CardTitle>Documents</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Document management coming soon...
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this supplier?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. Supplier {supplier.name} will be removed permanently.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting} className="rounded-[5px]">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="rounded-[5px] bg-destructive hover:bg-destructive/90"
+              disabled={deleting}
+            >
+              {deleting ? "Deleting..." : "Delete Supplier"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
-
-
-

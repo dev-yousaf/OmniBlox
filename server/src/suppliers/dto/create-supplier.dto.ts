@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNumber, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class CreateSupplierDto {
   @IsString()
@@ -16,4 +16,12 @@ export class CreateSupplierDto {
   @IsOptional()
   @IsString()
   address?: string;
+
+  @IsOptional()
+  @IsNumber()
+  creditLimit?: number;
+
+  @IsOptional()
+  @IsNumber()
+  balance?: number;
 }

@@ -11,13 +11,14 @@ import {
 } from "@/components/ui/select";
 import {
   Plus, Save, Trash2, Loader2, ChevronRight, Search, Package, AlertCircle,
-  ChevronLeft,
+  ChevronLeft, History,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAllProducts } from "@/hooks/use-products";
 import { useWarehouses } from "@/hooks/use-warehouses";
-import { useStockAdjustmentService } from "../_services/stock-adjustment-service";
+import { useStockAdjustmentService, type StockAdjustmentResponse } from "../_services/stock-adjustment-service";
 import { useInventoryApi } from "@/hooks/use-inventory-api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
@@ -42,22 +43,37 @@ export default function StockAdjustmentPage() {
   const { user } = useAuth();
   const { products, loading: productsLoading } = useAllProducts();
   const { warehouses, loading: warehousesLoading } = useWarehouses();
-  const { createStockAdjustment } = useStockAdjustmentService();
+  const { createStockAdjustment, getStockAdjustments } = useStockAdjustmentService();
   const inventoryApi = useInventoryApi();
 
   const [items, setItems] = useState<AdjustmentItem[]>([]);
   const [notes, setNotes] = useState("");
-  const [type, setType] = useState<"ADDITION" | "REMOVAL">("ADDITION");
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [productSearch, setProductSearch] = useState("");
-  const [productSelectOpen, setProductSelectOpen] = useState(false);
+
+  const [adjustments, setAdjustments] = useState<StockAdjustmentResponse[]>([]);
+  const [adjustmentsLoading, setAdjustmentsLoading] = useState(false);
 
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
 
   useEffect(() => {
     if (!canManage) router.push("/inventory");
   }, [canManage, router]);
+
+  const loadAdjustments = useCallback(async () => {
+    try {
+      setAdjustmentsLoading(true);
+      const data = await getStockAdjustments();
+      setAdjustments(data.slice(0, 20));
+    } catch { /* silently fail */ } finally {
+      setAdjustmentsLoading(false);
+    }
+  }, [getStockAdjustments]);
+
+  useEffect(() => {
+    loadAdjustments();
+  }, [loadAdjustments]);
 
   const filteredProducts = useMemo(() => {
     if (!productSearch) return products.slice(0, 50);
@@ -205,10 +221,17 @@ export default function StockAdjustmentPage() {
     setSaving(true);
     setSubmitError(null);
 
+    // Auto-calculate adjustment type from net change
+    const netChange = items.reduce(
+      (sum, item) => sum + (item.newQuantity - item.previousQuantity),
+      0,
+    );
+    const calcType = netChange >= 0 ? "ADDITION" : "REMOVAL";
+
     try {
       const result = await createStockAdjustment({
         notes: notes.trim() || undefined,
-        type,
+        type: calcType,
         items: items.map((item) => ({
           productId: item.productId,
           warehouseId: item.warehouseId,
@@ -222,7 +245,11 @@ export default function StockAdjustmentPage() {
         description: `Reference: ${result.referenceNumber} — ${result.totalItems} item(s) adjusted (net: ${result.netChange >= 0 ? "+" : ""}${result.netChange})`,
       });
 
-      router.push("/inventory");
+      // Reset form and refresh adjustments list
+      setItems([]);
+      setNotes("");
+      setProductSearch("");
+      loadAdjustments();
     } catch (error: any) {
       setSubmitError(error?.message || "Failed to create stock adjustment");
     } finally {
@@ -419,19 +446,6 @@ export default function StockAdjustmentPage() {
           <div className="space-y-4">
             <div className="border rounded-[5px] bg-card shadow-sm p-5 space-y-4">
               <div>
-                <Label className="text-sm font-medium">Adjustment Type</Label>
-                <Select value={type} onValueChange={(v) => setType(v as "ADDITION" | "REMOVAL")}>
-                  <SelectTrigger className="mt-1.5 h-[38px] rounded-[5px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ADDITION">Addition (Stock In)</SelectItem>
-                    <SelectItem value="REMOVAL">Removal (Stock Out)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
                 <Label className="text-sm font-medium">Notes</Label>
                 <Textarea
                   placeholder="Reason for adjustment..."
@@ -452,7 +466,7 @@ export default function StockAdjustmentPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Type</span>
-                  <span className="font-semibold">{type === "ADDITION" ? "Stock In" : "Stock Out"}</span>
+                  <span className="font-semibold">{netChange >= 0 ? "Stock In" : "Stock Out"}</span>
                 </div>
                 <div className="flex justify-between border-t pt-2">
                   <span className="text-muted-foreground">Net Change</span>
@@ -492,6 +506,77 @@ export default function StockAdjustmentPage() {
           </div>
         </div>
       </form>
+
+      {/* Recent Adjustments */}
+      <div className="border rounded-[5px] bg-card shadow-sm overflow-hidden">
+        <div className="flex items-center gap-2 px-5 py-[15px] border-b">
+          <History className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold text-foreground">Recent Adjustments</h2>
+        </div>
+        {adjustmentsLoading ? (
+          <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        ) : adjustments.length === 0 ? (
+          <div className="flex flex-col items-center py-8 text-muted-foreground">
+            <History className="h-10 w-10 mb-2 text-muted-foreground/50" />
+            <p className="font-medium text-sm">No adjustments yet</p>
+            <p className="text-xs mt-1">Stock adjustments will appear here once created.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted h-[33px]">
+                  <th className="px-5 py-2 text-left font-semibold text-foreground text-xs">Reference</th>
+                  <th className="px-5 py-2 text-left font-semibold text-foreground text-xs">Date</th>
+                  <th className="px-5 py-2 text-left font-semibold text-foreground text-xs">Type</th>
+                  <th className="px-5 py-2 text-left font-semibold text-foreground text-xs">Items</th>
+                  <th className="px-5 py-2 text-left font-semibold text-foreground text-xs">Net Change</th>
+                  <th className="px-5 py-2 text-left font-semibold text-foreground text-xs">By</th>
+                  <th className="px-5 py-2 text-left font-semibold text-foreground text-xs">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {adjustments.map((adj) => (
+                  <tr key={adj.id} className="h-[48px] border-b hover:bg-muted/30 transition-colors">
+                    <td className="px-5 font-mono text-xs font-semibold text-foreground">{adj.referenceNumber}</td>
+                    <td className="px-5 text-xs text-muted-foreground">
+                      {new Date(adj.adjustmentDate).toLocaleDateString("en-US", {
+                        day: "2-digit", month: "short", year: "numeric",
+                      })}
+                    </td>
+                    <td className="px-5">
+                      <Badge variant="outline" className={`font-medium text-xs ${
+                        adj.type === "ADDITION"
+                          ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                          : adj.type === "REMOVAL"
+                          ? "bg-red-100 text-red-700 border-red-200"
+                          : "bg-blue-100 text-blue-700 border-blue-200"
+                      }`}>
+                        {adj.type === "ADDITION" ? "Addition" : adj.type === "REMOVAL" ? "Removal" : adj.type}
+                      </Badge>
+                    </td>
+                    <td className="px-5 text-sm font-medium">{adj.totalItems}</td>
+                    <td className="px-5">
+                      <span className={`font-semibold tabular-nums ${
+                        adj.netChange > 0 ? "text-emerald-600" : adj.netChange < 0 ? "text-red-600" : "text-muted-foreground"
+                      }`}>
+                        {adj.netChange > 0 ? "+" : ""}{adj.netChange}
+                      </span>
+                    </td>
+                    <td className="px-5 text-xs text-muted-foreground">{adj.userName || "—"}</td>
+                    <td className="px-5 text-xs text-muted-foreground max-w-[200px] truncate">{adj.notes || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {adjustments.length > 0 && (
+          <div className="flex items-center justify-end px-5 py-[15px] border-t">
+            <div className="text-xs text-muted-foreground">Showing {adjustments.length} most recent adjustments</div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

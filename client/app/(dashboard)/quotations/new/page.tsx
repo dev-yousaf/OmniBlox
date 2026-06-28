@@ -1,41 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, ArrowLeft, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  Check, ChevronsUpDown, ChevronRight, Loader2, Plus, Save, Trash2, Package,
+} from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Card, CardContent, CardDescription, CardHeader, CardTitle,
+} from "@/components/ui/card";
+import {
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from "@/components/ui/command";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useQuotationsApi } from "@/hooks/use-quotations-api";
 import { useCustomersApi, type Customer } from "@/hooks/use-customers-api";
 import { useProductApi } from "@/hooks/use-product-api";
 import type { Product } from "@/lib/types";
-import { toast } from "sonner";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface QuotationItem {
   id: string;
@@ -45,137 +38,146 @@ interface QuotationItem {
   unitPrice: number;
 }
 
+const createItemId = () =>
+  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : Date.now().toString();
+
 export default function NewQuotationPage() {
   const router = useRouter();
   const { createQuotation } = useQuotationsApi();
   const { getCustomers } = useCustomersApi();
   const { getProducts } = useProductApi();
 
-  const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [productsError, setProductsError] = useState<string | null>(null);
+
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerComboOpen, setCustomerComboOpen] = useState(false);
+
+  const today = useMemo(() => new Date().toISOString().split("T")[0], []);
 
   const [customerId, setCustomerId] = useState("");
-  const [customerOpen, setCustomerOpen] = useState(false);
-  const [quoteDate, setQuoteDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [customerName, setCustomerName] = useState("");
+  const [quoteDate, setQuoteDate] = useState(today);
   const [expiryDate, setExpiryDate] = useState("");
   const [notes, setNotes] = useState("");
 
   const [items, setItems] = useState<QuotationItem[]>([
-    {
-      id: crypto.randomUUID(),
-      productId: "",
-      productName: "",
-      quantity: 1,
-      unitPrice: 0,
-    },
+    { id: createItemId(), productId: "", productName: "", quantity: 1, unitPrice: 0 },
   ]);
+  const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
+    const loadData = async () => {
+      try {
+        setProductsLoading(true);
+        setProductsError(null);
+        const { products: productsList } = await getProducts({ page: 1, limit: 200 });
+
+        const customersResult = await getCustomers({ limit: 100 });
+        const customersList = Array.isArray(customersResult)
+          ? customersResult
+          : customersResult?.customers ?? [];
+
+        if (active) {
+          setProducts(productsList ?? []);
+          setCustomers(customersList);
+        }
+      } catch (err) {
+        if (active) {
+          setProductsError(err instanceof Error ? err.message : "Failed to load data");
+        }
+      } finally {
+        if (active) {
+          setProductsLoading(false);
+        }
+      }
+    };
     loadData();
-  }, []);
+    return () => { active = false; };
+  }, [getProducts, getCustomers]);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [customersData, productsData] = await Promise.all([
-        getCustomers(),
-        getProducts(),
-      ]);
-      // Handle different response types
-      const customersList = Array.isArray(customersData)
-        ? customersData
-        : customersData.customers;
-      const productsList = Array.isArray(productsData)
-        ? productsData
-        : productsData.products;
+  const currencyFormatter = useMemo(
+    () => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }),
+    []
+  );
 
-      setCustomers(customersList);
-      setProducts(productsList);
-    } catch (error: any) {
-      toast.error("Failed to load data", {
-        description: error.message,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const subtotal = useMemo(
+    () => items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0),
+    [items]
+  );
 
   const addItem = () => {
-    setItems([
-      ...items,
-      {
-        id: crypto.randomUUID(),
-        productId: "",
-        productName: "",
-        quantity: 1,
-        unitPrice: 0,
-      },
+    setItems((prev) => [
+      ...prev,
+      { id: createItemId(), productId: "", productName: "", quantity: 1, unitPrice: 0 },
     ]);
   };
 
   const removeItem = (id: string) => {
-    if (items.length > 1) {
-      setItems(items.filter((item) => item.id !== id));
-    }
+    setItems((prev) => prev.length > 1 ? prev.filter((item) => item.id !== id) : prev);
   };
 
-  const updateItem = (
-    id: string,
-    field: keyof QuotationItem,
-    value: string | number
-  ) => {
-    setItems(
-      items.map((item) => {
-        if (item.id === id) {
-          if (field === "productId") {
-            const product = products.find((p) => p.id === value);
-            return {
-              ...item,
-              productId: value as string,
-              productName: product?.name || "",
-              unitPrice: product ? Number(product.salePrice) : 0,
-            };
-          }
-          return { ...item, [field]: value };
+  const updateItem = (id: string, field: keyof QuotationItem, value: string | number) => {
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        if (field === "productId" && typeof value === "string") {
+          const product = products.find((p) => p.id === value);
+          return {
+            ...item,
+            productId: value,
+            productName: product?.name || "",
+            unitPrice: product ? Number(product.salePrice) || 0 : 0,
+          };
         }
-        return item;
+        return { ...item, [field]: value };
       })
     );
   };
 
-  const subtotal = items.reduce(
-    (sum, item) => sum + item.quantity * item.unitPrice,
-    0
+  const filteredCustomers = customers.filter(
+    (c) =>
+      c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+      c.email?.toLowerCase().includes(customerSearch.toLowerCase())
   );
-  const tax = 0; // Tax will be calculated on backend
-  const discount = 0;
-  const total = subtotal + tax - discount;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSelectCustomer = (customer: Customer) => {
+    setCustomerId(customer.id);
+    setCustomerName(customer.name);
+    // setCustomerEmail(customer.email || "");
+    setCustomerComboOpen(false);
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
     if (!customerId) {
-      toast.error("Please select a customer");
+      setSubmitError("Please select a customer.");
       return;
     }
-
     if (!quoteDate) {
-      toast.error("Please select a quote date");
+      setSubmitError("Please select a quote date.");
+      return;
+    }
+    if (items.length === 0) {
+      setSubmitError("Add at least one item.");
+      return;
+    }
+    if (items.some((item) => !item.productId)) {
+      setSubmitError("Select a product for each line item.");
       return;
     }
 
-    if (items.some((item) => !item.productId)) {
-      toast.error("Please select a product for each item");
-      return;
-    }
+    setSubmitError(null);
+    setSaving(true);
 
     try {
-      setSaving(true);
-
       const quotationData = {
         customerId,
         quoteDate: new Date(quoteDate).toISOString(),
@@ -189,98 +191,122 @@ export default function NewQuotationPage() {
       };
 
       const created = await createQuotation(quotationData);
-
       toast.success("Quotation created successfully!", {
         description: `Quotation ${created.referenceNumber} has been created`,
       });
-
       router.push(`/quotations/${created.id}`);
-    } catch (error: any) {
-      toast.error("Failed to create quotation", {
-        description: error.message || "Please try again",
-      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Please try again";
+      setSubmitError(msg);
+      toast.error("Failed to create quotation", { description: msg });
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return <PageLoadingSkeleton />;
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/quotations">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
+    <div className="space-y-5">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+        <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <Link href="/quotations" className="hover:text-foreground transition-colors">Quotations</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-foreground">New Quotation</span>
+      </div>
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/quotations">
+            <Button variant="ghost" size="icon" className="h-7 w-7">
+              <Package className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-[18px] font-bold text-foreground">New Quotation</h1>
+            <p className="text-sm text-muted-foreground">Create a new quotation for a customer</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/quotations">
+            <Button type="button" variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]" disabled={saving}>
+              Cancel
+            </Button>
+          </Link>
+          <Button
+            type="submit"
+            form="new-quotation-form"
+            disabled={items.length === 0 || saving}
+            size="sm"
+            className="h-[34px] rounded-[5px] text-[13px] gap-1.5"
+          >
+            {saving ? (
+              <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving...</>
+            ) : (
+              <><Save className="h-3.5 w-3.5" /> Save Quotation</>
+            )}
           </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">
-            New Quotation
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Create a new quotation for a customer
-          </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Customer Information</CardTitle>
-              <CardDescription>Select customer and dates</CardDescription>
+      {submitError && (
+        <Alert variant="destructive">
+          <AlertDescription>{submitError}</AlertDescription>
+        </Alert>
+      )}
+
+      <form id="new-quotation-form" onSubmit={handleSubmit} className="grid gap-5 lg:grid-cols-[1fr_320px]">
+        {/* Left Column */}
+        <div className="space-y-5">
+          <Card className="border rounded-[5px] bg-card shadow-sm">
+            <CardHeader className="px-5 py-[15px] border-b">
+              <CardTitle className="text-sm font-semibold">Customer Information</CardTitle>
+              <CardDescription className="text-xs">Select a customer and set quotation dates</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="p-5 space-y-4">
               <div className="space-y-2">
-                <Label>Customer *</Label>
-                <Popover open={customerOpen} onOpenChange={setCustomerOpen}>
+                <Label className="text-xs font-medium">Customer *</Label>
+                <Popover open={customerComboOpen} onOpenChange={setCustomerComboOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       role="combobox"
-                      aria-expanded={customerOpen}
-                      className="w-full justify-between"
+                      aria-expanded={customerComboOpen}
+                      className="w-full justify-between h-[34px] rounded-[5px] text-sm font-normal"
                     >
                       {customerId
-                        ? customers.find((c) => c.id === customerId)?.name
+                        ? customers.find((c) => c.id === customerId)?.name || customerName
                         : "Select customer..."}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
+                  <PopoverContent className="w-[400px] p-0">
                     <Command>
-                      <CommandInput placeholder="Search customer..." />
-                      <CommandEmpty>No customer found.</CommandEmpty>
+                      <CommandInput
+                        placeholder="Search customers..."
+                        value={customerSearch}
+                        onValueChange={setCustomerSearch}
+                      />
                       <CommandList>
-                        <CommandGroup>
-                          {customers.map((customer) => (
+                        <CommandEmpty>No customer found.</CommandEmpty>
+                        <CommandGroup heading="Existing Customers">
+                          {filteredCustomers.map((customer) => (
                             <CommandItem
                               key={customer.id}
-                              value={customer.name}
-                              onSelect={() => {
-                                setCustomerId(customer.id);
-                                setCustomerOpen(false);
-                              }}
+                              value={customer.id}
+                              onSelect={() => handleSelectCustomer(customer)}
                             >
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4",
-                                  customerId === customer.id
-                                    ? "opacity-100"
-                                    : "opacity-0"
+                                  customerId === customer.id ? "opacity-100" : "opacity-0"
                                 )}
                               />
-                              <div>
-                                <div className="font-medium">
-                                  {customer.name}
-                                </div>
+                              <div className="flex flex-col">
+                                <span className="font-medium">{customer.name}</span>
                                 {customer.email && (
-                                  <div className="text-xs text-muted-foreground">
-                                    {customer.email}
-                                  </div>
+                                  <span className="text-xs text-muted-foreground">{customer.email}</span>
                                 )}
                               </div>
                             </CommandItem>
@@ -292,229 +318,176 @@ export default function NewQuotationPage() {
                 </Popover>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="quoteDate">Quote Date *</Label>
-                <Input
-                  id="quoteDate"
-                  type="date"
-                  value={quoteDate}
-                  onChange={(e) => setQuoteDate(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="expiryDate">Expiry Date</Label>
-                <Input
-                  id="expiryDate"
-                  type="date"
-                  value={expiryDate}
-                  onChange={(e) => setExpiryDate(e.target.value)}
-                />
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="quoteDate" className="text-xs font-medium">Quote Date *</Label>
+                  <Input
+                    id="quoteDate"
+                    type="date"
+                    value={quoteDate}
+                    onChange={(e) => setQuoteDate(e.target.value)}
+                    required
+                    className="h-[34px] rounded-[5px] text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="expiryDate" className="text-xs font-medium">Expiry Date</Label>
+                  <Input
+                    id="expiryDate"
+                    type="date"
+                    value={expiryDate}
+                    onChange={(e) => setExpiryDate(e.target.value)}
+                    className="h-[34px] rounded-[5px] text-sm"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Additional Details</CardTitle>
-              <CardDescription>Notes and comments</CardDescription>
+          <Card className="border rounded-[5px] bg-card shadow-sm">
+            <CardHeader className="px-5 py-[15px] border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-semibold">Quotation Items</CardTitle>
+                  <CardDescription className="text-xs">Add products and quantities</CardDescription>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-[34px] rounded-[5px] text-[13px] gap-1.5"
+                  onClick={addItem}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add Item
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
+            <CardContent className="p-5 space-y-4">
+              {items.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  No items added yet. Click &quot;Add Item&quot; to start.
+                </p>
+              ) : (
+                items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-start justify-between gap-4 border rounded-[5px] p-4"
+                  >
+                    <div className="flex-1 grid gap-4 md:grid-cols-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Product *</Label>
+                        <Select
+                          value={item.productId}
+                          onValueChange={(value) => updateItem(item.id, "productId", value)}
+                        >
+                          <SelectTrigger className="h-[34px] rounded-[5px] text-sm">
+                            <SelectValue placeholder="Select product" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {productsLoading && (
+                              <SelectItem value="LOADING" disabled>Loading products...</SelectItem>
+                            )}
+                            {!productsLoading && productsError && (
+                              <SelectItem value="ERROR" disabled>{productsError}</SelectItem>
+                            )}
+                            {!productsLoading && !productsError && products.length === 0 && (
+                              <SelectItem value="NO_PRODUCTS" disabled>No products available</SelectItem>
+                            )}
+                            {!productsLoading && !productsError && products.map((product) => (
+                              <SelectItem key={product.id} value={product.id}>
+                                {product.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Quantity *</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          value={item.quantity}
+                          onChange={(e) => updateItem(item.id, "quantity", parseInt(e.target.value) || 1)}
+                          className="h-[34px] rounded-[5px] text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Unit Price *</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          value={item.unitPrice}
+                          onChange={(e) => updateItem(item.id, "unitPrice", parseFloat(e.target.value) || 0)}
+                          className="h-[34px] rounded-[5px] text-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-medium">Total</Label>
+                        <Input
+                          value={currencyFormatter.format(item.quantity * item.unitPrice)}
+                          readOnly
+                          className="h-[34px] rounded-[5px] text-sm"
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeItem(item.id)}
+                      disabled={items.length === 1}
+                      className="mt-6 h-[34px] w-[34px] rounded-[5px] text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))
+              )}
+
+              {/* Notes */}
+              <div className="space-y-2 pt-2">
+                <Label htmlFor="notes" className="text-xs font-medium">Notes</Label>
                 <Textarea
                   id="notes"
                   placeholder="Add any additional notes..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  rows={8}
+                  rows={3}
+                  className="rounded-[5px] text-sm"
                 />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Quotation Items</CardTitle>
-                <CardDescription>Add products and quantities</CardDescription>
+        {/* Right Column */}
+        <div className="space-y-4">
+          <div className="border rounded-[5px] bg-card shadow-sm p-5">
+            <h3 className="text-sm font-semibold text-foreground mb-4">Summary</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="font-medium tabular-nums">{currencyFormatter.format(subtotal)}</span>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addItem}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Item
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {items.map((item, index) => (
-                <div
-                  key={item.id}
-                  className="flex items-end gap-4 p-4 border rounded-lg"
-                >
-                  <div className="flex-1 space-y-2">
-                    <Label>Product *</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className="w-full justify-between"
-                        >
-                          {item.productId
-                            ? products.find((p) => p.id === item.productId)
-                                ?.name
-                            : "Select product..."}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0">
-                        <Command>
-                          <CommandInput placeholder="Search product..." />
-                          <CommandEmpty>No product found.</CommandEmpty>
-                          <CommandList>
-                            <CommandGroup>
-                              {products.map((product) => (
-                                <CommandItem
-                                  key={product.id}
-                                  value={product.name}
-                                  onSelect={() => {
-                                    updateItem(
-                                      item.id,
-                                      "productId",
-                                      product.id
-                                    );
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      item.productId === product.id
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                  <div>
-                                    <div className="font-medium">
-                                      {product.name}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                      ${Number(product.salePrice).toFixed(2)}{" "}
-                                      {product.sku
-                                        ? `• SKU: ${product.sku}`
-                                        : ""}
-                                    </div>
-                                  </div>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <div className="w-32 space-y-2">
-                    <Label>Quantity *</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) =>
-                        updateItem(
-                          item.id,
-                          "quantity",
-                          parseInt(e.target.value) || 1
-                        )
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="w-40 space-y-2">
-                    <Label>Unit Price *</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={item.unitPrice}
-                      onChange={(e) =>
-                        updateItem(
-                          item.id,
-                          "unitPrice",
-                          parseFloat(e.target.value) || 0
-                        )
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="w-40 space-y-2">
-                    <Label>Total</Label>
-                    <Input
-                      value={`$${(item.quantity * item.unitPrice).toFixed(2)}`}
-                      disabled
-                    />
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeItem(item.id)}
-                    disabled={items.length === 1}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-6 flex justify-end">
-              <div className="w-80 space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span className="font-medium">${subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-lg font-semibold pt-3 border-t">
-                  <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
-                </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Items</span>
+                <span className="font-semibold">{items.length}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total Units</span>
+                <span className="font-semibold">
+                  {items.reduce((sum, item) => sum + item.quantity, 0)}
+                </span>
+              </div>
+              <div className="flex justify-between border-t border-border pt-3">
+                <span className="font-semibold text-foreground">Total</span>
+                <span className="text-xl font-bold tabular-nums">{currencyFormatter.format(subtotal)}</span>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        <div className="flex justify-end gap-3">
-          <Link href="/quotations">
-            <Button type="button" variant="outline" disabled={saving}>
-              Cancel
-            </Button>
-          </Link>
-          <Button type="submit" disabled={saving}>
-            {saving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              "Create Quotation"
-            )}
-          </Button>
+          </div>
         </div>
       </form>
     </div>
   );
 }
-
-
-
-

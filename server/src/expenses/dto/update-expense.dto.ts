@@ -56,4 +56,8 @@ export class UpdateExpenseDto {
   @IsOptional()
   @IsIn(PAYMENT_METHOD_VALUES, { message: 'Invalid payment method' })
   readonly paymentMethod?: PaymentMethod;
+
+  @IsOptional()
+  @IsString()
+  readonly purchaseOrderId?: string;
 }

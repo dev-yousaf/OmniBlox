@@ -33,6 +33,7 @@ export interface MonthlyRevenueItem {
 }
 
 export interface PlanDistributionItem {
+  [key: string]: unknown;
   name: string;
   count: number;
   color: string;

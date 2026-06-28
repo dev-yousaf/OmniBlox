@@ -133,7 +133,15 @@ export function useSalesList(
         (update.search !== undefined && update.search !== prev.search) ||
         (update.status !== undefined && update.status !== prev.status) ||
         (update.paymentStatus !== undefined &&
-          update.paymentStatus !== prev.paymentStatus);
+          update.paymentStatus !== prev.paymentStatus) ||
+        (update.warehouseId !== undefined &&
+          update.warehouseId !== prev.warehouseId) ||
+        (update.dateFrom !== undefined &&
+          update.dateFrom !== prev.dateFrom) ||
+        (update.dateTo !== undefined &&
+          update.dateTo !== prev.dateTo) ||
+        (update.productId !== undefined &&
+          update.productId !== prev.productId);
 
       if (shouldResetPage) {
         next.page = 1;

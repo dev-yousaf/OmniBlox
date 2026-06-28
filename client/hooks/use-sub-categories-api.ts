@@ -20,6 +20,7 @@ export interface CreateSubCategoryDto {
   name: string;
   categoryId: string;
   slug?: string;
+  code?: string;
   imageUrl?: string;
   description?: string;
   status?: string;
@@ -29,6 +30,7 @@ export interface UpdateSubCategoryDto {
   name?: string;
   categoryId?: string;
   slug?: string;
+  code?: string;
   imageUrl?: string;
   description?: string;
   status?: string;

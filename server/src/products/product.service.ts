@@ -1011,7 +1011,7 @@ export class ProductService {
     userId: string,
     companyId: string,
   ): Promise<StockAdjustmentResponseDto> {
-    const { items, notes, type, documentUrl } = createStockAdjustmentDto;
+    const { items, notes, documentUrl } = createStockAdjustmentDto;
 
     if (!items || items.length === 0) {
       throw new BadRequestException('At least one adjustment item is required');
@@ -1060,6 +1060,9 @@ export class ProductService {
       0,
     );
 
+    // Auto-calculate adjustment type from net change
+    const adjustmentType = netChange > 0 ? 'ADDITION' : netChange < 0 ? 'REMOVAL' : 'ADDITION';
+
     try {
       return await this.prisma.$transaction(async (prisma) => {
         // Create stock adjustment with companyId (Golden Rule)
@@ -1068,7 +1071,7 @@ export class ProductService {
             referenceNumber,
             notes,
             documentUrl,
-            type: type || 'ADDITION',
+            type: adjustmentType,
             totalItems,
             netChange,
             userId,
@@ -1112,6 +1115,29 @@ export class ProductService {
               quantity: item.newQuantity,
             },
           });
+
+          // Create stock ledger entry
+          const inv = await prisma.inventory.findUnique({
+            where: {
+              productId_warehouseId: {
+                productId: item.productId,
+                warehouseId: item.warehouseId,
+              },
+            },
+          });
+
+          await prisma.stockLedger.create({
+            data: {
+              productId: item.productId,
+              warehouseId: item.warehouseId,
+              userId,
+              quantity: item.newQuantity - item.previousQuantity,
+              balance: inv?.quantity ?? item.newQuantity,
+              type: 'ADJUSTMENT',
+              reference: referenceNumber,
+              note: notes || 'Stock adjustment',
+            },
+          });
         }
 
         // Format response
@@ -1147,6 +1173,7 @@ export class ProductService {
 
   async getStockAdjustments(
     companyId: string,
+    limit?: number,
   ): Promise<StockAdjustmentResponseDto[]> {
     const adjustments = await this.prisma.stockAdjustment.findMany({
       where: { companyId }, // Golden Rule: filter by companyId
@@ -1162,6 +1189,7 @@ export class ProductService {
       orderBy: {
         createdAt: 'desc',
       },
+      take: limit ?? 50,
     });
 
     return adjustments.map((adjustment) => ({

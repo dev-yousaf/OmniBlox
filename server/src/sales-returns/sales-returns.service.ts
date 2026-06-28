@@ -228,6 +228,30 @@ export class SalesReturnsService {
               },
             });
 
+            // Get updated inventory for ledger balance
+            const inv = await tx.inventory.findUnique({
+              where: {
+                productId_warehouseId: {
+                  productId: item.productId,
+                  warehouseId: updated.warehouseId,
+                },
+              },
+            });
+
+            // Create stock ledger entry
+            await tx.stockLedger.create({
+              data: {
+                productId: item.productId,
+                warehouseId: updated.warehouseId,
+                userId: updated.userId,
+                quantity: item.quantity,
+                balance: inv?.quantity ?? item.quantity,
+                type: 'RETURN',
+                reference: updated.referenceNumber,
+                note: `Sales return #${updated.referenceNumber}`,
+              },
+            });
+
             // Update returned quantity on original sale item if linked
             if (item.saleItemId) {
               await tx.saleItem.update({
@@ -265,6 +289,30 @@ export class SalesReturnsService {
                 quantity: {
                   decrement: item.quantity,
                 },
+              },
+            });
+
+            // Get updated inventory for ledger balance
+            const inv = await tx.inventory.findUnique({
+              where: {
+                productId_warehouseId: {
+                  productId: item.productId,
+                  warehouseId: updated.warehouseId,
+                },
+              },
+            });
+
+            // Create stock ledger entry (negative for reversal)
+            await tx.stockLedger.create({
+              data: {
+                productId: item.productId,
+                warehouseId: updated.warehouseId,
+                userId: updated.userId,
+                quantity: -(item.quantity),
+                balance: inv?.quantity ?? 0,
+                type: 'RETURN',
+                reference: updated.referenceNumber,
+                note: `Sales return #${updated.referenceNumber} cancelled`,
               },
             });
 
@@ -313,6 +361,28 @@ export class SalesReturnsService {
               },
             });
 
+            const inv = await tx.inventory.findUnique({
+              where: {
+                productId_warehouseId: {
+                  productId: item.productId,
+                  warehouseId: updated.warehouseId,
+                },
+              },
+            });
+
+            await tx.stockLedger.create({
+              data: {
+                productId: item.productId,
+                warehouseId: updated.warehouseId,
+                userId: updated.userId,
+                quantity: -(item.quantity),
+                balance: inv?.quantity ?? 0,
+                type: 'RETURN',
+                reference: updated.referenceNumber,
+                note: `Sales return #${updated.referenceNumber} reset to pending`,
+              },
+            });
+
             // Reverse returned quantity on original sale item if linked
             if (item.saleItemId) {
               await tx.saleItem.update({
@@ -355,10 +425,9 @@ export class SalesReturnsService {
   async remove(id: string, companyId: string) {
     const salesReturn = await this.findOne(id, companyId);
 
-    // If completed, we need to reverse inventory changes
-    if (salesReturn.status === 'COMPLETED') {
-      return await this.prisma.$transaction(async (tx) => {
-        // Reverse inventory changes (decrement what was added)
+    return await this.prisma.$transaction(async (tx) => {
+      // If completed, reverse inventory changes
+      if (salesReturn.status === 'COMPLETED') {
         for (const item of salesReturn.items) {
           await tx.inventory.update({
             where: {
@@ -373,17 +442,62 @@ export class SalesReturnsService {
               },
             },
           });
+
+          const inv = await tx.inventory.findUnique({
+            where: {
+              productId_warehouseId: {
+                productId: item.productId,
+                warehouseId: salesReturn.warehouseId,
+              },
+            },
+          });
+
+          await tx.stockLedger.create({
+            data: {
+              productId: item.productId,
+              warehouseId: salesReturn.warehouseId,
+              userId: salesReturn.userId,
+              quantity: -(item.quantity),
+              balance: inv?.quantity ?? 0,
+              type: 'RETURN',
+              reference: salesReturn.referenceNumber,
+              note: `Sales return #${salesReturn.referenceNumber} deleted`,
+            },
+          });
         }
+      }
 
-        // Delete the return
-        await tx.salesReturn.delete({ where: { id } });
+      // Revert returnedQuantity on sale items if linked
+      for (const item of salesReturn.items) {
+        if ((item as any).saleItemId) {
+          await tx.saleItem.update({
+            where: { id: (item as any).saleItemId },
+            data: {
+              returnedQuantity: {
+                decrement: item.quantity,
+              },
+            },
+          });
+        }
+      }
 
-        return { message: 'Sales return deleted successfully' };
-      });
-    }
+      // Recalculate sale.hasReturns if linked
+      if (salesReturn.saleId) {
+        const saleItems = await tx.saleItem.findMany({
+          where: { saleId: salesReturn.saleId },
+          select: { returnedQuantity: true },
+        });
+        const hasAnyReturns = saleItems.some((si) => si.returnedQuantity > 0);
+        await tx.sale.update({
+          where: { id: salesReturn.saleId },
+          data: { hasReturns: hasAnyReturns },
+        });
+      }
 
-    // If not completed, just delete
-    await this.prisma.salesReturn.delete({ where: { id } });
-    return { message: 'Sales return deleted successfully' };
+      // Delete the return
+      await tx.salesReturn.delete({ where: { id } });
+
+      return { message: 'Sales return deleted successfully' };
+    });
   }
 }

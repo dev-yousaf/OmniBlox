@@ -228,6 +228,38 @@ class ApiClient {
   }
 }
 
+// Token manager for cookie-based auth
+export class TokenManager {
+  private static readonly USER_KEY = "omniblox_user";
+
+  static isAuthenticated(): boolean {
+    // Better Auth uses HttpOnly cookies; check for user data
+    return !!this.getUser() || document.cookie.includes("session=");
+  }
+
+  static getUser(): User | null {
+    try {
+      const stored = localStorage.getItem(this.USER_KEY);
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  static setUser(user: User): void {
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+  }
+
+  static getAccessToken(): string | null {
+    // HttpOnly cookie - no JS access. Return null; real auth relies on cookie.
+    return null;
+  }
+
+  static clearTokens(): void {
+    localStorage.removeItem(this.USER_KEY);
+  }
+}
+
 // Export singleton instance
 export const api = new ApiClient();
 

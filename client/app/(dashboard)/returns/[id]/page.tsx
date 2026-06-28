@@ -4,55 +4,56 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
+import {
+  ArrowLeft, Edit, Trash2, Loader2, AlertTriangle, CheckCircle2,
+  ChevronRight, Package, XCircle, RotateCcw, Undo2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ArrowLeft, Edit, Trash2, Loader2, AlertTriangle } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   useReturnsApi,
   type SalesReturn,
   type PurchaseReturn,
 } from "@/hooks/use-returns-api";
 import { useToast } from "@/hooks/use-toast";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/auth-context";
 
 type ReturnType = "customer" | "supplier";
 
-const statusConfig = {
+const statusConfig: Record<string, { label: string; className: string }> = {
   PENDING: {
     label: "Pending",
-    className: "bg-amber-100 text-amber-700 border-amber-200",
+    className:
+      "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800",
   },
   PROCESSING: {
     label: "Processing",
-    className: "bg-blue-100 text-blue-700 border-blue-200",
+    className:
+      "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800",
   },
   COMPLETED: {
     label: "Completed",
-    className: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    className:
+      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
   },
   CANCELLED: {
     label: "Cancelled",
-    className: "bg-red-100 text-red-700 border-red-200",
+    className:
+      "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800",
   },
 };
 
 export default function ReturnDetailPage() {
   const { user } = useAuth();
-  const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
+  const canManage =
+    user?.role === "OWNER" ||
+    user?.role === "ADMIN" ||
+    user?.role === "MANAGER";
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
@@ -69,13 +70,17 @@ export default function ReturnDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [type, setType] = useState<ReturnType | null>(null);
   const [salesReturn, setSalesReturn] = useState<SalesReturn | null>(null);
-  const [purchaseReturn, setPurchaseReturn] = useState<PurchaseReturn | null>(
-    null
-  );
+  const [purchaseReturn, setPurchaseReturn] = useState<PurchaseReturn | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
 
   const id = String(params.id);
+
+  const formatCurrency = useMemo(
+    () => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }),
+    []
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -83,15 +88,14 @@ export default function ReturnDetailPage() {
       try {
         setLoading(true);
         setError(null);
-        // Try as sales return first
         try {
           const sr = await getSalesReturn(id);
           if (!mounted) return;
           setSalesReturn(sr);
           setType("customer");
           return;
-        } catch (_e) {
-          // ignore and try purchase
+        } catch {
+          // ignore
         }
         const pr = await getPurchaseReturn(id);
         if (!mounted) return;
@@ -120,11 +124,11 @@ export default function ReturnDetailPage() {
         reason: salesReturn.reason,
         warehouse: salesReturn.warehouse?.name,
         actor: salesReturn.user?.name,
-        headerBadgeClass: "border-red-200 bg-red-50 text-red-700",
+        typeBadgeClass:
+          "border-red-200 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
         items: salesReturn.items,
         totalAmount: Number(salesReturn.totalAmount),
         sideLabel: "Customer Return",
-        entityLabel: undefined as string | undefined,
       };
     }
     if (type === "supplier" && purchaseReturn) {
@@ -137,11 +141,11 @@ export default function ReturnDetailPage() {
         reason: purchaseReturn.reason,
         warehouse: purchaseReturn.warehouse?.name,
         actor: purchaseReturn.user?.name,
-        headerBadgeClass: "border-emerald-200 bg-emerald-50 text-emerald-700",
+        typeBadgeClass:
+          "border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800",
         items: purchaseReturn.items,
         totalAmount: Number(purchaseReturn.totalAmount),
         sideLabel: "Supplier Return",
-        entityLabel: purchaseReturn.supplier?.name,
       };
     }
     return null;
@@ -149,6 +153,7 @@ export default function ReturnDetailPage() {
 
   const handleDelete = async () => {
     if (!data || !type) return;
+    setDeleting(true);
     try {
       if (type === "customer") await deleteSalesReturn(data.id);
       else await deletePurchaseReturn(data.id);
@@ -160,6 +165,8 @@ export default function ReturnDetailPage() {
         description: e?.message || "Unknown error",
         variant: "destructive",
       });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -167,20 +174,15 @@ export default function ReturnDetailPage() {
     newStatus: "PENDING" | "PROCESSING" | "COMPLETED" | "CANCELLED"
   ) => {
     if (!data || !type || statusUpdateLoading) return;
-
     try {
       setStatusUpdateLoading(true);
-
       if (type === "customer") {
         const updated = await updateSalesReturn(data.id, { status: newStatus });
         setSalesReturn(updated);
       } else {
-        const updated = await updatePurchaseReturn(data.id, {
-          status: newStatus,
-        });
+        const updated = await updatePurchaseReturn(data.id, { status: newStatus });
         setPurchaseReturn(updated);
       }
-
       toast({
         title: "Status updated",
         description: `Return status changed to ${statusConfig[newStatus].label}`,
@@ -196,39 +198,58 @@ export default function ReturnDetailPage() {
     }
   };
 
-  if (loading) {
-    return <PageLoadingSkeleton />;
-  }
+  if (loading) return <PageLoadingSkeleton />;
 
   if (error || !data) {
     return (
-      <div className="p-6">
-        <div className="max-w-xl mx-auto text-center">
-          <p className="text-lg font-medium mb-2">Return not found</p>
-          <p className="text-muted-foreground mb-4">
-            {error || "We couldn't find a return with this id."}
-          </p>
-          <Link href="/returns">
-            <Button variant="outline">Back to returns</Button>
-          </Link>
+      <div className="space-y-5">
+        <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+          <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <Link href="/returns" className="hover:text-foreground transition-colors">Returns</Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <span className="text-foreground">Return Detail</span>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm py-12 text-center text-muted-foreground">
+          <Package className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+          <p className="font-medium">{error || "Return not found"}</p>
         </div>
       </div>
     );
   }
 
+  const curStatus = data.status as keyof typeof statusConfig;
+  const statusLabel = statusConfig[curStatus]?.label || data.status;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+        <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <Link href="/returns" className="hover:text-foreground transition-colors">Returns</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-foreground">{data.referenceNumber}</span>
+      </div>
+
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/returns">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="h-7 w-7">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight">
-              {data.referenceNumber}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-[18px] font-bold text-foreground">{data.referenceNumber}</h1>
+              <Badge variant="outline" className={`font-medium text-xs ${statusConfig[curStatus]?.className || ""}`}>
+                {statusLabel}
+              </Badge>
+              <Badge variant="outline" className={`font-medium text-xs ${data.typeBadgeClass}`}>
+                {data.sideLabel}
+              </Badge>
+            </div>
             <p className="text-sm text-muted-foreground">{data.sideLabel}</p>
           </div>
         </div>
@@ -236,291 +257,263 @@ export default function ReturnDetailPage() {
           {canManage && (
             <>
               <Link href={`/returns/${data.id}/edit`}>
-                <Button variant="outline" size="sm">
-                  <Edit className="h-4 w-4 mr-2" /> Edit
+                <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">
+                  <Edit className="mr-1.5 h-3.5 w-3.5" /> Edit
                 </Button>
               </Link>
-              <AlertDialog
-                open={deleteDialogOpen}
-                onOpenChange={setDeleteDialogOpen}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-[34px] rounded-[5px] text-[13px] text-destructive hover:text-destructive"
+                onClick={() => setDeleteDialogOpen(true)}
               >
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm">
-                    <Trash2 className="h-4 w-4 mr-2" /> Delete
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Return</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to delete this return? This action
-                      cannot be undone. The return {data.referenceNumber} will be
-                      permanently removed.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDelete}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
+              </Button>
             </>
           )}
         </div>
       </div>
 
-      {/* Warning Banner for PENDING and PROCESSING status */}
-      {(data.status === "PENDING" || data.status === "PROCESSING") && (
-        <Alert className="border-amber-200 bg-amber-50">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertTitle className="text-amber-900">
-            Return Not Completed
-          </AlertTitle>
-          <AlertDescription className="text-amber-800">
-            {data.status === "PENDING" && (
-              <>
-                This return is currently <strong>pending</strong>.{" "}
-                {((type === "customer" && salesReturn?.saleId) ||
-                  (type === "supplier" && purchaseReturn?.purchaseOrderId)) && (
-                  <>
-                    The original{" "}
-                    {type === "customer" ? "sale" : "purchase order"} will not
-                    show return indicators until you mark this return as{" "}
-                    <strong>completed</strong>.
-                  </>
-                )}
-              </>
-            )}
-            {data.status === "PROCESSING" && (
-              <>
-                This return is currently <strong>processing</strong>.{" "}
-                {((type === "customer" && salesReturn?.saleId) ||
-                  (type === "supplier" && purchaseReturn?.purchaseOrderId)) && (
-                  <>
-                    The original{" "}
-                    {type === "customer" ? "sale" : "purchase order"} will not
-                    show return indicators until you mark this return as{" "}
-                    <strong>completed</strong>.
-                  </>
-                )}
-              </>
-            )}
-          </AlertDescription>
-        </Alert>
+      {/* Status info banner */}
+      {data.status !== "COMPLETED" && (
+        <div className="flex items-center gap-2 px-5 py-3 bg-amber-50 text-amber-800 text-sm border border-amber-200 rounded-[5px]">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+          <span>
+            This return is currently <strong>{statusLabel.toLowerCase()}</strong>.
+            {(data.status === "PENDING" || data.status === "PROCESSING") &&
+              ((type === "customer" && salesReturn?.saleId) ||
+                (type === "supplier" && purchaseReturn?.purchaseOrderId)) && (
+                <span>
+                  {" "}
+                  The original {type === "customer" ? "sale" : "purchase order"}{" "}
+                  will not show return indicators until you mark this return as{" "}
+                  <strong>completed</strong>.
+                </span>
+              )}
+          </span>
+        </div>
       )}
-
-      {/* Success Banner for COMPLETED status */}
       {data.status === "COMPLETED" &&
         ((type === "customer" && salesReturn?.saleId) ||
           (type === "supplier" && purchaseReturn?.purchaseOrderId)) && (
-          <Alert className="border-emerald-200 bg-emerald-50">
-            <AlertTriangle className="h-4 w-4 text-emerald-600" />
-            <AlertTitle className="text-emerald-900">
-              Return Completed
-            </AlertTitle>
-            <AlertDescription className="text-emerald-800">
+          <div className="flex items-center gap-2 px-5 py-3 bg-emerald-50 text-emerald-800 text-sm border border-emerald-200 rounded-[5px]">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+            <span>
               This return has been completed. The original{" "}
               {type === "customer" ? "sale" : "purchase order"} now shows return
               indicators with the returned quantities.
-            </AlertDescription>
-          </Alert>
+            </span>
+          </div>
         )}
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Return Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Reference</p>
-                <p className="font-medium">{data.referenceNumber}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Date</p>
-                <p className="font-medium">
-                  {new Date(data.returnDate).toLocaleDateString()}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Type</p>
-                <Badge variant="outline" className={data.headerBadgeClass}>
-                  {data.sideLabel}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Warehouse</p>
-                <p className="font-medium">{data.warehouse || "-"}</p>
-              </div>
-              {data.entityLabel && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Supplier</p>
-                  <p className="font-medium">{data.entityLabel}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-sm text-muted-foreground">Status</p>
-                <Badge
-                  variant="outline"
-                  className={
-                    statusConfig[data.status as keyof typeof statusConfig]
-                      .className
-                  }
-                >
-                  {statusConfig[data.status as keyof typeof statusConfig].label}
-                </Badge>
-              </div>
-              {data.reason && (
-                <div className="md:col-span-2">
-                  <p className="text-sm text-muted-foreground">Reason</p>
-                  <p className="font-medium">{data.reason}</p>
-                </div>
-              )}
-            </div>
-
-            <Separator />
-
-            <div>
-              <h3 className="font-semibold mb-3">Items</h3>
-              <div className="space-y-2">
-                {data.items.map((it) => (
-                  <div
-                    key={it.id}
-                    className="p-3 border rounded-md grid grid-cols-12 gap-3 items-center"
-                  >
-                    <div className="col-span-6">
-                      <div className="font-medium">{it.product?.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        SKU: {it.product?.sku}
-                      </div>
-                    </div>
-                    <div className="col-span-2 text-sm">Qty: {it.quantity}</div>
-                    <div className="col-span-2 text-sm">
-                      Unit: ${Number(it.unitPrice).toFixed(2)}
-                    </div>
-                    <div className="col-span-2 text-right font-medium">
-                      ${(Number(it.unitPrice) * Number(it.quantity)).toFixed(2)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="flex justify-between text-base">
-              <span className="text-muted-foreground">Total</span>
-              <span className="font-semibold">
-                ${data.totalAmount.toFixed(2)}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {canManage && (
-                <Link href={`/returns/${data.id}/edit`}>
-                  <Button variant="outline" size="sm" className="w-full">
-                    <Edit className="h-4 w-4 mr-2" /> Edit
-                  </Button>
-                </Link>
-              )}
-
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">
-                  Change Status
-                </p>
-                {/* Info message for PENDING/PROCESSING with reference */}
-                {(data.status === "PENDING" || data.status === "PROCESSING") &&
-                  ((type === "customer" && salesReturn?.saleId) ||
-                    (type === "supplier" &&
-                      purchaseReturn?.purchaseOrderId)) && (
-                    <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-2">
-                      💡 Complete this return to update the original{" "}
-                      {type === "customer" ? "sale" : "purchase order"}
-                    </p>
-                  )}
-                <div className="grid grid-cols-1 gap-2">
-                  {data.status === "PENDING" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleStatusChange("PROCESSING")}
-                      disabled={statusUpdateLoading}
-                      className="w-full"
-                    >
-                      {statusUpdateLoading ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : null}
-                      Start Processing
-                    </Button>
-                  )}
-
-                  {data.status === "PROCESSING" && (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => handleStatusChange("COMPLETED")}
-                      disabled={statusUpdateLoading}
-                      className="w-full"
-                    >
-                      {statusUpdateLoading ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : null}
-                      Mark as Completed
-                    </Button>
-                  )}
-
-                  {data.status !== "CANCELLED" && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleStatusChange("CANCELLED")}
-                      disabled={statusUpdateLoading}
-                      className="w-full"
-                    >
-                      {statusUpdateLoading ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : null}
-                      Cancel Return
-                    </Button>
-                  )}
-
-                  {(data.status === "PROCESSING" ||
-                    data.status === "COMPLETED") && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleStatusChange("PENDING")}
-                      disabled={statusUpdateLoading}
-                      className="w-full"
-                    >
-                      {statusUpdateLoading ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : null}
-                      Reset to Pending
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Reference</p>
+          <p className="text-lg font-semibold">{data.referenceNumber}</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Date</p>
+          <p className="text-lg font-semibold">
+            {new Date(data.returnDate).toLocaleDateString("en-US", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })}
+          </p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Warehouse</p>
+          <p className="text-lg font-semibold">{data.warehouse || "—"}</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Items Count</p>
+          <p className="text-2xl font-bold">{data.items.length}</p>
         </div>
       </div>
+
+      {/* Main Content: Two Columns */}
+      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+        {/* Left: Items Table */}
+        <div className="border rounded-[5px] bg-card shadow-sm overflow-hidden">
+          <div className="px-5 py-[15px] border-b">
+            <h2 className="text-sm font-semibold text-foreground">Return Items</h2>
+          </div>
+          <div className="p-5">
+            <div className="overflow-x-auto border rounded-[5px]">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted h-[33px]">
+                    <th className="px-4 py-2 text-left font-semibold text-foreground text-xs">Product</th>
+                    <th className="w-[80px] px-4 py-2 text-right font-semibold text-foreground text-xs">Qty</th>
+                    <th className="w-[100px] px-4 py-2 text-right font-semibold text-foreground text-xs">Price</th>
+                    <th className="w-[110px] px-4 py-2 text-right font-semibold text-foreground text-xs">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.items.map((it: any) => (
+                    <tr key={it.id} className="h-[52px] border-b hover:bg-muted/30 transition-colors">
+                      <td className="px-4">
+                        <div className="flex items-center gap-2.5">
+                          <div className="bg-muted rounded-[5px] size-[30px] flex items-center justify-center overflow-hidden shrink-0">
+                            <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                          </div>
+                          <div>
+                            <span className="font-medium text-foreground">
+                              {it.product?.name || it.productName}
+                            </span>
+                            {it.product?.sku && (
+                              <p className="text-xs text-muted-foreground">SKU: {it.product.sku}</p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 text-right tabular-nums">{it.quantity}</td>
+                      <td className="px-4 text-right tabular-nums">{formatCurrency.format(Number(it.unitPrice))}</td>
+                      <td className="px-4 text-right font-semibold tabular-nums">
+                        {formatCurrency.format(Number(it.unitPrice) * Number(it.quantity))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex justify-end pt-4">
+              <div className="flex justify-between items-center w-[220px]">
+                <span className="text-sm text-muted-foreground">Total</span>
+                <span className="text-xl font-bold tabular-nums">{formatCurrency.format(data.totalAmount)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Status Workflow + Summary */}
+        <div className="space-y-4">
+          {/* Status Workflow Card */}
+          <div className="border rounded-[5px] bg-card shadow-sm p-5 space-y-4">
+            <h3 className="text-sm font-semibold text-foreground">Status</h3>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Current Status</p>
+              <Badge variant="outline" className={`font-medium text-xs mt-1 ${statusConfig[curStatus]?.className || ""}`}>
+                {statusLabel}
+              </Badge>
+            </div>
+            {canManage && data.status !== "CANCELLED" && (
+              <div className="space-y-2 pt-1">
+                {data.status === "PENDING" && (
+                  <Button
+                    className="w-full h-[38px] rounded-[5px] text-sm"
+                    disabled={statusUpdateLoading}
+                    onClick={() => handleStatusChange("PROCESSING")}
+                  >
+                    {statusUpdateLoading ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
+                    ) : (
+                      <><RotateCcw className="mr-2 h-4 w-4" /> Start Processing</>
+                    )}
+                  </Button>
+                )}
+                {data.status === "PROCESSING" && (
+                  <Button
+                    className="w-full h-[38px] rounded-[5px] text-sm"
+                    disabled={statusUpdateLoading}
+                    onClick={() => handleStatusChange("COMPLETED")}
+                  >
+                    {statusUpdateLoading ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Completing...</>
+                    ) : (
+                      <><CheckCircle2 className="mr-2 h-4 w-4" /> Mark Completed</>
+                    )}
+                  </Button>
+                )}
+                {data.status === "COMPLETED" && (
+                  <Button
+                    variant="outline"
+                    className="w-full h-[38px] rounded-[5px] text-sm"
+                    disabled={statusUpdateLoading}
+                    onClick={() => handleStatusChange("PENDING")}
+                  >
+                    {statusUpdateLoading ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resetting...</>
+                    ) : (
+                      <><Undo2 className="mr-2 h-4 w-4" /> Reset to Pending</>
+                    )}
+                  </Button>
+                )}
+                {data.status !== "COMPLETED" && (
+                  <Button
+                    variant="outline"
+                    className="w-full h-[38px] rounded-[5px] text-sm text-destructive hover:text-destructive"
+                    disabled={statusUpdateLoading}
+                    onClick={() => handleStatusChange("CANCELLED")}
+                  >
+                    {statusUpdateLoading ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Cancelling...</>
+                    ) : (
+                      <><XCircle className="mr-2 h-4 w-4" /> Cancel Return</>
+                    )}
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Summary Card */}
+          <div className="border rounded-[5px] bg-card shadow-sm p-5 space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Summary</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Type</span>
+                <span className="font-semibold">{data.sideLabel}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Status</span>
+                <Badge variant="outline" className={`font-medium text-xs ${statusConfig[curStatus]?.className || ""}`}>
+                  {statusLabel}
+                </Badge>
+              </div>
+              <div className="flex justify-between border-t pt-2">
+                <span className="text-muted-foreground">Total Amount</span>
+                <span className="font-bold text-base">{formatCurrency.format(data.totalAmount)}</span>
+              </div>
+              {data.reason && (
+                <div className="border-t pt-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Reason</p>
+                  <p className="font-semibold text-sm">{data.reason}</p>
+                </div>
+              )}
+              {data.actor && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Processed by</p>
+                  <p className="font-semibold text-sm">{data.actor}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this return?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. Return {data.referenceNumber} will be removed permanently.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting} className="rounded-[5px]">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="rounded-[5px] bg-destructive hover:bg-destructive/90"
+              disabled={deleting}
+            >
+              {deleting ? "Deleting..." : "Delete Return"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
-
-
-

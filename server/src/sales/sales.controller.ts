@@ -47,6 +47,10 @@ export class SalesController {
     @Query('search') search?: string,
     @Query('status') status?: string,
     @Query('paymentStatus') paymentStatus?: string,
+    @Query('warehouseId') warehouseId?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('productId') productId?: string,
   ) {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 10;
@@ -57,6 +61,10 @@ export class SalesController {
       search,
       status,
       paymentStatus,
+      warehouseId,
+      dateFrom,
+      dateTo,
+      productId,
     );
   }
 

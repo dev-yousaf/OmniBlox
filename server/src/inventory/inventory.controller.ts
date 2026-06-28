@@ -98,12 +98,14 @@ export class InventoryController {
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
   updateInventory(
     @CompanyId() companyId: string,
+    @UserId() userId: string,
     @Param('productId') productId: string,
     @Param('warehouseId') warehouseId: string,
     @Body() dto: UpdateInventoryDto,
   ) {
     return this.inventoryService.updateInventory(
       companyId,
+      userId,
       productId,
       warehouseId,
       dto,

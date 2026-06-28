@@ -112,9 +112,9 @@ export interface AdjustmentTabProps {
 	setAdjDocument: (v: File | null) => void;
 	savingAdj: boolean;
 	fileInputRef: React.RefObject<HTMLInputElement | null>;
-	warehouses: { id: string; name: string; location?: string }[];
+	warehouses: { id: string; name: string; location?: string | null }[];
 	warehousesLoading: boolean;
-	user: { name?: string } | null;
+	user: { name?: string | null } | null;
 	handleSaveAdjustment: () => void;
 	productId: string;
 	recentAdjustments: StockLedgerEntry[];

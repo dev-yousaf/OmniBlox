@@ -297,6 +297,16 @@ export class QuotationsService {
       );
     }
 
+    // Check for duplicate conversion
+    const existingSale = await this.prisma.sale.findFirst({
+      where: { sourceQuotationId: id, companyId },
+    });
+    if (existingSale) {
+      throw new BadRequestException(
+        'This quotation has already been converted to a sale',
+      );
+    }
+
     // 2) Resolve warehouse (use provided or default)
     let warehouse;
     if (warehouseId) {

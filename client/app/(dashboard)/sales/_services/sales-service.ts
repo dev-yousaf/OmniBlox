@@ -28,6 +28,10 @@ const buildQueryString = (filters: Partial<NormalizedFilters> = {}) => {
   if (filters.search) params.set("search", filters.search);
   if (filters.status) params.set("status", filters.status);
   if (filters.paymentStatus) params.set("paymentStatus", filters.paymentStatus);
+  if (filters.warehouseId) params.set("warehouseId", filters.warehouseId);
+  if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
+  if (filters.dateTo) params.set("dateTo", filters.dateTo);
+  if (filters.productId) params.set("productId", filters.productId);
 
   return params.toString();
 };

@@ -101,4 +101,8 @@ export interface SalesFilters {
   search?: string;
   status?: SaleStatus | "ALL";
   paymentStatus?: SalePaymentStatus | "ALL";
+  warehouseId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  productId?: string;
 }

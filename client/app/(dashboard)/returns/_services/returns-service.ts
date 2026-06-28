@@ -51,7 +51,7 @@ export class ReturnService {
   }> {
     const items = await this.getReturns()
     const totalReturns = items.length
-    const activeReturns = items.filter(i => i.status === "active" || i.status === "approved").length
+    const activeReturns = items.filter(i => i.status === "PENDING" || i.status === "PROCESSING").length
     
     return { totalReturns, activeReturns }
   }

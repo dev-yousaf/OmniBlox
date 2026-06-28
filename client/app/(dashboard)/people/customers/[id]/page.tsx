@@ -1,452 +1,279 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
-  ArrowLeft,
-  Edit,
-  Trash2,
-  Phone,
-  Mail,
-  MapPin,
-  DollarSign,
-  Building,
-  CreditCard,
-  TrendingUp,
-  Calendar,
-  Star,
-  FileText,
+  ArrowLeft, Edit, Trash2, MapPin, ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { useCustomersApi, type Customer } from "@/hooks/use-customers-api";
-import { useToast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useCustomerDetail } from "../_hooks/use-customer-detail";
+import { useAuth } from "@/contexts/auth-context";
 
-// Extended customer interface for detail page with additional mock fields
-interface CustomerDetail extends Customer {
-  city?: string;
-  country?: string;
-  taxId?: string;
-  status?: string;
-  totalPurchases?: number;
-  lastPurchase?: string;
-  paymentTerms?: string;
-  rating?: number;
-}
+const statusStyles: Record<string, string> = {
+  PAID: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+  PENDING: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+  PARTIAL: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800",
+  OVERDUE: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800",
+};
+
+const statusLabels: Record<string, string> = {
+  PAID: "Paid",
+  PENDING: "Pending",
+  PARTIAL: "Partial",
+  OVERDUE: "Overdue",
+};
 
 export default function CustomerDetailPage() {
-  const params = useParams();
+  const { user } = useAuth();
+  const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
+  const params = useParams<{ id: string }>();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState(false);
+  const customerId = params?.id ?? "";
+  const { customer, sales, loading, error, delete: deleteCustomer } = useCustomerDetail(customerId);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [customer, setCustomer] = useState<CustomerDetail | null>(null);
-  const { getCustomer, deleteCustomer } = useCustomersApi();
-  const { toast } = useToast();
+  const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    const loadCustomer = async () => {
-      if (!params.id) return;
+  const formatCurrency = useMemo(
+    () => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }),
+    []
+  );
 
-      try {
-        setLoading(true);
-        const customerData = await getCustomer(params.id as string);
-        setCustomer(customerData);
-      } catch (error) {
-        console.error("Error loading customer:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load customer details.",
-          variant: "destructive",
-        });
-        router.push("/people/customers");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadCustomer();
-  }, [params.id, getCustomer, toast, router]);
+  const getInitials = (name: string) =>
+    name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
 
   const handleDelete = async () => {
-    if (!customer) return;
+    setDeleting(true);
     try {
-      setDeleting(true);
-      await deleteCustomer(customer.id);
-      toast({
-        title: "Success",
-        description: "Customer deleted successfully.",
-      });
+      await deleteCustomer();
       router.push("/people/customers");
-    } catch (error: any) {
-      console.error("Error deleting customer:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete customer.",
-        variant: "destructive",
-      });
-    } finally {
-      setDeleting(false);
-      setDeleteOpen(false);
-    }
-  };
-  const renderStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return (
-          <Badge variant="default" className="bg-green-500">
-            Active
-          </Badge>
-        );
-      case "inactive":
-        return <Badge variant="secondary">Inactive</Badge>;
-      case "blocked":
-        return <Badge variant="destructive">Blocked</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
+    } catch { /* handled */ }
+    setDeleting(false);
   };
 
-  const renderRating = (rating: number) => {
-    return (
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`w-4 h-4 ${
-              star <= rating
-                ? "fill-yellow-400 text-yellow-400"
-                : "text-gray-300"
-            }`}
-          />
-        ))}
-      </div>
-    );
-  };
-
-  if (loading) {
-    return <PageLoadingSkeleton />;
-  }
+  if (!customerId) return <div className="p-6">Customer identifier is missing.</div>;
+  if (loading) return <PageLoadingSkeleton />;
 
   if (!customer) {
     return (
-      <div className="space-y-6 p-6">
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <p className="text-muted-foreground">Customer not found</p>
-          </div>
+      <div className="space-y-5">
+        <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+          <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <Link href="/people/customers" className="hover:text-foreground transition-colors">Customers</Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <span className="text-foreground">Customer Detail</span>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm py-12 text-center text-muted-foreground">
+          <p className="font-medium">Customer not found</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+        <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <Link href="/people/customers" className="hover:text-foreground transition-colors">Customers</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-foreground">{customer.name}</span>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+          <Link href="/people/customers">
+            <Button variant="ghost" size="icon" className="h-7 w-7">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <Avatar className="size-9">
+            <AvatarFallback className="text-xs font-semibold">{getInitials(customer.name)}</AvatarFallback>
+          </Avatar>
           <div>
-            <h1 className="text-3xl font-bold">{customer.name}</h1>
-            <p className="text-muted-foreground">{customer.email}</p>
+            <h1 className="text-[18px] font-bold text-foreground">{customer.name}</h1>
           </div>
-          {customer.status && renderStatusBadge(customer.status)}
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => router.push(`/people/customers/${customer.id}/edit`)}
-          >
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
-          <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
-            <Trash2 className="mr-2 h-4 w-4" /> Delete
-          </Button>
+        <div className="flex items-center gap-2">
+          {canManage && (
+            <>
+              <Link href={`/people/customers/${customer.id}/edit`}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-[34px] rounded-[5px] text-[13px]"
+                >
+                  <Edit className="mr-1.5 h-3.5 w-3.5" /> Edit
+                </Button>
+              </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-[34px] rounded-[5px] text-[13px] text-destructive hover:text-destructive"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
+              </Button>
+            </>
+          )}
         </div>
       </div>
-      <Separator />
+
+      {error && (
+        <div className="flex items-center gap-2 px-5 py-3 bg-destructive/10 text-destructive text-sm border rounded-[5px]">
+          {error}
+        </div>
+      )}
 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Purchases
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-green-500" />
-              <span className="text-2xl font-bold">
-                ${customer.totalPurchases?.toLocaleString() || "0"}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Outstanding Balance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4 text-orange-500" />
-              <span className="text-2xl font-bold">
-                ${customer.balance?.toLocaleString() || "0"}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Credit Limit
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-blue-500" />
-              <span className="text-2xl font-bold">
-                ${customer.creditLimit?.toLocaleString() || "0"}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Rating
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              {renderRating(customer.rating || 0)}
-              <span className="text-sm text-muted-foreground">
-                ({customer.rating || 0}/5)
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Email</p>
+          <p className="text-sm font-semibold truncate">{customer.email || "—"}</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Phone</p>
+          <p className="text-sm font-semibold">{customer.phone || "—"}</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Credit Limit</p>
+          <p className="text-lg font-semibold">{customer.creditLimit != null ? formatCurrency.format(customer.creditLimit) : "—"}</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Balance</p>
+          <p className="text-lg font-semibold">{customer.balance != null ? formatCurrency.format(customer.balance) : "—"}</p>
+        </div>
       </div>
 
-      {/* Detailed Information Tabs */}
-      <Tabs defaultValue="info" className="w-full">
-        <TabsList>
-          <TabsTrigger value="info">Information</TabsTrigger>
-          <TabsTrigger value="orders">Orders</TabsTrigger>
-          <TabsTrigger value="invoices">Invoices</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="info" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Basic Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Building className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Company Name
-                    </p>
-                    <p className="font-medium">{customer.name}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Email</p>
-                    <p className="font-medium">{customer.email}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Phone</p>
-                    <p className="font-medium">{customer.phone}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Building className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Tax ID</p>
-                    <p className="font-medium">{customer.taxId || "N/A"}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Last Purchase
-                    </p>
-                    <p className="font-medium">
-                      {customer.lastPurchase || "N/A"}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Address Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Address</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="font-medium">{customer.address}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {customer.city}, {customer.country}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Financial Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Financial Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Payment Terms</p>
-                  <p className="font-medium">
-                    {customer.paymentTerms || "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Credit Limit</p>
-                  <p className="font-medium">
-                    ${customer.creditLimit?.toLocaleString() || "0"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Outstanding Balance
-                  </p>
-                  <p className="font-medium">
-                    ${customer.balance?.toLocaleString() || "0"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Total Purchases
-                  </p>
-                  <p className="font-medium">
-                    ${customer.totalPurchases?.toLocaleString() || "0"}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Performance Metrics */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance Metrics</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Customer Rating
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    {renderRating(customer.rating || 0)}
-                    <span className="text-sm font-medium">
-                      ({customer.rating || 0}/5)
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Status</p>
-                  <div className="mt-1">
-                    {customer.status && renderStatusBadge(customer.status)}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+      {/* Main Content: Two Columns */}
+      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+        {/* Left: Address + Customer Sales */}
+        <div className="space-y-5">
+          {/* Address Card */}
+          <div className="border rounded-[5px] bg-card shadow-sm p-5">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Address</h3>
+            <div className="flex items-start gap-3">
+              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <p className="text-sm text-foreground">{customer.address || "—"}</p>
+            </div>
           </div>
-        </TabsContent>
 
-        <TabsContent value="orders">
-          <Card>
-            <CardHeader>
-              <CardTitle>Order History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Order history coming soon...
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
+          {/* Customer Sales Table */}
+          <div className="border rounded-[5px] bg-card shadow-sm overflow-hidden">
+            <div className="px-5 py-[15px] border-b">
+              <h2 className="text-sm font-semibold text-foreground">Customer Sales</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted h-[33px]">
+                    <th className="px-4 py-2 text-left font-semibold text-foreground text-xs">Date</th>
+                    <th className="px-4 py-2 text-left font-semibold text-foreground text-xs">Invoice</th>
+                    <th className="px-4 py-2 text-left font-semibold text-foreground text-xs">Status</th>
+                    <th className="w-[120px] px-4 py-2 text-right font-semibold text-foreground text-xs">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sales.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                        No sales records found.
+                      </td>
+                    </tr>
+                  ) : (
+                    sales.map((sale) => {
+                      const statusKey = sale.paymentStatus === "PAID" ? "PAID" : sale.paymentStatus === "PARTIAL" ? "PARTIAL" : "PENDING";
+                      const statusLabel = statusLabels[statusKey] || statusKey;
+                      return (
+                        <tr key={sale.id} className="h-[52px] border-b hover:bg-muted/30 transition-colors">
+                          <td className="px-4 text-muted-foreground">
+                            {new Date(sale.saleDate).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}
+                          </td>
+                          <td className="px-4">
+                            <Link href={`/sales/${sale.id}`} className="font-medium text-foreground hover:text-primary transition-colors">
+                              {sale.invoiceNumber}
+                            </Link>
+                          </td>
+                          <td className="px-4">
+                            <Badge variant="outline" className={`font-medium text-xs ${statusStyles[statusKey] || ""}`}>
+                              {statusLabel}
+                            </Badge>
+                          </td>
+                          <td className="px-4 text-right font-semibold tabular-nums">{formatCurrency.format(sale.totalAmount)}</td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
 
-        <TabsContent value="invoices">
-          <Card>
-            <CardHeader>
-              <CardTitle>Invoice History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Invoice history coming soon...
+        {/* Right: Summary Card */}
+        <div className="border rounded-[5px] bg-card shadow-sm p-5 space-y-4 h-fit">
+          <h3 className="text-sm font-semibold text-foreground">Summary</h3>
+          <div className="space-y-3 text-sm">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Name</p>
+              <p className="font-semibold text-foreground mt-0.5">{customer.name}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</p>
+              <p className="text-foreground mt-0.5 break-all">{customer.email || "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Phone</p>
+              <p className="text-foreground mt-0.5">{customer.phone || "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Credit Limit</p>
+              <p className="font-semibold text-foreground mt-0.5">{customer.creditLimit != null ? formatCurrency.format(customer.creditLimit) : "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Balance</p>
+              <p className={`font-bold text-base mt-0.5 ${(customer.balance ?? 0) > 0 ? "text-destructive" : "text-emerald-600"}`}>
+                {customer.balance != null ? formatCurrency.format(customer.balance) : "—"}
               </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Address</p>
+              <p className="text-foreground mt-0.5">{customer.address || "—"}</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        <TabsContent value="documents">
-          <Card>
-            <CardHeader>
-              <CardTitle>Documents</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Document management coming soon...
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* Delete Confirmation */}
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this customer?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. The customer {customer?.name} will
-              be permanently removed.
+              This action cannot be undone. Customer {customer.name} will be removed permanently.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting} className="rounded-[5px]">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-white hover:bg-destructive/90"
-              onClick={() => handleDelete()}
+              onClick={handleDelete}
+              className="rounded-[5px] bg-destructive hover:bg-destructive/90"
               disabled={deleting}
             >
               {deleting ? "Deleting..." : "Delete Customer"}
@@ -457,6 +284,3 @@ export default function CustomerDetailPage() {
     </div>
   );
 }
-
-
-

@@ -4,6 +4,7 @@ import {
   IsInt,
   IsUUID,
   Min,
+  MaxLength,
   IsEnum,
   IsArray,
   ValidateNested,
@@ -59,6 +60,11 @@ export class UpdateInventoryDto {
   @IsInt()
   @Min(0)
   quantity: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  notes?: string;
 }
 
 export class StockTransferDto {

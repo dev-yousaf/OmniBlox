@@ -185,13 +185,15 @@ model Biller {
 }
 
 model Customer {
-  id        String   @id @default(uuid())
-  name      String
-  email     String?
-  phone     String?
-  address   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  name        String
+  email       String?
+  phone       String?
+  address     String?
+  creditLimit Decimal? @db.Decimal(10, 2)
+  balance     Decimal? @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // NEW: Link to Company
   companyId String
@@ -206,13 +208,15 @@ model Customer {
 }
 
 model Supplier {
-  id        String   @id @default(uuid())
-  name      String
-  email     String?
-  phone     String?
-  address   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  name        String
+  email       String?
+  phone       String?
+  address     String?
+  creditLimit Decimal? @db.Decimal(10, 2)
+  balance     Decimal? @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // NEW: Link to Company
   companyId String
@@ -566,11 +570,13 @@ model Expense {
   // Foreign Keys
   categoryId String
   userId     String
+  purchaseOrderId String?  // Link expense to a purchase order
 
   // Relations
-  category    ExpenseCategory     @relation(fields: [categoryId], references: [id])
-  user        User                @relation(fields: [userId], references: [id])
-  attachments ExpenseAttachment[] // Relation to new attachments model
+  category      ExpenseCategory     @relation(fields: [categoryId], references: [id])
+  user          User                @relation(fields: [userId], references: [id])
+  purchaseOrder PurchaseOrder?      @relation(fields: [purchaseOrderId], references: [id])
+  attachments   ExpenseAttachment[] // Relation to new attachments model
 
   @@map("expenses")
 }
@@ -708,6 +714,7 @@ model PurchaseOrder {
   user     User                @relation(fields: [userId], references: [id])
   warehouse Warehouse?         @relation(fields: [warehouseId], references: [id])
   returns  PurchaseReturn[]    // Track returns for this purchase
+  expenses Expense[]           // Expenses linked to this purchase
 
   @@unique([companyId, referenceNumber]) // Reference number unique per company
   @@map("purchase_orders")

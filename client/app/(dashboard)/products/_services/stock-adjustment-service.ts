@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useAuthenticatedApi } from "@/hooks/use-authenticated-api";
 
 export interface StockAdjustmentItemInput {
@@ -44,24 +45,24 @@ export interface StockAdjustmentResponse {
 export function useStockAdjustmentService() {
   const { post, get } = useAuthenticatedApi();
 
-  const createStockAdjustment = async (
+  const createStockAdjustment = useCallback(async (
     payload: CreateStockAdjustmentPayload
   ): Promise<StockAdjustmentResponse> => {
     const response = await post("/products/adjustments", payload);
     return response as StockAdjustmentResponse;
-  };
+  }, [post]);
 
-  const getStockAdjustments = async (): Promise<StockAdjustmentResponse[]> => {
+  const getStockAdjustments = useCallback(async (): Promise<StockAdjustmentResponse[]> => {
     const response = await get("/products/adjustments");
     return response as StockAdjustmentResponse[];
-  };
+  }, [get]);
 
-  const getStockAdjustment = async (
+  const getStockAdjustment = useCallback(async (
     id: string
   ): Promise<StockAdjustmentResponse> => {
     const response = await get(`/products/adjustments/${id}`);
     return response as StockAdjustmentResponse;
-  };
+  }, [get]);
 
   return {
     createStockAdjustment,

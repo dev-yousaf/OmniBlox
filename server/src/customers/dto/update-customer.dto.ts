@@ -5,4 +5,6 @@ export class UpdateCustomerDto {
   email?: string;
   phone?: string;
   address?: string;
+  creditLimit?: number;
+  balance?: number;
 }

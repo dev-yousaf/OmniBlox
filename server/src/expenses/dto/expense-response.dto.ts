@@ -7,6 +7,7 @@ export class ExpenseResponseDto {
   notes?: string;
   userId: string;
   companyId: string;
+  purchaseOrderId?: string;
   createdAt: string;
   updatedAt: string;
 }

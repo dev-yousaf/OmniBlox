@@ -30,4 +30,8 @@ export class CreateExpenseDto {
   @IsString()
   @IsNotEmpty()
   readonly categoryId!: string;
+
+  @IsOptional()
+  @IsString()
+  readonly purchaseOrderId?: string;
 }

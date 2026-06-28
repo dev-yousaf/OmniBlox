@@ -252,6 +252,16 @@ export class SalesService {
             dto.items,
             dto.warehouseId,
           );
+          await this.createStockLedgerEntries(
+            tx,
+            dto.items,
+            dto.warehouseId,
+            sale.userId,
+            sale.invoiceNumber,
+            'SALE',
+            `Sale #${sale.invoiceNumber}`,
+            -1,
+          );
         }
 
         // Create delivery record for the sale
@@ -280,6 +290,10 @@ export class SalesService {
     search?: string,
     status?: OrderStatus | string,
     paymentStatus?: PaymentStatus | string,
+    warehouseId?: string,
+    dateFrom?: string,
+    dateTo?: string,
+    productId?: string,
   ): Promise<SalesListResponseDto> {
     const skip = (page - 1) * limit;
     const where: Record<string, unknown> = { companyId };
@@ -299,6 +313,34 @@ export class SalesService {
 
     if (paymentStatus) {
       where.paymentStatus = paymentStatus as PaymentStatus;
+    }
+
+    if (warehouseId) {
+      where.warehouseId = warehouseId;
+    }
+
+    if (dateFrom || dateTo) {
+      const saleDateFilter: Record<string, Date> = {};
+      if (dateFrom) {
+        saleDateFilter.gte = new Date(dateFrom);
+      }
+      if (dateTo) {
+        const endDate = new Date(dateTo);
+        endDate.setHours(23, 59, 59, 999);
+        saleDateFilter.lte = endDate;
+      }
+      where.saleDate = saleDateFilter;
+    }
+
+    if (productId) {
+      const saleIds = await this.prisma.saleItem
+        .findMany({
+          where: { productId, sale: { companyId } },
+          select: { saleId: true },
+          distinct: ['saleId'],
+        })
+        .then((items) => items.map((i) => i.saleId));
+      where.id = { in: saleIds };
     }
 
     const [sales, total] = await Promise.all([
@@ -478,12 +520,23 @@ export class SalesService {
           },
         });
 
+        const newStatus = (dto.status ?? existing.status) as OrderStatus;
+
         if (dto.items) {
           await this.adjustInventory(tx, dto.items, 'decrement', companyId);
+          await this.createStockLedgerEntries(
+            tx,
+            dto.items,
+            dto.warehouseId ?? existing.warehouseId ?? '',
+            updated.userId,
+            updated.invoiceNumber,
+            'SALE',
+            `Sale #${updated.invoiceNumber} item update`,
+            -1,
+          );
         }
 
         // Handle inventory adjustments based on status changes
-        const newStatus = (dto.status ?? existing.status) as OrderStatus;
         if (newStatus !== existing.status) {
           if (
             newStatus === OrderStatus.COMPLETED &&
@@ -499,6 +552,20 @@ export class SalesService {
               'decrement',
               companyId,
             );
+            await this.createStockLedgerEntries(
+              tx,
+              updated.items.map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                unitPrice: Number(item.unitPrice),
+              })),
+              dto.warehouseId ?? existing.warehouseId ?? '',
+              updated.userId,
+              updated.invoiceNumber,
+              'SALE',
+              `Sale #${updated.invoiceNumber} completed`,
+              -1,
+            );
           } else if (
             newStatus === OrderStatus.CANCELLED &&
             existing.status === OrderStatus.COMPLETED
@@ -512,6 +579,20 @@ export class SalesService {
               })),
               'increment',
               companyId,
+            );
+            await this.createStockLedgerEntries(
+              tx,
+              updated.items.map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                unitPrice: Number(item.unitPrice),
+              })),
+              dto.warehouseId ?? existing.warehouseId ?? '',
+              updated.userId,
+              updated.invoiceNumber,
+              'SALE',
+              `Sale #${updated.invoiceNumber} cancelled`,
+              1,
             );
           }
         }
@@ -544,6 +625,21 @@ export class SalesService {
           companyId,
         );
 
+        await this.createStockLedgerEntries(
+          tx,
+          sale.items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: Number(item.unitPrice),
+          })),
+          sale.warehouseId ?? '',
+          sale.userId,
+          sale.invoiceNumber,
+          'SALE',
+          `Sale #${sale.invoiceNumber} deleted`,
+          1,
+        );
+
         await tx.sale.delete({ where: { id } });
       },
       { timeout: 20000 },
@@ -551,19 +647,62 @@ export class SalesService {
   }
 
   async markAsPaid(id: string, companyId: string): Promise<SaleResponseDto> {
-    const sale = await this.prisma.sale.update({
-      where: { id, companyId },
-      data: {
-        paymentStatus: PaymentStatus.PAID,
-        status: OrderStatus.COMPLETED,
-      },
-      include: {
-        customer: true,
-        items: { include: { product: true } },
-      },
-    });
+    return this.prisma.$transaction(
+      async (tx) => {
+        const existing = await tx.sale.findUnique({
+          where: { id, companyId },
+          include: { items: true },
+        });
 
-    return this.transformSale(sale);
+        if (!existing) {
+          throw new NotFoundException('Sale not found');
+        }
+
+        const wasPending = existing.status !== OrderStatus.COMPLETED;
+
+        const sale = await tx.sale.update({
+          where: { id },
+          data: {
+            paymentStatus: PaymentStatus.PAID,
+            status: OrderStatus.COMPLETED,
+          },
+          include: {
+            customer: true,
+            items: { include: { product: true } },
+          },
+        });
+
+        // If sale was not already completed, decrement inventory
+        if (wasPending) {
+          await this.decrementInventoryFromWarehouse(
+            tx,
+            sale.items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: Number(item.unitPrice),
+            })),
+            sale.warehouseId ?? '',
+          );
+          await this.createStockLedgerEntries(
+            tx,
+            sale.items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: Number(item.unitPrice),
+            })),
+            sale.warehouseId ?? '',
+            sale.userId,
+            sale.invoiceNumber,
+            'SALE',
+            `Sale #${sale.invoiceNumber} marked as paid`,
+            -1,
+          );
+        }
+
+        return this.transformSale(sale);
+      },
+      { timeout: 20000 },
+    );
   }
 
   async getStats(companyId: string): Promise<SalesStatsDto> {
@@ -1112,6 +1251,44 @@ export class SalesService {
           quantity: {
             decrement: item.quantity,
           },
+        },
+      });
+    }
+  }
+
+  private async createStockLedgerEntries(
+    tx: any,
+    items: { productId: string; quantity: number; unitPrice?: number }[],
+    warehouseId: string,
+    userId: string,
+    reference: string,
+    type: string,
+    note: string,
+    sign: 1 | -1,
+  ): Promise<void> {
+    for (const item of items) {
+      const inventory = await tx.inventory.findUnique({
+        where: {
+          productId_warehouseId: {
+            productId: item.productId,
+            warehouseId: warehouseId,
+          },
+        },
+      });
+
+      const quantityChange = item.quantity * sign;
+      const currentBalance = inventory?.quantity ?? 0;
+
+      await tx.stockLedger.create({
+        data: {
+          productId: item.productId,
+          warehouseId,
+          userId,
+          quantity: quantityChange,
+          balance: currentBalance,
+          type,
+          reference,
+          note,
         },
       });
     }

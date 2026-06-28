@@ -2,244 +2,254 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import {
+  Alert,
+  AlertDescription,
+} from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  useSuppliersApi,
+  type CreateSupplierData,
+} from "@/hooks/use-suppliers-api";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, ChevronRight, Loader2, Save, Truck } from "lucide-react";
 
-export default function NewSupplierPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+export default function CreateSupplierPage() {
+  const [formData, setFormData] = useState<CreateSupplierData>({
     name: "",
-    company: "",
     email: "",
     phone: "",
     address: "",
-    city: "",
-    country: "",
-    taxId: "",
-    status: "active" as const,
-    paymentTerms: "Net 30",
-    rating: 5,
-    balance: 0,
   });
+  const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const router = useRouter();
+  const { toast } = useToast();
+  const { createSupplier } = useSuppliersApi();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.name.trim()) {
+      setSubmitError("Name is required");
+      return;
+    }
+
+    setSubmitError(null);
     setLoading(true);
 
     try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await createSupplier({
+        name: formData.name.trim(),
+        email: formData.email?.trim() || undefined,
+        phone: formData.phone?.trim() || undefined,
+        address: formData.address?.trim() || undefined,
+      });
 
-      // Redirect back to suppliers list
+      toast({
+        title: "Success",
+        description: "Supplier created successfully.",
+      });
       router.push("/suppliers");
-    } catch (error) {
-      console.error("Failed to create supplier:", error);
+    } catch (error: any) {
+      const message = error?.message || "Failed to create supplier.";
+      setSubmitError(message);
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "rating" || name === "balance" ? Number(value) : value,
-    }));
-  };
-
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
-        <Link href="/suppliers">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Suppliers
-          </Button>
-        </Link>
+    <div className="space-y-5">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+        <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <Link href="/suppliers" className="hover:text-foreground transition-colors">Suppliers</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-foreground">New Supplier</span>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Add New Supplier</CardTitle>
-          <CardDescription>
-            Fill in the details to add a new supplier to your system
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/suppliers"
+            className="flex items-center justify-center h-8 w-8 rounded-[5px] border hover:bg-accent transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <div>
+            <h1 className="text-[18px] font-bold text-foreground">New Supplier</h1>
+            <p className="text-sm text-muted-foreground">Create a new supplier account</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/suppliers">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-[34px] rounded-[5px] text-[13px]"
+            >
+              Cancel
+            </Button>
+          </Link>
+          <Button
+            type="submit"
+            form="create-supplier-form"
+            disabled={loading}
+            size="sm"
+            className="h-[34px] rounded-[5px] text-[13px] gap-1.5"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>Creating...</span>
+              </>
+            ) : (
+              <>
+                <Truck className="h-3.5 w-3.5" />
+                <span>Create Supplier</span>
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Error Alert */}
+      {submitError && (
+        <Alert variant="destructive">
+          <AlertDescription>{submitError}</AlertDescription>
+        </Alert>
+      )}
+
+      <form
+        id="create-supplier-form"
+        onSubmit={handleSubmit}
+        className="grid gap-5 lg:grid-cols-[1fr_320px]"
+      >
+        {/* Left Column */}
+        <div className="space-y-5">
+          <Card className="border rounded-[5px] bg-card shadow-sm">
+            <CardHeader className="px-5 py-[15px] border-b">
+              <CardTitle className="text-sm font-semibold">Supplier Information</CardTitle>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Supplier Name *</Label>
+                <Label htmlFor="name" className="text-xs font-medium">Name *</Label>
                 <Input
                   id="name"
-                  name="name"
                   value={formData.name}
-                  onChange={handleChange}
-                  required
-                  placeholder="John Doe"
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  placeholder="Acme Corp"
+                  className="h-[34px] rounded-[5px] text-sm"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="company">Company *</Label>
-                <Input
-                  id="company"
-                  name="company"
-                  value={formData.company}
-                  onChange={handleChange}
-                  required
-                  placeholder="ABC Electronics Ltd"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="email" className="text-xs font-medium">Email</Label>
                 <Input
                   id="email"
-                  name="email"
                   type="email"
                   value={formData.email}
-                  onChange={handleChange}
-                  required
-                  placeholder="supplier@example.com"
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  placeholder="contact@acme.com"
+                  className="h-[34px] rounded-[5px] text-sm"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone *</Label>
+                <Label htmlFor="phone" className="text-xs font-medium">Phone</Label>
                 <Input
                   id="phone"
-                  name="phone"
+                  type="tel"
                   value={formData.phone}
-                  onChange={handleChange}
-                  required
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
                   placeholder="+1 234 567 8900"
+                  className="h-[34px] rounded-[5px] text-sm"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address">Address *</Label>
-                <Input
+                <Label htmlFor="address" className="text-xs font-medium">Address</Label>
+                <Textarea
                   id="address"
-                  name="address"
+                  rows={3}
                   value={formData.address}
-                  onChange={handleChange}
-                  required
-                  placeholder="123 Business St"
+                  onChange={(e) =>
+                    setFormData({ ...formData, address: e.target.value })
+                  }
+                  placeholder="123 Business Street, City, State, ZIP"
+                  className="rounded-[5px] text-sm"
                 />
               </div>
+            </CardContent>
+          </Card>
+        </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="city">City *</Label>
-                <Input
-                  id="city"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  required
-                  placeholder="New York"
-                />
+        {/* Right Column */}
+        <div className="space-y-4">
+          <Card className="border rounded-[5px] bg-card shadow-sm p-5">
+            <h3 className="text-sm font-semibold text-foreground mb-4">Summary</h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Name</span>
+                <span className="font-medium truncate max-w-[160px] text-right">
+                  {formData.name || "—"}
+                </span>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="country">Country *</Label>
-                <Input
-                  id="country"
-                  name="country"
-                  value={formData.country}
-                  onChange={handleChange}
-                  required
-                  placeholder="USA"
-                />
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Email</span>
+                <span className="font-medium truncate max-w-[160px] text-right">
+                  {formData.email || "—"}
+                </span>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="taxId">Tax ID *</Label>
-                <Input
-                  id="taxId"
-                  name="taxId"
-                  value={formData.taxId}
-                  onChange={handleChange}
-                  required
-                  placeholder="TAX123456789"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <select
-                  id="status"
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="blocked">Blocked</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="paymentTerms">Payment Terms</Label>
-                <select
-                  id="paymentTerms"
-                  name="paymentTerms"
-                  value={formData.paymentTerms}
-                  onChange={handleChange}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="COD">Cash on Delivery</option>
-                  <option value="Net 15">Net 15</option>
-                  <option value="Net 30">Net 30</option>
-                  <option value="Net 45">Net 45</option>
-                  <option value="Net 60">Net 60</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="rating">Rating (1-5)</Label>
-                <Input
-                  id="rating"
-                  name="rating"
-                  type="number"
-                  min="1"
-                  max="5"
-                  value={formData.rating}
-                  onChange={handleChange}
-                  placeholder="5"
-                />
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Phone</span>
+                <span className="font-medium truncate max-w-[160px] text-right">
+                  {formData.phone || "—"}
+                </span>
               </div>
             </div>
+          </Card>
 
-            <div className="flex justify-end gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.push("/suppliers")}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Creating..." : "Create Supplier"}
-              </Button>
+          <Card className="border rounded-[5px] bg-card shadow-sm p-5 space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Quick Stats</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Suppliers</span>
+                <span className="font-semibold">—</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Avg. Purchase</span>
+                <span className="font-semibold">—</span>
+              </div>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+          </Card>
+        </div>
+      </form>
     </div>
   );
 }

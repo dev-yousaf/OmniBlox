@@ -152,6 +152,37 @@ export class ProductController {
     return this.productService.findBySku(sku, companyId);
   }
 
+  // STOCK ADJUSTMENTS - must be before :id routes
+  @Post('adjustments')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
+  @HttpCode(HttpStatus.CREATED)
+  async createStockAdjustment(
+    @Body() createStockAdjustmentDto: CreateStockAdjustmentDto,
+    @UserId() userId: string,
+    @CompanyId() companyId: string,
+  ) {
+    return this.productService.createStockAdjustment(
+      createStockAdjustmentDto,
+      userId,
+      companyId,
+    );
+  }
+
+  @Get('adjustments')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
+  async getStockAdjustments(@CompanyId() companyId: string) {
+    return this.productService.getStockAdjustments(companyId);
+  }
+
+  @Get('adjustments/:id')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
+  async getStockAdjustment(
+    @Param('id') id: string,
+    @CompanyId() companyId: string,
+  ) {
+    return this.productService.getStockAdjustment(id, companyId);
+  }
+
   @Get(':id')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async findOne(@Param('id') id: string, @CompanyId() companyId: string) {
@@ -190,37 +221,6 @@ export class ProductController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string, @CompanyId() companyId: string) {
     return this.productService.remove(id, companyId);
-  }
-
-  // STOCK ADJUSTMENTS - Management roles only
-  @Post('adjustments')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
-  @HttpCode(HttpStatus.CREATED)
-  async createStockAdjustment(
-    @Body() createStockAdjustmentDto: CreateStockAdjustmentDto,
-    @UserId() userId: string,
-    @CompanyId() companyId: string,
-  ) {
-    return this.productService.createStockAdjustment(
-      createStockAdjustmentDto,
-      userId,
-      companyId,
-    );
-  }
-
-  @Get('adjustments')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
-  async getStockAdjustments(@CompanyId() companyId: string) {
-    return this.productService.getStockAdjustments(companyId);
-  }
-
-  @Get('adjustments/:id')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
-  async getStockAdjustment(
-    @Param('id') id: string,
-    @CompanyId() companyId: string,
-  ) {
-    return this.productService.getStockAdjustment(id, companyId);
   }
 
   @Get(':id/ledger')

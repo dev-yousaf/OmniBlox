@@ -263,6 +263,28 @@ export class PurchaseReturnsService {
                 },
               });
             }
+
+            const inv = await tx.inventory.findUnique({
+              where: {
+                productId_warehouseId: {
+                  productId: item.productId,
+                  warehouseId: updated.warehouseId,
+                },
+              },
+            });
+
+            await tx.stockLedger.create({
+              data: {
+                productId: item.productId,
+                warehouseId: updated.warehouseId,
+                userId: updated.userId,
+                quantity: -(item.quantity),
+                balance: inv?.quantity ?? 0,
+                type: 'RETURN',
+                reference: updated.referenceNumber,
+                note: `Purchase return #${updated.referenceNumber} completed`,
+              },
+            });
           }
 
           // Mark the purchase order as having returns if linked
@@ -303,6 +325,28 @@ export class PurchaseReturnsService {
                 },
               });
             }
+
+            const inv = await tx.inventory.findUnique({
+              where: {
+                productId_warehouseId: {
+                  productId: item.productId,
+                  warehouseId: updated.warehouseId,
+                },
+              },
+            });
+
+            await tx.stockLedger.create({
+              data: {
+                productId: item.productId,
+                warehouseId: updated.warehouseId,
+                userId: updated.userId,
+                quantity: item.quantity,
+                balance: inv?.quantity ?? 0,
+                type: 'RETURN',
+                reference: updated.referenceNumber,
+                note: `Purchase return #${updated.referenceNumber} cancelled`,
+              },
+            });
           }
 
           // Check if purchase order still has any returns
@@ -348,6 +392,28 @@ export class PurchaseReturnsService {
                 },
               });
             }
+
+            const inv = await tx.inventory.findUnique({
+              where: {
+                productId_warehouseId: {
+                  productId: item.productId,
+                  warehouseId: updated.warehouseId,
+                },
+              },
+            });
+
+            await tx.stockLedger.create({
+              data: {
+                productId: item.productId,
+                warehouseId: updated.warehouseId,
+                userId: updated.userId,
+                quantity: item.quantity,
+                balance: inv?.quantity ?? 0,
+                type: 'RETURN',
+                reference: updated.referenceNumber,
+                note: `Purchase return #${updated.referenceNumber} reset to pending`,
+              },
+            });
           }
 
           // Check if purchase order still has any returns
@@ -404,6 +470,60 @@ export class PurchaseReturnsService {
           });
         }
 
+          // Revert returned quantity on original purchase items
+          for (const item of purchaseReturn.items) {
+            if (item.purchaseOrderItemId) {
+              await tx.purchaseOrderItem.update({
+                where: { id: item.purchaseOrderItemId },
+                data: {
+                  returnedQuantity: {
+                    decrement: item.quantity,
+                  },
+                },
+              });
+            }
+          }
+
+          // Recalculate purchase order hasReturns
+          if (purchaseReturn.purchaseOrderId) {
+            const purchaseItems = await tx.purchaseOrderItem.findMany({
+              where: { purchaseOrderId: purchaseReturn.purchaseOrderId },
+              select: { returnedQuantity: true },
+            });
+            const hasAnyReturns = purchaseItems.some(
+              (item) => item.returnedQuantity > 0,
+            );
+            await tx.purchaseOrder.update({
+              where: { id: purchaseReturn.purchaseOrderId },
+              data: { hasReturns: hasAnyReturns },
+            });
+          }
+
+          // Create stock ledger entries
+          for (const item of purchaseReturn.items) {
+            const inv = await tx.inventory.findUnique({
+              where: {
+                productId_warehouseId: {
+                  productId: item.productId,
+                  warehouseId: purchaseReturn.warehouseId,
+                },
+              },
+            });
+
+            await tx.stockLedger.create({
+              data: {
+                productId: item.productId,
+                warehouseId: purchaseReturn.warehouseId,
+                userId: purchaseReturn.userId,
+                quantity: item.quantity,
+                balance: inv?.quantity ?? 0,
+                type: 'RETURN',
+                reference: purchaseReturn.referenceNumber,
+                note: `Purchase return #${purchaseReturn.referenceNumber} deleted`,
+              },
+            });
+          }
+
         // Delete the return
         await tx.purchaseReturn.delete({ where: { id } });
 
@@ -411,8 +531,37 @@ export class PurchaseReturnsService {
       });
     }
 
-    // If not completed, just delete
-    await this.prisma.purchaseReturn.delete({ where: { id } });
-    return { message: 'Purchase return deleted successfully' };
+    // If not completed, just delete but revert purchase order item quantities if linked
+    return await this.prisma.$transaction(async (tx) => {
+      if (purchaseReturn.purchaseOrderId) {
+        for (const item of purchaseReturn.items) {
+          if (item.purchaseOrderItemId) {
+            await tx.purchaseOrderItem.update({
+              where: { id: item.purchaseOrderItemId },
+              data: {
+                returnedQuantity: {
+                  decrement: item.quantity,
+                },
+              },
+            });
+          }
+        }
+
+        const purchaseItems = await tx.purchaseOrderItem.findMany({
+          where: { purchaseOrderId: purchaseReturn.purchaseOrderId },
+          select: { returnedQuantity: true },
+        });
+        const hasAnyReturns = purchaseItems.some(
+          (item) => item.returnedQuantity > 0,
+        );
+        await tx.purchaseOrder.update({
+          where: { id: purchaseReturn.purchaseOrderId },
+          data: { hasReturns: hasAnyReturns },
+        });
+      }
+
+      await tx.purchaseReturn.delete({ where: { id } });
+      return { message: 'Purchase return deleted successfully' };
+    });
   }
 }

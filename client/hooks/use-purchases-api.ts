@@ -44,8 +44,20 @@ export interface CreatePurchaseOrderDto {
   }>;
 }
 
+export interface UpdatePurchaseOrderDto {
+  supplierId: string;
+  orderDate: string;
+  warehouseId?: string | null;
+  notes?: string;
+  items: Array<{
+    productId: string;
+    quantity: number;
+    unitCost: number;
+  }>;
+}
+
 export function usePurchasesApi() {
-  const { get, post, patch } = useAuthenticatedApi();
+  const { get, post, put, patch } = useAuthenticatedApi();
 
   return {
     list: async (): Promise<PurchaseOrder[]> => {
@@ -57,6 +69,12 @@ export function usePurchasesApi() {
     },
     create: async (data: CreatePurchaseOrderDto): Promise<PurchaseOrder> => {
       return (await post("/purchases", data)) as PurchaseOrder;
+    },
+    update: async (
+      id: string,
+      data: UpdatePurchaseOrderDto
+    ): Promise<PurchaseOrder> => {
+      return (await put(`/purchases/${id}`, data)) as PurchaseOrder;
     },
     receive: async (
       id: string,

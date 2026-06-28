@@ -21,6 +21,9 @@ interface CreateProductData {
   parentId?: string;
   comboItems?: { productId: string; quantity: number }[];
   warehouseId?: string;
+  manufacturedDate?: string;
+  expiryDate?: string;
+  alertQuantity?: number;
 }
 
 interface UpdateProductData extends Partial<CreateProductData> {}

@@ -94,6 +94,7 @@ const sections: SidebarSection[] = [
     label: "Stock",
     items: [
       { id: "inventory", name: "Manage Stock", href: "/inventory", icon: Warehouse },
+      { id: "warehouses", name: "Warehouses", href: "/inventory/warehouses", icon: Building },
       { id: "stock-adjustment", name: "Stock Adjustment", href: "/products/adjustment", icon: ArrowUpDown, mutationOnly: true },
       { id: "stock-transfer", name: "Stock Transfer", href: "/inventory/transfer", icon: ArrowLeftRight, mutationOnly: true },
     ],

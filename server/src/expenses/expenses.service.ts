@@ -38,6 +38,7 @@ export class ExpensesService {
         vendor: dto.vendor,
         status: 'PENDING',
         categoryId: dto.categoryId,
+        purchaseOrderId: dto.purchaseOrderId,
         userId,
         companyId,
       },
@@ -142,6 +143,9 @@ export class ExpensesService {
         ...(dto.status !== undefined && { status: dto.status }),
         ...(dto.paymentMethod !== undefined && {
           paymentMethod: dto.paymentMethod,
+        }),
+        ...(dto.purchaseOrderId !== undefined && {
+          purchaseOrderId: dto.purchaseOrderId,
         }),
       },
       include: {

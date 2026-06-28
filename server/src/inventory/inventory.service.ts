@@ -347,6 +347,7 @@ export class InventoryService {
 
   async updateInventory(
     companyId: string,
+    userId: string,
     productId: string,
     warehouseId: string,
     dto: UpdateInventoryDto,
@@ -369,21 +370,86 @@ export class InventoryService {
       throw new NotFoundException('Warehouse not found');
     }
 
-    return this.prisma.inventory.upsert({
-      where: {
-        productId_warehouseId: {
+    // Create stock adjustment + update inventory in a transaction
+    const referenceNumber = `ADJ-${Date.now()}`;
+
+    return this.prisma.$transaction(async (prisma) => {
+      const currentInventory = await prisma.inventory.findUnique({
+        where: {
+          productId_warehouseId: {
+            productId,
+            warehouseId,
+          },
+        },
+      });
+
+      const previousQuantity = currentInventory?.quantity ?? 0;
+      const difference = dto.quantity - previousQuantity;
+
+      // Update or create inventory
+      const inv = await prisma.inventory.upsert({
+        where: {
+          productId_warehouseId: {
+            productId,
+            warehouseId,
+          },
+        },
+        update: {
+          quantity: dto.quantity,
+        },
+        create: {
           productId,
           warehouseId,
+          quantity: dto.quantity,
         },
-      },
-      update: {
-        quantity: dto.quantity,
-      },
-      create: {
-        productId,
-        warehouseId,
-        quantity: dto.quantity,
-      },
+      });
+
+      // Determine adjustment type from delta
+      const adjType = difference > 0 ? 'ADDITION' : difference < 0 ? 'REMOVAL' : 'ADDITION';
+
+      // Create stock adjustment record (if quantity actually changed)
+      if (difference !== 0) {
+        const stockAdjustment = await prisma.stockAdjustment.create({
+          data: {
+            referenceNumber,
+            adjustmentDate: new Date(),
+            notes: dto.notes || 'Manual update from inventory page',
+            type: adjType,
+            totalItems: 1,
+            netChange: difference,
+            companyId,
+            userId,
+          },
+        });
+
+        // Create stock adjustment item
+        await prisma.stockAdjustmentItem.create({
+          data: {
+            stockAdjustmentId: stockAdjustment.id,
+            productId,
+            warehouseId,
+            previousQuantity,
+            newQuantity: dto.quantity,
+            difference,
+          },
+        });
+
+        // Create stock ledger entry
+        await prisma.stockLedger.create({
+          data: {
+            productId,
+            warehouseId,
+            userId,
+            quantity: difference,
+            balance: dto.quantity,
+            type: 'ADJUSTMENT',
+            reference: referenceNumber,
+            note: dto.notes || 'Manual update from inventory page',
+          },
+        });
+      }
+
+      return inv;
     });
   }
 
@@ -482,6 +548,49 @@ export class InventoryService {
           warehouseId: toWarehouseId,
           quantity,
         },
+      });
+
+      // Create stock ledger entries for transfer
+      const srcInv = await prisma.inventory.findUnique({
+        where: {
+          productId_warehouseId: {
+            productId,
+            warehouseId: fromWarehouseId,
+          },
+        },
+      });
+      const dstInv = await prisma.inventory.findUnique({
+        where: {
+          productId_warehouseId: {
+            productId,
+            warehouseId: toWarehouseId,
+          },
+        },
+      });
+
+      await prisma.stockLedger.createMany({
+        data: [
+          {
+            productId,
+            warehouseId: fromWarehouseId,
+            userId,
+            quantity: -quantity,
+            balance: srcInv?.quantity ?? 0,
+            type: 'TRANSFER',
+            reference: referenceNumber,
+            note: `Transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
+          },
+          {
+            productId,
+            warehouseId: toWarehouseId,
+            userId,
+            quantity,
+            balance: dstInv?.quantity ?? quantity,
+            type: 'TRANSFER',
+            reference: referenceNumber,
+            note: `Transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
+          },
+        ],
       });
 
       // Create adjustment items
@@ -599,6 +708,24 @@ export class InventoryService {
           },
         });
 
+        // Create stock ledger entries for this transfer item
+        const srcInv = await prisma.inventory.findUnique({
+          where: {
+            productId_warehouseId: {
+              productId: item.productId,
+              warehouseId: fromWarehouseId,
+            },
+          },
+        });
+        const dstInv = await prisma.inventory.findUnique({
+          where: {
+            productId_warehouseId: {
+              productId: item.productId,
+              warehouseId: toWarehouseId,
+            },
+          },
+        });
+
         adjustmentItems.push(
           {
             stockAdjustmentId: stockAdjustment.id,
@@ -617,6 +744,32 @@ export class InventoryService {
             difference: item.quantity,
           },
         );
+
+        // Add stock ledger entries
+        await prisma.stockLedger.createMany({
+          data: [
+            {
+              productId: item.productId,
+              warehouseId: fromWarehouseId,
+              userId,
+              quantity: -item.quantity,
+              balance: srcInv?.quantity ?? 0,
+              type: 'TRANSFER',
+              reference: referenceNumber,
+              note: `Bulk transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
+            },
+            {
+              productId: item.productId,
+              warehouseId: toWarehouseId,
+              userId,
+              quantity: item.quantity,
+              balance: dstInv?.quantity ?? item.quantity,
+              type: 'TRANSFER',
+              reference: referenceNumber,
+              note: `Bulk transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
+            },
+          ],
+        });
       }
 
       await prisma.stockAdjustmentItem.createMany({ data: adjustmentItems });
@@ -712,6 +865,20 @@ export class InventoryService {
             productId: item.productId,
             warehouseId: item.warehouseId,
             quantity: item.newQuantity,
+          },
+        });
+
+        // Create stock ledger entry for this adjustment
+        await prisma.stockLedger.create({
+          data: {
+            productId: item.productId,
+            warehouseId: item.warehouseId,
+            userId,
+            quantity: difference,
+            balance: item.newQuantity,
+            type: 'ADJUSTMENT',
+            reference: referenceNumber,
+            note: dto.notes || 'Stock adjustment',
           },
         });
 

@@ -207,9 +207,12 @@ export function useInventoryApi() {
     async (
       productId: string,
       warehouseId: string,
-      quantity: number
+      quantity: number,
+      notes?: string
     ): Promise<any> => {
-      return put(`/inventory/${productId}/${warehouseId}`, { quantity });
+      const body: Record<string, any> = { quantity };
+      if (notes) body.notes = notes;
+      return put(`/inventory/${productId}/${warehouseId}`, body);
     },
     [put]
   );

@@ -40,6 +40,8 @@ export class CustomersService {
         email: dto.email,
         phone: dto.phone,
         address: dto.address,
+        creditLimit: dto.creditLimit,
+        balance: dto.balance,
         companyId,
       },
     });
@@ -145,6 +147,8 @@ export class CustomersService {
         email: dto.email,
         phone: dto.phone,
         address: dto.address,
+        creditLimit: dto.creditLimit,
+        balance: dto.balance,
       },
     });
 
@@ -183,6 +187,8 @@ export class CustomersService {
       email: customer.email,
       phone: customer.phone,
       address: customer.address,
+      creditLimit: customer.creditLimit ? Number(customer.creditLimit) : undefined,
+      balance: customer.balance ? Number(customer.balance) : undefined,
       companyId: customer.companyId,
       createdAt: customer.createdAt.toISOString(),
       updatedAt: customer.updatedAt.toISOString(),

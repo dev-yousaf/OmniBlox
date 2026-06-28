@@ -40,6 +40,8 @@ export class SuppliersService {
         email: dto.email,
         phone: dto.phone,
         address: dto.address,
+        creditLimit: dto.creditLimit,
+        balance: dto.balance,
         companyId,
       },
     });
@@ -128,6 +130,8 @@ export class SuppliersService {
         email: dto.email,
         phone: dto.phone,
         address: dto.address,
+        creditLimit: dto.creditLimit,
+        balance: dto.balance,
       },
     });
 
@@ -166,6 +170,8 @@ export class SuppliersService {
       email: supplier.email,
       phone: supplier.phone,
       address: supplier.address,
+      creditLimit: supplier.creditLimit ? Number(supplier.creditLimit) : undefined,
+      balance: supplier.balance ? Number(supplier.balance) : undefined,
       companyId: supplier.companyId,
       createdAt: supplier.createdAt.toISOString(),
       updatedAt: supplier.updatedAt.toISOString(),

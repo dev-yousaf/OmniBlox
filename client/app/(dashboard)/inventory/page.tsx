@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -63,6 +64,7 @@ export default function ManageStockPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const [editQty, setEditQty] = useState("");
+  const [editNote, setEditNote] = useState("");
   const [editingQty, setEditingQty] = useState(false);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -131,6 +133,7 @@ export default function ManageStockPage() {
   const openEdit = (item: InventoryItem) => {
     setEditItem(item);
     setEditQty(String(item.quantity));
+    setEditNote("");
     setEditOpen(true);
   };
 
@@ -143,7 +146,7 @@ export default function ManageStockPage() {
     }
     try {
       setEditingQty(true);
-      await api.updateInventory(editItem.productId, editItem.warehouseId, qty);
+      await api.updateInventory(editItem.productId, editItem.warehouseId, qty, editNote.trim() || undefined);
       toast({ title: "Updated", description: `Stock for ${editItem.productName} set to ${qty}` });
       setEditOpen(false);
       load();
@@ -509,6 +512,17 @@ export default function ManageStockPage() {
                   onChange={(e) => setEditQty(e.target.value)}
                   className="mt-1.5 h-[38px] rounded-[5px]"
                   autoFocus
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-note" className="text-sm font-medium">Note (optional)</Label>
+                <Textarea
+                  id="edit-note"
+                  placeholder="Reason for stock change..."
+                  value={editNote}
+                  onChange={(e) => setEditNote(e.target.value)}
+                  rows={2}
+                  className="mt-1.5 rounded-[5px] resize-none"
                 />
               </div>
             </div>

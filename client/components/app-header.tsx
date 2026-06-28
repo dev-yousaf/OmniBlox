@@ -49,7 +49,6 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 import { useAuthenticatedApi } from "@/hooks/use-authenticated-api";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 type AppHeaderProps = Record<string, never>;

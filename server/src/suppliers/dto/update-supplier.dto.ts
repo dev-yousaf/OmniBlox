@@ -3,4 +3,6 @@ export class UpdateSupplierDto {
   email?: string;
   phone?: string;
   address?: string;
+  creditLimit?: number;
+  balance?: number;
 }

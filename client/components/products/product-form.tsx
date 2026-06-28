@@ -21,7 +21,7 @@ import { useProductCategoriesApi } from "@/hooks/use-product-categories-api";
 import { useUnitsApi } from "@/hooks/use-units-api";
 import { useSubCategoriesApi } from "@/hooks/use-sub-categories-api";
 import { useWarrantiesApi } from "@/hooks/use-warranties-api";
-import { useVariantAttributesApi, VariantAttribute } from "@/hooks/use-variant-attributes-api";
+import { useVariantAttributesApi, VariantAttribute as ApiVariantAttribute } from "@/hooks/use-variant-attributes-api";
 import { useInventoryApi } from "@/hooks/use-inventory-api";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
@@ -36,8 +36,9 @@ import {
 } from "lucide-react";
 
 interface VariantAttribute {
+  id?: string;
   name: string;
-  values: string;
+  values: string | string[];
 }
 
 interface GeneratedVariant {
@@ -260,7 +261,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
           setUnits(unitsData);
           setSubCategories(subCatsData);
           setWarranties(warrantiesData);
-          setSavedAttributes(attrsData);
+          setSavedAttributes(attrsData as unknown as VariantAttribute[]);
           setWarehouses(whData);
           if (whData.length > 0 && !selectedWarehouseId) setSelectedWarehouseId(whData[0].id);
         } catch (error) {
@@ -331,16 +332,18 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
       []
     );
 
+    const getAttrValues = (a: VariantAttribute): string[] => {
+      return Array.isArray(a.values) ? a.values : a.values.split(",").map((v) => v.trim()).filter(Boolean);
+    };
+
     const generateVariants = () => {
-      const valid = attributesList.filter((a) => a.name.trim() && a.values.trim());
+      const valid = attributesList.filter((a) => a.name.trim() && getAttrValues(a).length > 0);
       if (valid.length === 0) {
         toast({ title: "Error", description: "Add at least one attribute with values", variant: "destructive" });
         return;
       }
 
-      const attrValues = valid.map((a) =>
-        a.values.split(",").map((v) => v.trim()).filter(Boolean)
-      );
+      const attrValues = valid.map((a) => getAttrValues(a));
 
       if (attrValues.some((v) => v.length === 0)) {
         toast({ title: "Error", description: "Each attribute must have at least one value", variant: "destructive" });
@@ -362,8 +365,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
 
       const attrsRecord: Record<string, string> = {};
       valid.forEach((a) => {
-        attrsRecord[a.name.trim()] =
-          a.values.split(",").map((v) => v.trim()).filter(Boolean).join(",");
+        attrsRecord[a.name.trim()] = getAttrValues(a).join(",");
       });
 
       setFormData((prev) => ({ ...prev, attributes: JSON.stringify(attrsRecord) }));
@@ -930,15 +932,15 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                     <Select onValueChange={(value) => {
                       const attr = savedAttributes.find(a => a.id === value);
                       if (attr && Array.isArray(attr.values) && !attributesList.some(a => a.name === attr.name)) {
-                        setAttributesList(prev => [...prev, { name: attr.name, values: (attr.values as string[]).join(", ") }]);
+                        setAttributesList(prev => [...prev, { name: attr.name, values: attr.values instanceof Array ? attr.values.join(", ") : attr.values }]);
                       }
                     }}>
                       <SelectTrigger className="h-[34px] w-[160px] text-[12px] rounded-[5px]">
                         <SelectValue placeholder="Select preset" />
                       </SelectTrigger>
                       <SelectContent>
-                        {savedAttributes.map(a => (
-                          <SelectItem key={a.id} value={a.id} disabled={attributesList.some(at => at.name === a.name)}>
+                        {savedAttributes.map((a, idx) => (
+                          <SelectItem key={a.id ?? idx} value={a.id ?? ''} disabled={attributesList.some(at => at.name === a.name)}>
                             {a.name}
                           </SelectItem>
                         ))}
