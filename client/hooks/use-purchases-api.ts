@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuthenticatedApi } from "./use-authenticated-api";
+import { useCallback, useMemo } from "react";
 
 export type OrderStatus = "PENDING" | "COMPLETED" | "CANCELLED" | string;
 
@@ -59,30 +60,35 @@ export interface UpdatePurchaseOrderDto {
 export function usePurchasesApi() {
   const { get, post, put, patch } = useAuthenticatedApi();
 
-  return {
-    list: async (): Promise<PurchaseOrder[]> => {
-      const res = (await get("/purchases")) as PurchaseOrder[];
-      return Array.isArray(res) ? res : [];
-    },
-    getById: async (id: string): Promise<PurchaseOrder> => {
-      return (await get(`/purchases/${id}`)) as PurchaseOrder;
-    },
-    create: async (data: CreatePurchaseOrderDto): Promise<PurchaseOrder> => {
-      return (await post("/purchases", data)) as PurchaseOrder;
-    },
-    update: async (
-      id: string,
-      data: UpdatePurchaseOrderDto
-    ): Promise<PurchaseOrder> => {
+  const list = useCallback(async (): Promise<PurchaseOrder[]> => {
+    const res = (await get("/purchases")) as PurchaseOrder[];
+    return Array.isArray(res) ? res : [];
+  }, [get]);
+
+  const getById = useCallback(async (id: string): Promise<PurchaseOrder> => {
+    return (await get(`/purchases/${id}`)) as PurchaseOrder;
+  }, [get]);
+
+  const create = useCallback(async (data: CreatePurchaseOrderDto): Promise<PurchaseOrder> => {
+    return (await post("/purchases", data)) as PurchaseOrder;
+  }, [post]);
+
+  const update = useCallback(
+    async (id: string, data: UpdatePurchaseOrderDto): Promise<PurchaseOrder> => {
       return (await put(`/purchases/${id}`, data)) as PurchaseOrder;
     },
-    receive: async (
-      id: string,
-      warehouseId: string
-    ): Promise<PurchaseOrder> => {
-      return (await patch(`/purchases/${id}/receive`, {
-        warehouseId,
-      })) as PurchaseOrder;
+    [put],
+  );
+
+  const receive = useCallback(
+    async (id: string, warehouseId: string): Promise<PurchaseOrder> => {
+      return (await patch(`/purchases/${id}/receive`, { warehouseId })) as PurchaseOrder;
     },
-  };
+    [patch],
+  );
+
+  return useMemo(
+    () => ({ list, getById, create, update, receive }),
+    [list, getById, create, update, receive],
+  );
 }
