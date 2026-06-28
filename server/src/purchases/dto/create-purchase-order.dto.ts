@@ -53,6 +53,10 @@ export class CreatePurchaseOrderDto {
   @IsString()
   readonly notes?: string;
 
+  @IsOptional()
+  @IsString()
+  readonly warehouseId?: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreatePurchaseItemDto)

@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
+import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
 import { OrderStatus } from '@prisma/client';
 
 @Injectable()
@@ -87,7 +88,7 @@ export class PurchasesService {
     }
 
     // Verify supplier belongs to company
-    const supplier = await this.prisma.supplier.findUnique({
+    const supplier = await this.prisma.supplier.findFirst({
       where: { id: dto.supplierId, companyId },
     });
 
@@ -114,6 +115,8 @@ export class PurchasesService {
         status: dto.status || OrderStatus.PENDING,
         totalAmount,
         supplierId: dto.supplierId,
+        warehouseId: dto.warehouseId ?? null,
+        notes: dto.notes,
         userId,
         companyId,
         items: {
@@ -193,7 +196,7 @@ export class PurchasesService {
   }
 
   async findOne(id: string, companyId: string) {
-    const purchaseOrder = await this.prisma.purchaseOrder.findUnique({
+    const purchaseOrder = await this.prisma.purchaseOrder.findFirst({
       where: { id, companyId },
       include: {
         items: {
@@ -241,7 +244,7 @@ export class PurchasesService {
     return this.prisma.$transaction(
       async (tx) => {
         // 1. Verify the warehouse belongs to this company
-        const warehouse = await tx.warehouse.findUnique({
+        const warehouse = await tx.warehouse.findFirst({
           where: { id: warehouseId, companyId },
         });
 
@@ -250,7 +253,7 @@ export class PurchasesService {
         }
 
         // 2. Verify the purchase order exists and belongs to this company
-        const purchaseOrder = await tx.purchaseOrder.findUnique({
+        const purchaseOrder = await tx.purchaseOrder.findFirst({
           where: { id, companyId },
           include: {
             items: true,
@@ -361,6 +364,124 @@ export class PurchasesService {
       },
       { timeout: 20000 },
     );
+  }
+
+  async update(
+    id: string,
+    dto: UpdatePurchaseOrderDto,
+    companyId: string,
+  ) {
+    // Verify purchase order exists
+    const existing = await this.prisma.purchaseOrder.findFirst({
+      where: { id, companyId },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Purchase order not found');
+    }
+
+    // Verify supplier belongs to company
+    const supplier = await this.prisma.supplier.findFirst({
+      where: { id: dto.supplierId, companyId },
+    });
+
+    if (!supplier) {
+      throw new NotFoundException('Supplier not found');
+    }
+
+    // Verify warehouse belongs to company if provided
+    if (dto.warehouseId) {
+      const warehouse = await this.prisma.warehouse.findFirst({
+        where: { id: dto.warehouseId, companyId },
+      });
+      if (!warehouse) {
+        throw new NotFoundException('Warehouse not found');
+      }
+    }
+
+    // Calculate totals
+    const totalAmount = dto.items.reduce(
+      (sum, item) => sum + item.quantity * item.unitCost,
+      0,
+    );
+
+    // Delete old items and recreate
+    await this.prisma.purchaseOrderItem.deleteMany({
+      where: { purchaseOrderId: id },
+    });
+
+    const purchaseOrder = await this.prisma.purchaseOrder.update({
+      where: { id },
+      data: {
+        supplierId: dto.supplierId,
+        orderDate: new Date(dto.orderDate),
+        warehouseId: dto.warehouseId ?? null,
+        notes: dto.notes,
+        totalAmount,
+        items: {
+          create: dto.items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            unitCost: item.unitCost,
+          })),
+        },
+      },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                sku: true,
+              },
+            },
+          },
+        },
+        supplier: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        warehouse: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return this.transformPurchase(purchaseOrder);
+  }
+
+  async remove(id: string, companyId: string) {
+    const existing = await this.prisma.purchaseOrder.findFirst({
+      where: { id, companyId },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Purchase order not found');
+    }
+
+    await this.prisma.purchaseOrderItem.deleteMany({
+      where: { purchaseOrderId: id },
+    });
+
+    await this.prisma.purchaseOrder.delete({
+      where: { id },
+    });
+
+    return { message: 'Purchase order deleted successfully' };
   }
 
   private decimalToNumber(value: any): number {

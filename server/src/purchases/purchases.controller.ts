@@ -3,6 +3,8 @@ import {
   Get,
   Post,
   Patch,
+  Put,
+  Delete,
   Param,
   Body,
   UseGuards,
@@ -10,6 +12,7 @@ import {
 import { UserRole } from '@prisma/client';
 import { PurchasesService } from './purchases.service';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
+import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
 import { ReceivePurchaseOrderDto } from './dto/receive-purchase-order.dto';
 import { AuthGuard } from '@thallesp/nestjs-better-auth';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -42,6 +45,25 @@ export class PurchasesController {
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async findOne(@Param('id') id: string, @CompanyId() companyId: string) {
     return this.purchasesService.findOne(id, companyId);
+  }
+
+  @Put(':id')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdatePurchaseOrderDto,
+    @CompanyId() companyId: string,
+  ) {
+    return this.purchasesService.update(id, dto, companyId);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
+  async remove(
+    @Param('id') id: string,
+    @CompanyId() companyId: string,
+  ) {
+    return this.purchasesService.remove(id, companyId);
   }
 
   @Patch(':id/receive')

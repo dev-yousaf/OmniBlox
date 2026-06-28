@@ -692,6 +692,7 @@ model Delivery {
 model PurchaseOrder {
   id              String              @id @default(uuid())
   referenceNumber String
+  notes           String?
   totalAmount     Decimal             @db.Decimal(10, 2)
   status          OrderStatus         @default(PENDING)
   orderDate       DateTime            @default(now())
