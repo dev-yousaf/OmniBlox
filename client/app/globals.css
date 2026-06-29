@@ -283,6 +283,25 @@
   }
 }
 
+/* Sidebar thin scrollbar with orange gradient */
+.sidebar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-sidebar-primary) transparent;
+}
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-nav::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: linear-gradient(to bottom, var(--color-sidebar-primary), var(--color-primary));
+}
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, var(--color-primary), var(--color-chart-4));
+}
+
 @keyframes global-progress-shimmer {
   0% {
     background-position: 0% 50%;

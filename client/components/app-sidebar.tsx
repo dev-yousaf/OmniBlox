@@ -118,7 +118,10 @@ const sections: SidebarSection[] = [
   },
   {
     label: "Finance & Accounts",
-    items: [{ id: "expenses", name: "Expenses", href: "/expenses", icon: DollarSign }],
+    items: [
+      { id: "expenses", name: "Expenses", href: "/expenses", icon: DollarSign },
+      { id: "expense-categories", name: "Expense Categories", href: "/settings/expense-categories", icon: FolderTree },
+    ],
   },
   {
     label: "Peoples",
@@ -260,7 +263,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-6 space-y-4">
+      <nav className="sidebar-nav flex-1 overflow-y-auto p-6 space-y-4">
         {sections.map((section) => {
           const visibleItems = filterItems(section.items, userRole, isSuperadmin);
           if (visibleItems.length === 0) return null;

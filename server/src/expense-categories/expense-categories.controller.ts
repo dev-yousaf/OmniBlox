@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   UseGuards,
+  HttpCode,
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { ExpenseCategoriesService } from './expense-categories.service';
@@ -59,5 +60,15 @@ export class ExpenseCategoriesController {
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
   remove(@Param('id') id: string, @CompanyId() companyId: string) {
     return this.expenseCategoriesService.remove(id, companyId);
+  }
+
+  @Post('bulk-delete')
+  @HttpCode(200)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  bulkRemove(
+    @Body() body: { ids: string[] },
+    @CompanyId() companyId: string,
+  ) {
+    return this.expenseCategoriesService.bulkRemove(body.ids, companyId);
   }
 }

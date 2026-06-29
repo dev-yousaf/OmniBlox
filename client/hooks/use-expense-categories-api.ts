@@ -18,6 +18,11 @@ export interface UpdateExpenseCategoryDto {
   description?: string;
 }
 
+export interface BulkDeleteResponse {
+  deleted: string[];
+  count: number;
+}
+
 export function useExpenseCategoriesApi() {
   const { get, post, put, delete: del } = useAuthenticatedApi();
 
@@ -58,11 +63,19 @@ export function useExpenseCategoriesApi() {
     [del]
   );
 
+  const bulkDeleteExpenseCategories = useCallback(
+    async (ids: string[]): Promise<BulkDeleteResponse> => {
+      return post("/expense-categories/bulk-delete", { ids }) as Promise<BulkDeleteResponse>;
+    },
+    [post]
+  );
+
   return {
     getExpenseCategories,
     getExpenseCategory,
     createExpenseCategory,
     updateExpenseCategory,
     deleteExpenseCategory,
+    bulkDeleteExpenseCategories,
   };
 }

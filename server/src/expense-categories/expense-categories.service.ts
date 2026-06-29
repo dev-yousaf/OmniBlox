@@ -55,4 +55,12 @@ export class ExpenseCategoriesService {
       where: { id: category.id },
     });
   }
+
+  async bulkRemove(ids: string[], companyId: string) {
+    const result = await this.prisma.expenseCategory.deleteMany({
+      where: { id: { in: ids }, companyId },
+    });
+
+    return { deleted: ids, count: result.count };
+  }
 }
