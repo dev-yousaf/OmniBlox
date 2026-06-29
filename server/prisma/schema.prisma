@@ -163,21 +163,21 @@ model AuthToken {
 }
 
 model Biller {
-  id        String   @id @default(uuid())
-  name      String
-  code      String   // Unique identifier like "MO-001", "DB-002"
-  address   String?
-  phone     String?
-  email     String?
-  status    BillerStatus @default(ACTIVE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String       @id @default(uuid())
+  name          String
+  code          String
+  address       String?
+  phone         String?
+  email         String?
+  contactPerson String?
+  gstNumber     String?
+  status        BillerStatus @default(ACTIVE)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
-  // NEW: Link to Company
   companyId String
   company   Company @relation(fields: [companyId], references: [id])
 
-  // Relations - Billers can be associated with sales and invoices
   sales Sale[]
 
   @@unique([companyId, code]) // Code unique per company

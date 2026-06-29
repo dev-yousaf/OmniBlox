@@ -193,13 +193,15 @@ export class BillersService {
   }
 
   async getStats(companyId: string): Promise<BillerStatsDto> {
-    const [billers, totalSales] = await Promise.all([
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const [billers, recentlyAdded] = await Promise.all([
       this.prisma.biller.findMany({
         where: { companyId },
         select: { status: true },
       }),
-      this.prisma.sale.count({
-        where: { companyId },
+      this.prisma.biller.count({
+        where: { companyId, createdAt: { gte: thirtyDaysAgo } },
       }),
     ]);
 
@@ -213,7 +215,7 @@ export class BillersService {
       totalBillers,
       activeBillers,
       inactiveBillers,
-      totalSales,
+      recentlyAdded,
     };
   }
 
@@ -247,6 +249,8 @@ export class BillersService {
       address: biller.address,
       phone: biller.phone,
       email: biller.email,
+      contactPerson: biller.contactPerson,
+      gstNumber: biller.gstNumber,
       status: biller.status,
       createdAt: biller.createdAt,
       updatedAt: biller.updatedAt,

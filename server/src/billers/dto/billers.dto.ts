@@ -23,6 +23,14 @@ export class CreateBillerDto {
   @IsOptional()
   email?: string;
 
+  @IsString()
+  @IsOptional()
+  contactPerson?: string;
+
+  @IsString()
+  @IsOptional()
+  gstNumber?: string;
+
   @IsIn(BILLER_STATUSES)
   @IsOptional()
   status?: BillerStatus = 'ACTIVE';
@@ -49,6 +57,14 @@ export class UpdateBillerDto {
   @IsOptional()
   email?: string;
 
+  @IsString()
+  @IsOptional()
+  contactPerson?: string;
+
+  @IsString()
+  @IsOptional()
+  gstNumber?: string;
+
   @IsIn(BILLER_STATUSES)
   @IsOptional()
   status?: BillerStatus;
@@ -61,6 +77,8 @@ export class BillerResponseDto {
   address?: string;
   phone?: string;
   email?: string;
+  contactPerson?: string;
+  gstNumber?: string;
   status: BillerStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -77,5 +95,5 @@ export class BillerStatsDto {
   totalBillers: number;
   activeBillers: number;
   inactiveBillers: number;
-  totalSales: number;
+  recentlyAdded: number;
 }

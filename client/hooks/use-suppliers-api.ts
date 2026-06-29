@@ -7,6 +7,8 @@ export interface Supplier {
   email?: string;
   phone?: string;
   address?: string;
+  creditLimit?: number;
+  balance?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -16,6 +18,8 @@ export interface CreateSupplierData {
   email?: string;
   phone?: string;
   address?: string;
+  creditLimit?: number;
+  balance?: number;
 }
 
 export interface UpdateSupplierData {
@@ -23,6 +27,8 @@ export interface UpdateSupplierData {
   email?: string;
   phone?: string;
   address?: string;
+  creditLimit?: number;
+  balance?: number;
 }
 
 export interface SuppliersListResponse {

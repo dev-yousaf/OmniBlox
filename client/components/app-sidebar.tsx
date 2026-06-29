@@ -32,6 +32,7 @@ import {
   Ruler,
   ListChecks,
   ShieldCheck,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -123,6 +124,7 @@ const sections: SidebarSection[] = [
     label: "Peoples",
     items: [
       { id: "users", name: "Users", href: "/people/users", icon: Users, allowedRoles: ["OWNER", "ADMIN", "MANAGER"] },
+      { id: "billers", name: "Billers", href: "/people/billers", icon: Receipt },
       { id: "customers", name: "Customers", href: "/people/customers", icon: Users },
       { id: "suppliers", name: "Suppliers", href: "/people/suppliers", icon: Building },
     ],
