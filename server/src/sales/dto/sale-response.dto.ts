@@ -23,6 +23,8 @@ export interface SaleSummaryDto {
   warehouseName: string;
   hasReturns: boolean;
   pendingReturnCount: number;
+  processingReturnCount: number;
+  completedReturnCount: number;
   returnStatus: 'NONE' | 'PARTIAL' | 'ALL';
   returnedValue: number;
   netTotal: number;

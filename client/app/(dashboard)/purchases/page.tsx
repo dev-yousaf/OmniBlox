@@ -238,7 +238,7 @@ export default function PurchasesPage() {
                       {format(new Date(p.orderDate), "MMM dd, yyyy")}
                     </td>
                     <td className="px-5 text-right font-medium tabular-nums">
-                      {formatCurrency.format(Number(p.totalAmount))}
+                      {formatCurrency.format(Number(p.netTotal ?? p.totalAmount))}
                     </td>
                     <td className="px-5">
                       <Badge variant="outline" className={`font-medium text-xs ${statusConfig[p.status]?.className || ""}`}>
@@ -246,17 +246,21 @@ export default function PurchasesPage() {
                       </Badge>
                     </td>
                     <td className="px-5 text-center">
-                      {p.pendingReturnCount != null && p.pendingReturnCount > 0 && !p.hasReturns ? (
+                      {p.returnStatus === "ALL" ? (
+                        <Badge variant="outline" className="font-medium text-xs text-purple-600 border-purple-200 bg-purple-50">
+                          <RotateCcw className="mr-1 h-3 w-3" /> All Returned
+                        </Badge>
+                      ) : (p.processingReturnCount ?? 0) > 0 ? (
+                        <Badge variant="outline" className="font-medium text-xs text-blue-600 border-blue-200 bg-blue-50">
+                          <RotateCcw className="mr-1 h-3 w-3" /> Processing
+                        </Badge>
+                      ) : (p.pendingReturnCount ?? 0) > 0 ? (
                         <Badge variant="outline" className="font-medium text-xs text-amber-600 border-amber-200 bg-amber-50">
-                          <RotateCcw className="mr-1 h-3 w-3" /> Return Pending
+                          <RotateCcw className="mr-1 h-3 w-3" /> Pending
                         </Badge>
                       ) : p.hasReturns ? (
-                        <Badge variant="outline" className={`font-medium text-xs ${
-                          p.returnStatus === "ALL"
-                            ? "text-purple-600 border-purple-200 bg-purple-50"
-                            : "text-emerald-600 border-emerald-200 bg-emerald-50"
-                        }`}>
-                          <RotateCcw className="mr-1 h-3 w-3" /> {p.returnStatus === "ALL" ? "All Returned" : "Returned"}
+                        <Badge variant="outline" className="font-medium text-xs text-emerald-600 border-emerald-200 bg-emerald-50">
+                          <RotateCcw className="mr-1 h-3 w-3" /> Returned
                         </Badge>
                       ) : null}
                     </td>

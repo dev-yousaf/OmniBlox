@@ -157,20 +157,28 @@ export default function PurchaseDetailPage() {
               <Badge variant="outline" className={`font-medium text-xs ${statusStyles[status] || ""}`}>
                 {statusLabel}
               </Badge>
-              {purchase.pendingReturnCount != null && purchase.pendingReturnCount > 0 && !purchase.hasReturns ? (
+              {allReturned ? (
+                <Link href={`/returns?search=${purchase.referenceNumber}`}>
+                  <Badge variant="outline" className="font-medium text-xs text-purple-600 border-purple-200 bg-purple-50 hover:bg-purple-100 cursor-pointer transition-colors">
+                    <RotateCcw className="mr-1 h-3 w-3" /> All Returned
+                  </Badge>
+                </Link>
+              ) : (purchase.processingReturnCount ?? 0) > 0 ? (
+                <Link href={`/returns?search=${purchase.referenceNumber}`}>
+                  <Badge variant="outline" className="font-medium text-xs text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100 cursor-pointer transition-colors">
+                    <RotateCcw className="mr-1 h-3 w-3" /> Processing
+                  </Badge>
+                </Link>
+              ) : (purchase.pendingReturnCount ?? 0) > 0 ? (
                 <Link href={`/returns?search=${purchase.referenceNumber}`}>
                   <Badge variant="outline" className="font-medium text-xs text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100 cursor-pointer transition-colors">
-                    <RotateCcw className="mr-1 h-3 w-3" /> Return Pending
+                    <RotateCcw className="mr-1 h-3 w-3" /> Pending
                   </Badge>
                 </Link>
               ) : purchase.hasReturns ? (
                 <Link href={`/returns?search=${purchase.referenceNumber}`}>
-                  <Badge variant="outline" className={`font-medium text-xs cursor-pointer transition-colors ${
-                    allReturned
-                      ? "text-purple-600 border-purple-200 bg-purple-50 hover:bg-purple-100"
-                      : "text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
-                  }`}>
-                    <RotateCcw className="mr-1 h-3 w-3" /> {allReturned ? "All Returned" : "Returned"}
+                  <Badge variant="outline" className="font-medium text-xs text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 cursor-pointer transition-colors">
+                    <RotateCcw className="mr-1 h-3 w-3" /> Returned
                   </Badge>
                 </Link>
               ) : null}

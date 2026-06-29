@@ -410,7 +410,7 @@ export default function SalesPage() {
                         {new Date(sale.dueDate).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}
                       </td>
                       <td className="w-[120px] px-5 text-right font-semibold tabular-nums">
-                        {formatCurrency.format(sale.totalAmount)}
+                        {formatCurrency.format(sale.netTotal ?? sale.totalAmount)}
                       </td>
                       <td className="w-[100px] px-5">
                         <Badge variant="outline" className={`font-medium text-xs ${statusStyles[status] || ""}`}>
@@ -418,19 +418,21 @@ export default function SalesPage() {
                         </Badge>
                       </td>
                       <td className="w-[60px] px-5 text-center">
-                        {sale.pendingReturnCount > 0 && !sale.hasReturns ? (
+                        {sale.returnStatus === "ALL" ? (
+                          <Badge variant="outline" className="font-medium text-xs text-purple-600 border-purple-200 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800">
+                            <RotateCcw className="mr-1 h-3 w-3" /> All Returned
+                          </Badge>
+                        ) : (sale.processingReturnCount ?? 0) > 0 ? (
+                          <Badge variant="outline" className="font-medium text-xs text-blue-600 border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800">
+                            <RotateCcw className="mr-1 h-3 w-3" /> Processing
+                          </Badge>
+                        ) : (sale.pendingReturnCount ?? 0) > 0 ? (
                           <Badge variant="outline" className="font-medium text-xs text-amber-600 border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800">
-                            <RotateCcw className="mr-1 h-3 w-3" />
-                            Return Pending
+                            <RotateCcw className="mr-1 h-3 w-3" /> Pending
                           </Badge>
                         ) : sale.hasReturns ? (
-                          <Badge variant="outline" className={`font-medium text-xs ${
-                            sale.returnStatus === "ALL"
-                              ? "text-purple-600 border-purple-200 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800"
-                              : "text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800"
-                          }`}>
-                            <RotateCcw className="mr-1 h-3 w-3" />
-                            {sale.returnStatus === "ALL" ? "All Returned" : "Returned"}
+                          <Badge variant="outline" className="font-medium text-xs text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800">
+                            <RotateCcw className="mr-1 h-3 w-3" /> Returned
                           </Badge>
                         ) : null}
                       </td>

@@ -31,6 +31,8 @@ export interface Sale {
   paymentMethod?: string;
   hasReturns: boolean;
   pendingReturnCount?: number;
+  processingReturnCount?: number;
+  completedReturnCount?: number;
   returnStatus?: 'NONE' | 'PARTIAL' | 'ALL';
   returnedValue?: number;
   netTotal?: number;

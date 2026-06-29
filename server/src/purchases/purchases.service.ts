@@ -228,23 +228,27 @@ export class PurchasesService {
       orderBy: { orderDate: 'desc' },
     });
 
-    // Batch query pending returns for all purchases
+    // Batch query return statuses for all purchases
     const poIds = purchases.map((p) => p.id);
-    const pendingGroups = await this.prisma.purchaseReturn.groupBy({
-      by: ['purchaseOrderId'],
-      where: {
-        purchaseOrderId: { in: poIds },
-        status: 'PENDING',
-      },
-      _count: { id: true },
+    const allReturns = await this.prisma.purchaseReturn.findMany({
+      where: { purchaseOrderId: { in: poIds } },
+      select: { purchaseOrderId: true, status: true },
     });
     const pendingMap = new Map<string, number>();
-    for (const g of pendingGroups) {
-      pendingMap.set(g.purchaseOrderId, Number(g._count.id));
+    const processingMap = new Map<string, number>();
+    const completedMap = new Map<string, number>();
+    for (const r of allReturns) {
+      if (r.status === 'PENDING') pendingMap.set(r.purchaseOrderId, (pendingMap.get(r.purchaseOrderId) ?? 0) + 1);
+      else if (r.status === 'PROCESSING') processingMap.set(r.purchaseOrderId, (processingMap.get(r.purchaseOrderId) ?? 0) + 1);
+      else if (r.status === 'COMPLETED') completedMap.set(r.purchaseOrderId, (completedMap.get(r.purchaseOrderId) ?? 0) + 1);
     }
 
     return purchases.map((p) =>
-      this.transformPurchaseSummary(p, pendingMap.get(p.id) ?? 0),
+      this.transformPurchaseSummary(p, {
+        pendingReturnCount: pendingMap.get(p.id) ?? 0,
+        processingReturnCount: processingMap.get(p.id) ?? 0,
+        completedReturnCount: completedMap.get(p.id) ?? 0,
+      }),
     );
   }
 
@@ -290,11 +294,17 @@ export class PurchasesService {
       throw new NotFoundException('Purchase order not found');
     }
 
-    const pendingCount = await this.prisma.purchaseReturn.count({
-      where: { purchaseOrderId: id, status: 'PENDING' },
+    const allRet = await this.prisma.purchaseReturn.findMany({
+      where: { purchaseOrderId: id },
+      select: { status: true },
     });
+    const returnCounts = {
+      pendingReturnCount: allRet.filter((r) => r.status === 'PENDING').length,
+      processingReturnCount: allRet.filter((r) => r.status === 'PROCESSING').length,
+      completedReturnCount: allRet.filter((r) => r.status === 'COMPLETED').length,
+    };
 
-    return this.transformPurchase(purchaseOrder, pendingCount);
+    return this.transformPurchase(purchaseOrder, returnCounts);
   }
 
   async receive(id: string, warehouseId: string, companyId: string) {
@@ -564,7 +574,12 @@ export class PurchasesService {
     };
   }
 
-  private transformPurchaseSummary(po: any, pendingReturnCount = 0) {
+  private transformPurchaseSummary(po: any, returnCounts?: { pendingReturnCount: number; processingReturnCount: number; completedReturnCount: number }) {
+    const {
+      pendingReturnCount = 0,
+      processingReturnCount = 0,
+      completedReturnCount = 0,
+    } = returnCounts ?? {};
     const total = this.decimalToNumber(po.totalAmount);
     const items = po.items?.map((i: any) => this.transformPurchaseItem(i)) ?? [];
 
@@ -590,6 +605,8 @@ export class PurchasesService {
       status: po.status,
       hasReturns: Boolean(po.hasReturns),
       pendingReturnCount,
+      processingReturnCount,
+      completedReturnCount,
       returnStatus,
       returnedValue: this.roundCurrency(returnedValue),
       netTotal: this.roundCurrency(total - returnedValue),
@@ -606,9 +623,9 @@ export class PurchasesService {
     };
   }
 
-  private transformPurchase(po: any, pendingReturnCount = 0) {
+  private transformPurchase(po: any, returnCounts?: { pendingReturnCount: number; processingReturnCount: number; completedReturnCount: number }) {
     return {
-      ...this.transformPurchaseSummary(po, pendingReturnCount),
+      ...this.transformPurchaseSummary(po, returnCounts),
       notes: po.notes ?? null,
       createdAt: po.createdAt.toISOString(),
       updatedAt: po.updatedAt.toISOString(),

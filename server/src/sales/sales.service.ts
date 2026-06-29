@@ -358,24 +358,28 @@ export class SalesService {
       this.prisma.sale.count({ where }),
     ]);
 
-    // Batch query pending returns for all sales
+    // Batch query return statuses for all sales
     const saleIds = sales.map((s) => s.id);
-    const pendingGroups = await this.prisma.salesReturn.groupBy({
-      by: ['saleId'],
-      where: {
-        saleId: { in: saleIds },
-        status: 'PENDING',
-      },
-      _count: { id: true },
+    const allReturns = await this.prisma.salesReturn.findMany({
+      where: { saleId: { in: saleIds } },
+      select: { saleId: true, status: true },
     });
     const pendingMap = new Map<string, number>();
-    for (const g of pendingGroups) {
-      pendingMap.set(g.saleId, Number(g._count.id));
+    const processingMap = new Map<string, number>();
+    const completedMap = new Map<string, number>();
+    for (const r of allReturns) {
+      if (r.status === 'PENDING') pendingMap.set(r.saleId, (pendingMap.get(r.saleId) ?? 0) + 1);
+      else if (r.status === 'PROCESSING') processingMap.set(r.saleId, (processingMap.get(r.saleId) ?? 0) + 1);
+      else if (r.status === 'COMPLETED') completedMap.set(r.saleId, (completedMap.get(r.saleId) ?? 0) + 1);
     }
 
     return {
       sales: sales.map((sale) =>
-        this.transformSaleSummary(sale, pendingMap.get(sale.id) ?? 0),
+        this.transformSaleSummary(sale, {
+          pendingReturnCount: pendingMap.get(sale.id) ?? 0,
+          processingReturnCount: processingMap.get(sale.id) ?? 0,
+          completedReturnCount: completedMap.get(sale.id) ?? 0,
+        }),
       ),
       total,
       pages: limit === 0 ? 1 : Math.max(1, Math.ceil(total / limit)),
@@ -396,11 +400,17 @@ export class SalesService {
       throw new NotFoundException('Sale not found');
     }
 
-    const pendingCount = await this.prisma.salesReturn.count({
-      where: { saleId: id, status: 'PENDING' },
+    const allRet = await this.prisma.salesReturn.findMany({
+      where: { saleId: id },
+      select: { status: true },
     });
+    const returnCounts = {
+      pendingReturnCount: allRet.filter((r) => r.status === 'PENDING').length,
+      processingReturnCount: allRet.filter((r) => r.status === 'PROCESSING').length,
+      completedReturnCount: allRet.filter((r) => r.status === 'COMPLETED').length,
+    };
 
-    return this.transformSale(sale, pendingCount);
+    return this.transformSale(sale, returnCounts);
   }
 
   async update(
@@ -1036,7 +1046,12 @@ export class SalesService {
     };
   }
 
-  private transformSaleSummary(sale: any, pendingReturnCount = 0): SaleSummaryDto {
+  private transformSaleSummary(sale: any, returnCounts?: { pendingReturnCount: number; processingReturnCount: number; completedReturnCount: number }): SaleSummaryDto {
+    const {
+      pendingReturnCount = 0,
+      processingReturnCount = 0,
+      completedReturnCount = 0,
+    } = returnCounts ?? {};
     const subtotal = this.decimalToNumber(sale.subtotal);
     const tax = this.decimalToNumber(sale.tax);
     const discount = this.decimalToNumber(sale.discount);
@@ -1076,6 +1091,8 @@ export class SalesService {
       warehouseName: sale.warehouse?.name ?? '',
       hasReturns: Boolean(sale.hasReturns),
       pendingReturnCount,
+      processingReturnCount,
+      completedReturnCount,
       returnStatus,
       returnedValue: this.roundCurrency(returnedValue),
       netTotal: this.roundCurrency(total - returnedValue),
@@ -1090,9 +1107,9 @@ export class SalesService {
     };
   }
 
-  private transformSale(sale: any, pendingReturnCount = 0): SaleResponseDto {
+  private transformSale(sale: any, returnCounts?: { pendingReturnCount: number; processingReturnCount: number; completedReturnCount: number }): SaleResponseDto {
     return {
-      ...this.transformSaleSummary(sale, pendingReturnCount),
+      ...this.transformSaleSummary(sale, returnCounts),
       notes: sale.notes,
       items: sale.items.map((item) => this.transformSaleItem(item)),
     };
