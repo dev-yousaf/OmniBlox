@@ -98,14 +98,18 @@ export default function SupplierDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px] text-destructive" onClick={() => setDeleteOpen(true)}>
-            <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete
-          </Button>
-          <Link href={`/people/suppliers/${supplier.id}/edit`}>
-            <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">
-              <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
+          {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+            <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px] text-destructive" onClick={() => setDeleteOpen(true)}>
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete
             </Button>
-          </Link>
+          )}
+          {canManage && (
+            <Link href={`/people/suppliers/${supplier.id}/edit`}>
+              <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">
+                <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 

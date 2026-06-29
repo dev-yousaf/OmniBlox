@@ -130,17 +130,17 @@ export default function WarehouseDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+            <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px] text-destructive" onClick={() => setDeleteOpen(true)}>
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete
+            </Button>
+          )}
           {canManage && (
-            <>
-              <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px] text-destructive" onClick={() => setDeleteOpen(true)}>
-                <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete
+            <Link href={`/inventory/warehouses/${warehouse.id}/edit`}>
+              <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">
+                <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
               </Button>
-              <Link href={`/inventory/warehouses/${warehouse.id}/edit`}>
-                <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">
-                  <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
-                </Button>
-              </Link>
-            </>
+            </Link>
           )}
         </div>
       </div>

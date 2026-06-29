@@ -13,3 +13,11 @@ export class NotificationsListResponseDto {
   total: number;
   unreadCount: number;
 }
+
+export class CreateNotificationDto {
+  type: string;
+  title: string;
+  message: string;
+  link?: string;
+  userId?: string;
+}

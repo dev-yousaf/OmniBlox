@@ -237,14 +237,16 @@ export default function PurchaseDetailPage() {
                   </Button>
                 </Link>
               )}
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-[34px] rounded-[5px] text-[13px] text-destructive hover:text-destructive"
-                onClick={() => setDeleteOpen(true)}
-              >
-                <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
-              </Button>
+              {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-[34px] rounded-[5px] text-[13px] text-destructive hover:text-destructive"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
+                </Button>
+              )}
             </>
           )}
         </div>

@@ -1,12 +1,15 @@
 import {
   Controller,
   Get,
+  Post,
   Put,
+  Body,
   Param,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
+import { CreateNotificationDto } from './dto/notification-response.dto';
 import { AuthGuard } from '@thallesp/nestjs-better-auth';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -17,6 +20,12 @@ import { UserRole } from '@prisma/client';
 @UseGuards(AuthGuard, RolesGuard)
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
+
+  @Post()
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
+  create(@Body() dto: CreateNotificationDto, @CompanyId() companyId: string) {
+    return this.notificationsService.create(dto, companyId);
+  }
 
   @Get()
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)

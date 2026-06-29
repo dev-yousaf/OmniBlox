@@ -112,25 +112,25 @@ export default function CustomerDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           {canManage && (
-            <>
-              <Link href={`/people/customers/${customer.id}/edit`}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-[34px] rounded-[5px] text-[13px]"
-                >
-                  <Edit className="mr-1.5 h-3.5 w-3.5" /> Edit
-                </Button>
-              </Link>
+            <Link href={`/people/customers/${customer.id}/edit`}>
               <Button
                 variant="outline"
                 size="sm"
-                className="h-[34px] rounded-[5px] text-[13px] text-destructive hover:text-destructive"
-                onClick={() => setDeleteOpen(true)}
+                className="h-[34px] rounded-[5px] text-[13px]"
               >
-                <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
+                <Edit className="mr-1.5 h-3.5 w-3.5" /> Edit
               </Button>
-            </>
+            </Link>
+          )}
+          {(user?.role === "OWNER" || user?.role === "ADMIN") && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-[34px] rounded-[5px] text-[13px] text-destructive hover:text-destructive"
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
+            </Button>
           )}
         </div>
       </div>

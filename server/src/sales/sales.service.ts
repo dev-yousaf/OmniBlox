@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateSaleDto, CreateSaleItemDto } from './dto/create-sale.dto';
 import { UpdateSaleDto } from './dto/update-sale.dto';
 import {
@@ -18,7 +19,10 @@ import {
 
 @Injectable()
 export class SalesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   /**
    * Dashboard-specific sales aggregations
@@ -726,7 +730,7 @@ export class SalesService {
   }
 
   async markAsPaid(id: string, companyId: string): Promise<SaleResponseDto> {
-    return this.prisma.$transaction(
+    const result = await this.prisma.$transaction(
       async (tx) => {
         const existing = await tx.sale.findUnique({
           where: { id, companyId },
@@ -782,6 +786,17 @@ export class SalesService {
       },
       { timeout: 20000 },
     );
+
+    try {
+      await this.notificationsService.create({
+        type: 'payment',
+        title: 'Payment Received',
+        message: `Payment of $${Number(result.totalAmount).toFixed(2)} received for invoice #${result.invoiceNumber}`,
+        link: `/sales/${result.id}`,
+      }, companyId);
+    } catch { /* non-critical */ }
+
+    return result;
   }
 
   async getStats(companyId: string): Promise<SalesStatsDto> {

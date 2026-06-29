@@ -4,13 +4,17 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 @Injectable()
 export class PurchasesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   /**
    * Dashboard-specific purchase aggregations
@@ -431,6 +435,15 @@ export class PurchasesService {
       // Expense creation is non-critical
     }
 
+    try {
+      await this.notificationsService.create({
+        type: 'order',
+        title: 'Purchase Received',
+        message: `Purchase order #${result.referenceNumber} has been received and inventory updated`,
+        link: `/purchases/${result.id}`,
+      }, companyId);
+    } catch { /* non-critical */ }
+
     return result;
   }
 
@@ -462,7 +475,18 @@ export class PurchasesService {
       },
     });
 
-    return this.transformPurchase(po);
+    const result = this.transformPurchase(po);
+
+    try {
+      await this.notificationsService.create({
+        type: 'payment',
+        title: 'Bill Paid',
+        message: `Bill #${result.referenceNumber} has been marked as paid`,
+        link: `/purchases/${result.id}`,
+      }, companyId);
+    } catch { /* non-critical */ }
+
+    return result;
   }
 
   async update(

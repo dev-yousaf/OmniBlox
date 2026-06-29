@@ -1,10 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { NotificationDto, NotificationsListResponseDto } from './dto/notification-response.dto';
+import { NotificationDto, NotificationsListResponseDto, CreateNotificationDto } from './dto/notification-response.dto';
 
 @Injectable()
 export class NotificationsService {
   constructor(private prisma: PrismaService) {}
+
+  async create(dto: CreateNotificationDto, companyId: string): Promise<NotificationDto> {
+    const notification = await this.prisma.notification.create({
+      data: {
+        type: dto.type,
+        title: dto.title,
+        message: dto.message,
+        link: dto.link ?? null,
+        userId: dto.userId ?? null,
+        companyId,
+      },
+    });
+    return this.toDto(notification);
+  }
 
   async findAll(
     companyId: string,

@@ -469,7 +469,7 @@ export default function SalesPage() {
                                 </DropdownMenuItem>
                               </>
                             )}
-                            {canManage && (
+                            {(user?.role === "OWNER" || user?.role === "ADMIN") && (
                               <>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
