@@ -29,8 +29,6 @@ export default function EditUserPage() {
   const canEdit = checkRoleAccess(currentRole, ["OWNER", "ADMIN"]);
   const { getUser, updateUser } = useTeamApi();
 
-  if (!canEdit) return <PageError type="forbidden" />;
-
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [user, setUser] = useState<TeamUser | null>(null);
@@ -57,6 +55,8 @@ export default function EditUserPage() {
     };
     load();
   }, [params.id, getUser, toast, router]);
+
+  if (!canEdit) return <PageError type="forbidden" />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

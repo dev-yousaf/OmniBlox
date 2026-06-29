@@ -24,10 +24,7 @@ export class UnitsController {
 
   @Post()
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
-  create(
-    @Body() createDto: CreateUnitDto,
-    @CompanyId() companyId: string,
-  ) {
+  create(@Body() createDto: CreateUnitDto, @CompanyId() companyId: string) {
     return this.unitsService.create(createDto, companyId);
   }
 

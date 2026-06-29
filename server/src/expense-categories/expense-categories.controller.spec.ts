@@ -9,7 +9,9 @@ describe('ExpenseCategoriesController', () => {
       controllers: [ExpenseCategoriesController],
     }).compile();
 
-    controller = module.get<ExpenseCategoriesController>(ExpenseCategoriesController);
+    controller = module.get<ExpenseCategoriesController>(
+      ExpenseCategoriesController,
+    );
   });
 
   it('should be defined', () => {

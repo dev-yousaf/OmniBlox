@@ -2,7 +2,6 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -23,7 +22,7 @@ export class InventoryService {
   constructor(private prisma: PrismaService) {}
 
   // === WAREHOUSE MANAGEMENT ===
-  async createWarehouse(companyId: string, dto: CreateWarehouseDto) {
+  createWarehouse(companyId: string, dto: CreateWarehouseDto) {
     return this.prisma.warehouse.create({
       data: {
         ...dto,
@@ -32,7 +31,7 @@ export class InventoryService {
     });
   }
 
-  async getWarehouses(companyId: string) {
+  getWarehouses(companyId: string) {
     return this.prisma.warehouse.findMany({
       where: { companyId },
       include: {
@@ -405,7 +404,8 @@ export class InventoryService {
       });
 
       // Determine adjustment type from delta
-      const adjType = difference > 0 ? 'ADDITION' : difference < 0 ? 'REMOVAL' : 'ADDITION';
+      const adjType =
+        difference > 0 ? 'ADDITION' : difference < 0 ? 'REMOVAL' : 'ADDITION';
 
       // Create stock adjustment record (if quantity actually changed)
       if (difference !== 0) {
@@ -633,12 +633,18 @@ export class InventoryService {
 
     // Verify warehouses
     const [fromWarehouse, toWarehouse] = await Promise.all([
-      this.prisma.warehouse.findFirst({ where: { id: fromWarehouseId, companyId } }),
-      this.prisma.warehouse.findFirst({ where: { id: toWarehouseId, companyId } }),
+      this.prisma.warehouse.findFirst({
+        where: { id: fromWarehouseId, companyId },
+      }),
+      this.prisma.warehouse.findFirst({
+        where: { id: toWarehouseId, companyId },
+      }),
     ]);
 
-    if (!fromWarehouse) throw new NotFoundException('Source warehouse not found');
-    if (!toWarehouse) throw new NotFoundException('Destination warehouse not found');
+    if (!fromWarehouse)
+      throw new NotFoundException('Source warehouse not found');
+    if (!toWarehouse)
+      throw new NotFoundException('Destination warehouse not found');
 
     const referenceNumber = `TRF-${Date.now()}`;
 
@@ -648,7 +654,9 @@ export class InventoryService {
         data: {
           referenceNumber,
           adjustmentDate: new Date(),
-          notes: notes || `Bulk transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
+          notes:
+            notes ||
+            `Bulk transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
           totalItems: items.length * 2,
           netChange: 0,
           companyId,
@@ -663,7 +671,8 @@ export class InventoryService {
         const product = await prisma.product.findFirst({
           where: { id: item.productId, companyId },
         });
-        if (!product) throw new NotFoundException(`Product ${item.productId} not found`);
+        if (!product)
+          throw new NotFoundException(`Product ${item.productId} not found`);
 
         // Check source inventory
         const sourceInventory = await prisma.inventory.findUnique({
@@ -790,7 +799,7 @@ export class InventoryService {
   }
 
   // === STOCK ADJUSTMENTS ===
-  async createStockAdjustment(
+  createStockAdjustment(
     companyId: string,
     userId: string,
     dto: CreateStockAdjustmentDto,
@@ -798,7 +807,6 @@ export class InventoryService {
     const referenceNumber = `ADJ-${Date.now()}`;
 
     return this.prisma.$transaction(async (prisma) => {
-      let totalItems = 0;
       let netChange = 0;
 
       // Validate all products and warehouses first

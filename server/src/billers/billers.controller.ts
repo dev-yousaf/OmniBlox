@@ -61,9 +61,7 @@ export class BillersController {
 
   @Get('stats')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
-  async getStats(
-    @CompanyId() companyId: string,
-  ): Promise<BillerStatsDto> {
+  async getStats(@CompanyId() companyId: string): Promise<BillerStatsDto> {
     return this.billersService.getStats(companyId);
   }
 

@@ -28,10 +28,7 @@ export class CustomersController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
-  async create(
-    @Body() dto: CreateCustomerDto,
-    @CompanyId() companyId: string,
-  ) {
+  async create(@Body() dto: CreateCustomerDto, @CompanyId() companyId: string) {
     return this.customersService.create(dto, companyId);
   }
 
@@ -50,10 +47,7 @@ export class CustomersController {
 
   @Get(':id')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
-  async findOne(
-    @Param('id') id: string,
-    @CompanyId() companyId: string,
-  ) {
+  async findOne(@Param('id') id: string, @CompanyId() companyId: string) {
     return this.customersService.findOne(id, companyId);
   }
 
@@ -70,10 +64,7 @@ export class CustomersController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
-  async remove(
-    @Param('id') id: string,
-    @CompanyId() companyId: string,
-  ) {
+  async remove(@Param('id') id: string, @CompanyId() companyId: string) {
     await this.customersService.remove(id, companyId);
   }
 }

@@ -49,7 +49,10 @@ export class SubCategoriesService {
     let code = dto.slug ? dto.slug.toUpperCase().replace(/-/g, '_') : null;
     if (!code) {
       const nextNum = lastSubCategory?.code
-        ? String(Number(lastSubCategory.code.replace(/\D/g, '')) + 1).padStart(3, '0')
+        ? String(Number(lastSubCategory.code.replace(/\D/g, '')) + 1).padStart(
+            3,
+            '0',
+          )
         : '001';
       code = `SC${nextNum}`;
     }
@@ -69,7 +72,7 @@ export class SubCategoriesService {
     });
   }
 
-  async findAll(companyId: string, categoryId?: string) {
+  findAll(companyId: string, categoryId?: string) {
     const where: any = { companyId };
     if (categoryId) where.categoryId = categoryId;
 
@@ -106,7 +109,10 @@ export class SubCategoriesService {
     }
 
     if (dto.name) {
-      const categoryId = dto.categoryId || (await this.prisma.subCategory.findUnique({ where: { id } })).categoryId;
+      const categoryId =
+        dto.categoryId ||
+        (await this.prisma.subCategory.findUnique({ where: { id } }))
+          .categoryId;
       const existing = await this.prisma.subCategory.findFirst({
         where: { name: dto.name, categoryId, companyId, id: { not: id } },
       });
@@ -158,7 +164,10 @@ export class SubCategoriesService {
         });
 
         if (!subCategory) {
-          results.failed.push({ id, error: 'Sub-category not found or access denied' });
+          results.failed.push({
+            id,
+            error: 'Sub-category not found or access denied',
+          });
           continue;
         }
 
@@ -170,7 +179,10 @@ export class SubCategoriesService {
         await this.prisma.subCategory.delete({ where: { id } });
         results.deleted.push(id);
       } catch (error) {
-        results.failed.push({ id, error: error.message || 'Failed to delete sub-category' });
+        results.failed.push({
+          id,
+          error: error.message || 'Failed to delete sub-category',
+        });
       }
     }
 

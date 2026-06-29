@@ -7,7 +7,7 @@ import { UpdateExpenseCategoryDto } from './dto/update-expense-category.dto';
 export class ExpenseCategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(companyId: string, dto: CreateExpenseCategoryDto) {
+  create(companyId: string, dto: CreateExpenseCategoryDto) {
     return this.prisma.expenseCategory.create({
       data: {
         name: dto.name,
@@ -17,7 +17,7 @@ export class ExpenseCategoriesService {
     });
   }
 
-  async findAll(companyId: string) {
+  findAll(companyId: string) {
     return this.prisma.expenseCategory.findMany({
       where: { companyId },
       orderBy: { name: 'asc' },

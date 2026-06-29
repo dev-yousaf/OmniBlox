@@ -166,14 +166,28 @@ export class PurchasesService {
     });
 
     try {
-      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true, role: true } });
-      await this.auditLogService.create({
-        action: 'CREATE',
-        entity: 'Purchase',
-        entityId: purchaseOrder.id,
-        details: JSON.stringify({ referenceNumber: purchaseOrder.referenceNumber, amount: Number(purchaseOrder.totalAmount) }),
-      }, companyId, userId, user?.name || 'Unknown', user?.role || 'Unknown');
-    } catch { /* non-critical */ }
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true, role: true },
+      });
+      await this.auditLogService.create(
+        {
+          action: 'CREATE',
+          entity: 'Purchase',
+          entityId: purchaseOrder.id,
+          details: JSON.stringify({
+            referenceNumber: purchaseOrder.referenceNumber,
+            amount: Number(purchaseOrder.totalAmount),
+          }),
+        },
+        companyId,
+        userId,
+        user?.name || 'Unknown',
+        user?.role || 'Unknown',
+      );
+    } catch {
+      /* non-critical */
+    }
 
     return this.transformPurchase(purchaseOrder);
   }
@@ -227,9 +241,21 @@ export class PurchasesService {
     const processingMap = new Map<string, number>();
     const completedMap = new Map<string, number>();
     for (const r of allReturns) {
-      if (r.status === 'PENDING') pendingMap.set(r.purchaseOrderId, (pendingMap.get(r.purchaseOrderId) ?? 0) + 1);
-      else if (r.status === 'PROCESSING') processingMap.set(r.purchaseOrderId, (processingMap.get(r.purchaseOrderId) ?? 0) + 1);
-      else if (r.status === 'COMPLETED') completedMap.set(r.purchaseOrderId, (completedMap.get(r.purchaseOrderId) ?? 0) + 1);
+      if (r.status === 'PENDING')
+        pendingMap.set(
+          r.purchaseOrderId,
+          (pendingMap.get(r.purchaseOrderId) ?? 0) + 1,
+        );
+      else if (r.status === 'PROCESSING')
+        processingMap.set(
+          r.purchaseOrderId,
+          (processingMap.get(r.purchaseOrderId) ?? 0) + 1,
+        );
+      else if (r.status === 'COMPLETED')
+        completedMap.set(
+          r.purchaseOrderId,
+          (completedMap.get(r.purchaseOrderId) ?? 0) + 1,
+        );
     }
 
     return purchases.map((p) =>
@@ -289,14 +315,21 @@ export class PurchasesService {
     });
     const returnCounts = {
       pendingReturnCount: allRet.filter((r) => r.status === 'PENDING').length,
-      processingReturnCount: allRet.filter((r) => r.status === 'PROCESSING').length,
-      completedReturnCount: allRet.filter((r) => r.status === 'COMPLETED').length,
+      processingReturnCount: allRet.filter((r) => r.status === 'PROCESSING')
+        .length,
+      completedReturnCount: allRet.filter((r) => r.status === 'COMPLETED')
+        .length,
     };
 
     return this.transformPurchase(purchaseOrder, returnCounts);
   }
 
-  async receive(id: string, warehouseId: string, userId: string, companyId: string) {
+  async receive(
+    id: string,
+    warehouseId: string,
+    userId: string,
+    companyId: string,
+  ) {
     const result = await this.prisma.$transaction(
       async (tx) => {
         // 1. Verify the warehouse belongs to this company
@@ -359,30 +392,30 @@ export class PurchasesService {
           ),
         );
 
-          // Create stock ledger entries for each received item
-          for (const item of purchaseOrder.items) {
-            const inv = await tx.inventory.findUnique({
-              where: {
-                productId_warehouseId: {
-                  productId: item.productId,
-                  warehouseId,
-                },
-              },
-            });
-
-            await tx.stockLedger.create({
-              data: {
+        // Create stock ledger entries for each received item
+        for (const item of purchaseOrder.items) {
+          const inv = await tx.inventory.findUnique({
+            where: {
+              productId_warehouseId: {
                 productId: item.productId,
                 warehouseId,
-                userId: purchaseOrder.userId,
-                quantity: item.quantity,
-                balance: inv?.quantity ?? item.quantity,
-                type: 'PURCHASE',
-                reference: purchaseOrder.referenceNumber,
-                note: `Purchase order #${purchaseOrder.referenceNumber} received`,
               },
-            });
-          }
+            },
+          });
+
+          await tx.stockLedger.create({
+            data: {
+              productId: item.productId,
+              warehouseId,
+              userId: purchaseOrder.userId,
+              quantity: item.quantity,
+              balance: inv?.quantity ?? item.quantity,
+              type: 'PURCHASE',
+              reference: purchaseOrder.referenceNumber,
+              note: `Purchase order #${purchaseOrder.referenceNumber} received`,
+            },
+          });
+        }
 
         // 4. Return the updated purchase order
         const po = await tx.purchaseOrder.findUnique({
@@ -446,14 +479,28 @@ export class PurchasesService {
     }
 
     try {
-      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true, role: true } });
-      await this.auditLogService.create({
-        action: 'RECEIVE',
-        entity: 'Purchase',
-        entityId: result.id,
-        details: JSON.stringify({ referenceNumber: result.referenceNumber, amount: Number(result.totalAmount) }),
-      }, companyId, userId, user?.name || 'Unknown', user?.role || 'Unknown');
-    } catch { /* non-critical */ }
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true, role: true },
+      });
+      await this.auditLogService.create(
+        {
+          action: 'RECEIVE',
+          entity: 'Purchase',
+          entityId: result.id,
+          details: JSON.stringify({
+            referenceNumber: result.referenceNumber,
+            amount: Number(result.totalAmount),
+          }),
+        },
+        companyId,
+        userId,
+        user?.name || 'Unknown',
+        user?.role || 'Unknown',
+      );
+    } catch {
+      /* non-critical */
+    }
 
     return result;
   }
@@ -489,23 +536,33 @@ export class PurchasesService {
     const result = this.transformPurchase(po);
 
     try {
-      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true, role: true } });
-      await this.auditLogService.create({
-        action: 'MARK_PAID',
-        entity: 'Purchase',
-        entityId: result.id,
-        details: JSON.stringify({ referenceNumber: result.referenceNumber, amount: Number(result.totalAmount) }),
-      }, companyId, userId, user?.name || 'Unknown', user?.role || 'Unknown');
-    } catch { /* non-critical */ }
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true, role: true },
+      });
+      await this.auditLogService.create(
+        {
+          action: 'MARK_PAID',
+          entity: 'Purchase',
+          entityId: result.id,
+          details: JSON.stringify({
+            referenceNumber: result.referenceNumber,
+            amount: Number(result.totalAmount),
+          }),
+        },
+        companyId,
+        userId,
+        user?.name || 'Unknown',
+        user?.role || 'Unknown',
+      );
+    } catch {
+      /* non-critical */
+    }
 
     return result;
   }
 
-  async update(
-    id: string,
-    dto: UpdatePurchaseOrderDto,
-    companyId: string,
-  ) {
+  async update(id: string, dto: UpdatePurchaseOrderDto, companyId: string) {
     // Verify purchase order exists
     const existing = await this.prisma.purchaseOrder.findFirst({
       where: { id, companyId },
@@ -647,14 +704,22 @@ export class PurchasesService {
     };
   }
 
-  private transformPurchaseSummary(po: any, returnCounts?: { pendingReturnCount: number; processingReturnCount: number; completedReturnCount: number }) {
+  private transformPurchaseSummary(
+    po: any,
+    returnCounts?: {
+      pendingReturnCount: number;
+      processingReturnCount: number;
+      completedReturnCount: number;
+    },
+  ) {
     const {
       pendingReturnCount = 0,
       processingReturnCount = 0,
       completedReturnCount = 0,
     } = returnCounts ?? {};
     const total = this.decimalToNumber(po.totalAmount);
-    const items = po.items?.map((i: any) => this.transformPurchaseItem(i)) ?? [];
+    const items =
+      po.items?.map((i: any) => this.transformPurchaseItem(i)) ?? [];
 
     const returnedValue = items.reduce(
       (sum: number, i: any) => sum + (i.returnedQuantity ?? 0) * i.unitCost,
@@ -701,7 +766,14 @@ export class PurchasesService {
     };
   }
 
-  private transformPurchase(po: any, returnCounts?: { pendingReturnCount: number; processingReturnCount: number; completedReturnCount: number }) {
+  private transformPurchase(
+    po: any,
+    returnCounts?: {
+      pendingReturnCount: number;
+      processingReturnCount: number;
+      completedReturnCount: number;
+    },
+  ) {
     return {
       ...this.transformPurchaseSummary(po, returnCounts),
       notes: po.notes ?? null,

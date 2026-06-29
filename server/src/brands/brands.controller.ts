@@ -24,10 +24,7 @@ export class BrandsController {
 
   @Post()
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
-  create(
-    @Body() createDto: CreateBrandDto,
-    @CompanyId() companyId: string,
-  ) {
+  create(@Body() createDto: CreateBrandDto, @CompanyId() companyId: string) {
     return this.brandsService.create(createDto, companyId);
   }
 

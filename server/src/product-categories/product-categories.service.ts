@@ -42,7 +42,7 @@ export class ProductCategoriesService {
     });
   }
 
-  async findAll(companyId: string) {
+  findAll(companyId: string) {
     return this.prisma.productCategory.findMany({
       where: { companyId },
       orderBy: { name: 'asc' },
@@ -160,12 +160,18 @@ export class ProductCategoriesService {
         });
 
         if (!category) {
-          results.failed.push({ id, error: 'Category not found or access denied' });
+          results.failed.push({
+            id,
+            error: 'Category not found or access denied',
+          });
           continue;
         }
 
         if (category.name === 'Uncategorized') {
-          results.failed.push({ id, error: 'Cannot delete the "Uncategorized" category' });
+          results.failed.push({
+            id,
+            error: 'Cannot delete the "Uncategorized" category',
+          });
           continue;
         }
 
@@ -187,7 +193,10 @@ export class ProductCategoriesService {
         await this.prisma.productCategory.delete({ where: { id } });
         results.deleted.push(id);
       } catch (error) {
-        results.failed.push({ id, error: error.message || 'Failed to delete category' });
+        results.failed.push({
+          id,
+          error: error.message || 'Failed to delete category',
+        });
       }
     }
 

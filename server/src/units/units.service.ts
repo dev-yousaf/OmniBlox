@@ -51,7 +51,7 @@ export class UnitsService {
     });
   }
 
-  async findAll(companyId: string) {
+  findAll(companyId: string) {
     return this.prisma.unit.findMany({
       where: { companyId },
       orderBy: { name: 'asc' },
@@ -90,7 +90,9 @@ export class UnitsService {
       });
 
       if (existing) {
-        throw new ConflictException('A unit with this short name already exists');
+        throw new ConflictException(
+          'A unit with this short name already exists',
+        );
       }
     }
 
@@ -135,7 +137,10 @@ export class UnitsService {
         await this.prisma.unit.delete({ where: { id } });
         results.deleted.push(id);
       } catch (error) {
-        results.failed.push({ id, error: error.message || 'Failed to delete unit' });
+        results.failed.push({
+          id,
+          error: error.message || 'Failed to delete unit',
+        });
       }
     }
 

@@ -31,7 +31,7 @@ export class TeamService {
   async createUser(
     dto: CreateUserDto,
     companyId: string,
-    currentUserRole: string,
+    currentUserRole: UserRole,
     currentUserId: string,
   ): Promise<UserResponseDto> {
     // Only OWNER and ADMIN can create users
@@ -123,7 +123,7 @@ export class TeamService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return users.map(this.mapToUserResponse);
+    return users.map((u) => this.mapToUserResponse(u));
   }
 
   async findAllPaginated(
@@ -157,7 +157,7 @@ export class TeamService {
     ]);
 
     return {
-      users: users.map(this.mapToUserResponse),
+      users: users.map((u) => this.mapToUserResponse(u)),
       total,
       pages: Math.ceil(total / limit),
     };
@@ -326,12 +326,8 @@ export class TeamService {
       (u) => u.role === UserRole.MANAGER,
     ).length;
     const staffCount = users.filter((u) => u.role === UserRole.OBSERVER).length;
-    const activeUsers = users.filter(
-      (u) => u.status === 'ACTIVE',
-    ).length;
-    const invitedUsers = users.filter(
-      (u) => u.status === 'INVITED',
-    ).length;
+    const activeUsers = users.filter((u) => u.status === 'ACTIVE').length;
+    const invitedUsers = users.filter((u) => u.status === 'INVITED').length;
 
     return {
       totalUsers,

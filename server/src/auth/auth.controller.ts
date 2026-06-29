@@ -7,7 +7,6 @@ import {
   Put,
   HttpStatus,
   HttpCode,
-  UnauthorizedException,
   Req,
   Res,
 } from '@nestjs/common';
@@ -64,7 +63,7 @@ export class AuthController {
   @Post('signup')
   @AllowAnonymous()
   @HttpCode(HttpStatus.CREATED)
-  async signup(@Body() signupDto: SignupDto, _req: Request, _res: Response) {
+  async signup(@Body() signupDto: SignupDto) {
     // Create company and user with our business logic
     // We intentionally do NOT auto-login here to avoid read-after-write consistency issues
     // Frontend will call /auth/login immediately after.
@@ -179,7 +178,7 @@ export class AuthController {
 
   @Get('validate')
   @UseGuards(AuthGuard)
-  async validateToken(@Session() session: UserSession) {
+  validateToken(@Session() session: UserSession) {
     return {
       valid: true,
       user: {
@@ -194,14 +193,14 @@ export class AuthController {
 
   @Get('company')
   @UseGuards(AuthGuard)
-  async getCurrentCompany(@Session() session: UserSession) {
+  getCurrentCompany(@Session() session: UserSession) {
     // Return company ID from session
     return { companyId: session.session.companyId };
   }
 
   @Get('session')
   @UseGuards(AuthGuard)
-  async getSession(@Session() session: UserSession) {
+  getSession(@Session() session: UserSession) {
     // Return full session data including our custom fields
     return {
       userId: session.session.userId,
@@ -261,8 +260,6 @@ export class AuthController {
       res.setHeader('Set-Cookie', cookies);
     }
 
-    const body = await signInResponse.json().catch(() => ({}));
-
     // Return user info
     const user = await this.authService.getUserById(userInfo.id);
     return {
@@ -305,9 +302,7 @@ export class AuthController {
   @Post('accept-invitation')
   @AllowAnonymous()
   @HttpCode(HttpStatus.OK)
-  async acceptInvitation(
-    @Body() body: { token: string; password: string },
-  ) {
+  async acceptInvitation(@Body() body: { token: string; password: string }) {
     return this.authService.acceptInvitation(body.token, body.password);
   }
 

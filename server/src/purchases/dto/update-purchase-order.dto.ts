@@ -14,7 +14,12 @@ import { Type } from 'class-transformer';
 import { PaymentStatus } from '@prisma/client';
 
 const PAYMENT_STATUS_VALUES = Object.values(PaymentStatus);
-const PAYMENT_METHOD_VALUES = ['CASH', 'CREDIT_CARD', 'BANK_TRANSFER', 'CHECK'] as const;
+const PAYMENT_METHOD_VALUES = [
+  'CASH',
+  'CREDIT_CARD',
+  'BANK_TRANSFER',
+  'CHECK',
+] as const;
 
 export class UpdatePurchaseOrderItemDto {
   @IsUUID()
@@ -58,7 +63,7 @@ export class UpdatePurchaseOrderDto {
   @IsIn(PAYMENT_METHOD_VALUES, {
     message: 'Invalid payment method',
   })
-  paymentMethod?: typeof PAYMENT_METHOD_VALUES[number];
+  paymentMethod?: (typeof PAYMENT_METHOD_VALUES)[number];
 
   @IsOptional()
   @IsUUID()

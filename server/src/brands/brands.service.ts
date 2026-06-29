@@ -43,7 +43,7 @@ export class BrandsService {
     });
   }
 
-  async findAll(companyId: string) {
+  findAll(companyId: string) {
     return this.prisma.brand.findMany({
       where: { companyId },
       orderBy: { name: 'asc' },
@@ -138,7 +138,10 @@ export class BrandsService {
         });
 
         if (!brand) {
-          results.failed.push({ id, error: 'Brand not found or access denied' });
+          results.failed.push({
+            id,
+            error: 'Brand not found or access denied',
+          });
           continue;
         }
 
@@ -160,7 +163,10 @@ export class BrandsService {
         await this.prisma.brand.delete({ where: { id } });
         results.deleted.push(id);
       } catch (error) {
-        results.failed.push({ id, error: error.message || 'Failed to delete brand' });
+        results.failed.push({
+          id,
+          error: error.message || 'Failed to delete brand',
+        });
       }
     }
 

@@ -70,7 +70,8 @@ async function bootstrap() {
   });
 
   // Register logging middleware early so all requests/responses are captured
-  app.use(new LoggingMiddleware().use as any);
+  const loggingMiddleware = new LoggingMiddleware();
+  app.use((req, res, next) => loggingMiddleware.use(req, res, next));
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 

@@ -4,10 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  CreateSalesReturnDto,
-  CreateSalesReturnItemDto,
-} from './dto/create-sales-return.dto';
+import { CreateSalesReturnDto } from './dto/create-sales-return.dto';
 import { UpdateSalesReturnDto } from './dto/update-sales-return.dto';
 
 @Injectable()
@@ -132,7 +129,7 @@ export class SalesReturnsService {
   /**
    * Get all sales returns for a company
    */
-  async findAll(companyId: string) {
+  findAll(companyId: string) {
     return this.prisma.salesReturn.findMany({
       where: { companyId },
       include: {
@@ -336,7 +333,7 @@ export class SalesReturnsService {
                 productId: item.productId,
                 warehouseId: updated.warehouseId,
                 userId: updated.userId,
-                quantity: -(item.quantity),
+                quantity: -item.quantity,
                 balance: inv?.quantity ?? 0,
                 type: 'RETURN',
                 reference: updated.referenceNumber,
@@ -403,7 +400,7 @@ export class SalesReturnsService {
                 productId: item.productId,
                 warehouseId: updated.warehouseId,
                 userId: updated.userId,
-                quantity: -(item.quantity),
+                quantity: -item.quantity,
                 balance: inv?.quantity ?? 0,
                 type: 'RETURN',
                 reference: updated.referenceNumber,
@@ -485,7 +482,7 @@ export class SalesReturnsService {
               productId: item.productId,
               warehouseId: salesReturn.warehouseId,
               userId: salesReturn.userId,
-              quantity: -(item.quantity),
+              quantity: -item.quantity,
               balance: inv?.quantity ?? 0,
               type: 'RETURN',
               reference: salesReturn.referenceNumber,
@@ -497,9 +494,9 @@ export class SalesReturnsService {
 
       // Revert returnedQuantity on sale items if linked
       for (const item of salesReturn.items) {
-        if ((item as any).saleItemId) {
+        if (item.saleItemId) {
           await tx.saleItem.update({
-            where: { id: (item as any).saleItemId },
+            where: { id: item.saleItemId },
             data: {
               returnedQuantity: {
                 decrement: item.quantity,

@@ -52,8 +52,6 @@ export default function UserDetailPage() {
   const { getUser, deleteUser } = useTeamApi();
   const { toast } = useToast();
 
-  if (!canView) return <PageError type="forbidden" />;
-
   useEffect(() => {
     const loadUser = async () => {
       if (!params.id) return;
@@ -70,6 +68,8 @@ export default function UserDetailPage() {
     };
     loadUser();
   }, [params.id, getUser, toast, router]);
+
+  if (!canView) return <PageError type="forbidden" />;
 
   const handleDelete = async () => {
     if (!user) return;

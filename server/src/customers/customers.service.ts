@@ -187,7 +187,9 @@ export class CustomersService {
       email: customer.email,
       phone: customer.phone,
       address: customer.address,
-      creditLimit: customer.creditLimit ? Number(customer.creditLimit) : undefined,
+      creditLimit: customer.creditLimit
+        ? Number(customer.creditLimit)
+        : undefined,
       balance: customer.balance ? Number(customer.balance) : undefined,
       companyId: customer.companyId,
       createdAt: customer.createdAt.toISOString(),

@@ -1,16 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import type { SuperadminDashboardDto, BarChartItem, MonthlyRevenueItem } from './dto/superadmin-dashboard.dto';
+import type {
+  SuperadminDashboardDto,
+  BarChartItem,
+  MonthlyRevenueItem,
+} from './dto/superadmin-dashboard.dto';
 
 @Injectable()
 export class SuperadminService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getDashboard(companyId: string, period = '1Y'): Promise<SuperadminDashboardDto> {
+  async getDashboard(
+    companyId: string,
+    period = '1Y',
+  ): Promise<SuperadminDashboardDto> {
     const now = new Date();
     const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const periodMs = (() => {
-      const map: Record<string, number> = { '1D': 1, '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365 };
+      const map: Record<string, number> = {
+        '1D': 1,
+        '1W': 7,
+        '1M': 30,
+        '3M': 90,
+        '6M': 180,
+        '1Y': 365,
+      };
       return (map[period] ?? 365) * 24 * 60 * 60 * 1000;
     })();
     const periodAgo = new Date(now.getTime() - periodMs);
@@ -28,21 +42,34 @@ export class SuperadminService {
     const usersLastMonth = await this.prisma.user.count({
       where: { companyId, createdAt: { lt: oneMonthAgo } },
     });
-    const usersChange = usersLastMonth > 0
-      ? Math.round(((totalUsers - usersLastMonth) / usersLastMonth) * 10000) / 100
-      : totalUsers > 0 ? 100 : 0;
+    const usersChange =
+      usersLastMonth > 0
+        ? Math.round(((totalUsers - usersLastMonth) / usersLastMonth) * 10000) /
+          100
+        : totalUsers > 0
+          ? 100
+          : 0;
 
     // ── Total products ────────────────────────────────────────────────
-    const totalProducts = await this.prisma.product.count({ where: { companyId } });
+    const totalProducts = await this.prisma.product.count({
+      where: { companyId },
+    });
     const productsLastMonth = await this.prisma.product.count({
       where: { companyId, createdAt: { lt: oneMonthAgo } },
     });
-    const productsChange = productsLastMonth > 0
-      ? Math.round(((totalProducts - productsLastMonth) / productsLastMonth) * 10000) / 100
-      : totalProducts > 0 ? 100 : 0;
+    const productsChange =
+      productsLastMonth > 0
+        ? Math.round(
+            ((totalProducts - productsLastMonth) / productsLastMonth) * 10000,
+          ) / 100
+        : totalProducts > 0
+          ? 100
+          : 0;
 
     // ── Total customers ───────────────────────────────────────────────
-    const totalCustomers = await this.prisma.customer.count({ where: { companyId } });
+    const totalCustomers = await this.prisma.customer.count({
+      where: { companyId },
+    });
 
     // ── Total sales ───────────────────────────────────────────────────
     const salesAgg = await this.prisma.sale.aggregate({
@@ -55,9 +82,13 @@ export class SuperadminService {
       where: { companyId, createdAt: { lt: oneMonthAgo } },
     });
     const lastMonthSales = Number(lastMonthSalesAgg._sum.totalAmount ?? 0);
-    const salesChange = lastMonthSales > 0
-      ? Math.round(((totalSales - lastMonthSales) / lastMonthSales) * 10000) / 100
-      : totalSales > 0 ? 100 : 0;
+    const salesChange =
+      lastMonthSales > 0
+        ? Math.round(((totalSales - lastMonthSales) / lastMonthSales) * 10000) /
+          100
+        : totalSales > 0
+          ? 100
+          : 0;
 
     // ── Inventory value (costPrice × quantity in stock) ───────────────
     const inventoryItems = await this.prisma.inventory.findMany({
@@ -76,16 +107,38 @@ export class SuperadminService {
       (sum, i) => sum + i.quantity * Number(i.product.costPrice),
       0,
     );
-    const inventoryChange = lastMonthValue > 0
-      ? Math.round(((inventoryValue - lastMonthValue) / lastMonthValue) * 10000) / 100
-      : inventoryValue > 0 ? 100 : 0;
+    const inventoryChange =
+      lastMonthValue > 0
+        ? Math.round(
+            ((inventoryValue - lastMonthValue) / lastMonthValue) * 10000,
+          ) / 100
+        : inventoryValue > 0
+          ? 100
+          : 0;
 
     // ── Activity chart (audit log, period-aware) ─────────────────────
     const companiesChart: BarChartItem[] = [];
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     if (period === '1W') {
       for (let i = 6; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        const d = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() - i,
+        );
         const dEnd = new Date(d.getTime() + 86400000);
         const count = await this.prisma.auditLog.count({
           where: { companyId, createdAt: { gte: d, lt: dEnd } },
@@ -125,7 +178,10 @@ export class SuperadminService {
         _sum: { amount: true },
         where: { companyId, categoryId: cat.id, createdAt: { gte: periodAgo } },
       });
-      expenseByCategory.push({ month: cat.name, revenue: Number(agg._sum.amount ?? 0) });
+      expenseByCategory.push({
+        month: cat.name,
+        revenue: Number(agg._sum.amount ?? 0),
+      });
     }
     if (expenseByCategory.length === 0) {
       expenseByCategory.push({ month: 'No data', revenue: 0 });
@@ -137,15 +193,27 @@ export class SuperadminService {
       where: { companyId, createdAt: { gte: prevPeriodStart, lt: periodAgo } },
     });
     const prevExpenses = Number(prevExpensesAgg._sum.amount ?? 0);
-    const expenseChange = prevExpenses > 0
-      ? Math.round(((totalExpenses - prevExpenses) / prevExpenses) * 10000) / 100
-      : totalExpenses > 0 ? 100 : 0;
+    const expenseChange =
+      prevExpenses > 0
+        ? Math.round(((totalExpenses - prevExpenses) / prevExpenses) * 10000) /
+          100
+        : totalExpenses > 0
+          ? 100
+          : 0;
 
     // ── Users by role ─────────────────────────────────────────────────
-    const ownerCount = await this.prisma.user.count({ where: { companyId, role: 'OWNER' } });
-    const adminCount = await this.prisma.user.count({ where: { companyId, role: 'ADMIN' } });
-    const managerCount = await this.prisma.user.count({ where: { companyId, role: 'MANAGER' } });
-    const observerCount = await this.prisma.user.count({ where: { companyId, role: 'OBSERVER' } });
+    const ownerCount = await this.prisma.user.count({
+      where: { companyId, role: 'OWNER' },
+    });
+    const adminCount = await this.prisma.user.count({
+      where: { companyId, role: 'ADMIN' },
+    });
+    const managerCount = await this.prisma.user.count({
+      where: { companyId, role: 'MANAGER' },
+    });
+    const observerCount = await this.prisma.user.count({
+      where: { companyId, role: 'OBSERVER' },
+    });
     const plansDistribution = [
       { name: 'Owners', count: ownerCount, color: '#fe9f43' },
       { name: 'Admins', count: adminCount, color: '#6938ef' },
@@ -158,7 +226,14 @@ export class SuperadminService {
       where: { companyId },
       orderBy: { createdAt: 'desc' },
       take: 5,
-      select: { id: true, userName: true, action: true, entity: true, details: true, createdAt: true },
+      select: {
+        id: true,
+        userName: true,
+        action: true,
+        entity: true,
+        details: true,
+        createdAt: true,
+      },
     });
     const recentTransactions = recentLogs.map((log) => ({
       id: log.id,
@@ -185,7 +260,13 @@ export class SuperadminService {
       usersCount: w.inventory.reduce((s, i) => s + i.quantity, 0),
     }));
     if (topCompanies.length === 0) {
-      topCompanies.push({ id: 'none', name: 'No warehouses', logo: undefined, plan: '', usersCount: 0 });
+      topCompanies.push({
+        id: 'none',
+        name: 'No warehouses',
+        logo: undefined,
+        plan: '',
+        usersCount: 0,
+      });
     }
 
     // ── Low stock products ────────────────────────────────────────────
@@ -195,12 +276,22 @@ export class SuperadminService {
         status: 'ACTIVE',
         inventory: { some: { quantity: { lte: 0 } } },
       },
-      select: { id: true, name: true, inventory: { select: { quantity: true } } },
+      select: {
+        id: true,
+        name: true,
+        inventory: { select: { quantity: true } },
+      },
       take: 5,
     });
     const expiringSubscriptions = lowStockProducts.map((p) => {
       const qty = p.inventory.reduce((sum, i) => sum + i.quantity, 0);
-      return { id: p.id, companyName: p.name, companyLogo: undefined, totalSales: qty, lastSaleDate: null };
+      return {
+        id: p.id,
+        companyName: p.name,
+        companyLogo: undefined,
+        totalSales: qty,
+        lastSaleDate: null,
+      };
     });
 
     return {

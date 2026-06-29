@@ -32,7 +32,7 @@ export class WarrantiesService {
     });
   }
 
-  async findAll(companyId: string) {
+  findAll(companyId: string) {
     return this.prisma.warranty.findMany({
       where: { companyId },
       orderBy: { name: 'asc' },
@@ -99,14 +99,20 @@ export class WarrantiesService {
         });
 
         if (!warranty) {
-          results.failed.push({ id, error: 'Warranty not found or access denied' });
+          results.failed.push({
+            id,
+            error: 'Warranty not found or access denied',
+          });
           continue;
         }
 
         await this.prisma.warranty.delete({ where: { id } });
         results.deleted.push(id);
       } catch (error) {
-        results.failed.push({ id, error: error.message || 'Failed to delete warranty' });
+        results.failed.push({
+          id,
+          error: error.message || 'Failed to delete warranty',
+        });
       }
     }
 

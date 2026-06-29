@@ -170,7 +170,9 @@ export class SuppliersService {
       email: supplier.email,
       phone: supplier.phone,
       address: supplier.address,
-      creditLimit: supplier.creditLimit ? Number(supplier.creditLimit) : undefined,
+      creditLimit: supplier.creditLimit
+        ? Number(supplier.creditLimit)
+        : undefined,
       balance: supplier.balance ? Number(supplier.balance) : undefined,
       companyId: supplier.companyId,
       createdAt: supplier.createdAt.toISOString(),

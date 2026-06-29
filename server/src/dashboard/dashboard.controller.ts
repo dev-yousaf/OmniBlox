@@ -26,7 +26,10 @@ export class DashboardController {
     @CompanyId() companyId: string,
     @Query('period') period?: string,
   ) {
-    return this.dashboardService.getTopSellingForPeriod(companyId, period || '1Y');
+    return this.dashboardService.getTopSellingForPeriod(
+      companyId,
+      period || '1Y',
+    );
   }
 
   @Get('recent-sales')
@@ -35,7 +38,10 @@ export class DashboardController {
     @CompanyId() companyId: string,
     @Query('period') period?: string,
   ) {
-    return this.dashboardService.getRecentSalesForPeriod(companyId, period || '1Y');
+    return this.dashboardService.getRecentSalesForPeriod(
+      companyId,
+      period || '1Y',
+    );
   }
 
   @Get('sales-stats')

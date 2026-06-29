@@ -267,7 +267,7 @@ export class ExpensesService {
     const uploadsDir = path.join(process.cwd(), 'uploads', 'expenses');
     try {
       await mkdir(uploadsDir, { recursive: true });
-    } catch (error) {
+    } catch {
       // Directory already exists
     }
 
@@ -316,7 +316,7 @@ export class ExpensesService {
     const filePath = path.join(process.cwd(), attachment.url);
     try {
       await unlink(filePath);
-    } catch (error) {
+    } catch {
       // File might not exist, continue with database deletion
     }
 

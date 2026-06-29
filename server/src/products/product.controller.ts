@@ -134,7 +134,8 @@ export class ProductController {
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
   @HttpCode(HttpStatus.OK)
   async bulkUpdatePrice(
-    @Body() body: { updates: { id: string; salePrice: number; costPrice?: number }[] },
+    @Body()
+    body: { updates: { id: string; salePrice: number; costPrice?: number }[] },
     @CompanyId() companyId: string,
   ) {
     return this.productService.bulkUpdatePrice(body.updates, companyId);
@@ -225,7 +226,10 @@ export class ProductController {
 
   @Get(':id/ledger')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
-  async getStockLedger(@Param('id') id: string, @CompanyId() companyId: string) {
+  async getStockLedger(
+    @Param('id') id: string,
+    @CompanyId() companyId: string,
+  ) {
     return this.productService.getStockLedger(id, companyId);
   }
 
@@ -243,19 +247,28 @@ export class ProductController {
 
   @Get(':id/sales')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
-  async getProductSales(@Param('id') id: string, @CompanyId() companyId: string) {
+  async getProductSales(
+    @Param('id') id: string,
+    @CompanyId() companyId: string,
+  ) {
     return this.productService.getProductSales(id, companyId);
   }
 
   @Get(':id/quotations')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
-  async getProductQuotations(@Param('id') id: string, @CompanyId() companyId: string) {
+  async getProductQuotations(
+    @Param('id') id: string,
+    @CompanyId() companyId: string,
+  ) {
     return this.productService.getProductQuotations(id, companyId);
   }
 
   @Get(':id/purchases')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
-  async getProductPurchases(@Param('id') id: string, @CompanyId() companyId: string) {
+  async getProductPurchases(
+    @Param('id') id: string,
+    @CompanyId() companyId: string,
+  ) {
     return this.productService.getProductPurchases(id, companyId);
   }
 

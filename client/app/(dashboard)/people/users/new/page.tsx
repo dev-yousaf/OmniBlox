@@ -37,15 +37,15 @@ export default function CreateUserPage() {
   const canCreateUser = currentRole === "OWNER" || currentRole === "ADMIN";
   const canCreateAdmin = currentRole === "OWNER";
 
-  if (!canCreateUser) {
-    return <PageError type="forbidden" />;
-  }
-
   useEffect(() => {
     if (!canCreateAdmin && formData.role === "ADMIN") {
       setFormData((prev) => ({ ...prev, role: "OBSERVER" }));
     }
   }, [canCreateAdmin, formData.role]);
+
+  if (!canCreateUser) {
+    return <PageError type="forbidden" />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

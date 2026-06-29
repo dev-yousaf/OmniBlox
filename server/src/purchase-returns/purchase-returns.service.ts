@@ -179,7 +179,7 @@ export class PurchaseReturnsService {
   /**
    * Get all purchase returns for a company
    */
-  async findAll(companyId: string) {
+  findAll(companyId: string) {
     return this.prisma.purchaseReturn.findMany({
       where: { companyId },
       include: {
@@ -327,7 +327,7 @@ export class PurchaseReturnsService {
                 productId: item.productId,
                 warehouseId: updated.warehouseId,
                 userId: updated.userId,
-                quantity: -(item.quantity),
+                quantity: -item.quantity,
                 balance: inv?.quantity ?? 0,
                 type: 'RETURN',
                 reference: updated.referenceNumber,
@@ -519,59 +519,59 @@ export class PurchaseReturnsService {
           });
         }
 
-          // Revert returned quantity on original purchase items
-          for (const item of purchaseReturn.items) {
-            if (item.purchaseOrderItemId) {
-              await tx.purchaseOrderItem.update({
-                where: { id: item.purchaseOrderItemId },
-                data: {
-                  returnedQuantity: {
-                    decrement: item.quantity,
-                  },
-                },
-              });
-            }
-          }
-
-          // Recalculate purchase order hasReturns
-          if (purchaseReturn.purchaseOrderId) {
-            const purchaseItems = await tx.purchaseOrderItem.findMany({
-              where: { purchaseOrderId: purchaseReturn.purchaseOrderId },
-              select: { returnedQuantity: true },
-            });
-            const hasAnyReturns = purchaseItems.some(
-              (item) => item.returnedQuantity > 0,
-            );
-            await tx.purchaseOrder.update({
-              where: { id: purchaseReturn.purchaseOrderId },
-              data: { hasReturns: hasAnyReturns },
-            });
-          }
-
-          // Create stock ledger entries
-          for (const item of purchaseReturn.items) {
-            const inv = await tx.inventory.findUnique({
-              where: {
-                productId_warehouseId: {
-                  productId: item.productId,
-                  warehouseId: purchaseReturn.warehouseId,
+        // Revert returned quantity on original purchase items
+        for (const item of purchaseReturn.items) {
+          if (item.purchaseOrderItemId) {
+            await tx.purchaseOrderItem.update({
+              where: { id: item.purchaseOrderItemId },
+              data: {
+                returnedQuantity: {
+                  decrement: item.quantity,
                 },
               },
             });
+          }
+        }
 
-            await tx.stockLedger.create({
-              data: {
+        // Recalculate purchase order hasReturns
+        if (purchaseReturn.purchaseOrderId) {
+          const purchaseItems = await tx.purchaseOrderItem.findMany({
+            where: { purchaseOrderId: purchaseReturn.purchaseOrderId },
+            select: { returnedQuantity: true },
+          });
+          const hasAnyReturns = purchaseItems.some(
+            (item) => item.returnedQuantity > 0,
+          );
+          await tx.purchaseOrder.update({
+            where: { id: purchaseReturn.purchaseOrderId },
+            data: { hasReturns: hasAnyReturns },
+          });
+        }
+
+        // Create stock ledger entries
+        for (const item of purchaseReturn.items) {
+          const inv = await tx.inventory.findUnique({
+            where: {
+              productId_warehouseId: {
                 productId: item.productId,
                 warehouseId: purchaseReturn.warehouseId,
-                userId: purchaseReturn.userId,
-                quantity: item.quantity,
-                balance: inv?.quantity ?? 0,
-                type: 'RETURN',
-                reference: purchaseReturn.referenceNumber,
-                note: `Purchase return #${purchaseReturn.referenceNumber} deleted`,
               },
-            });
-          }
+            },
+          });
+
+          await tx.stockLedger.create({
+            data: {
+              productId: item.productId,
+              warehouseId: purchaseReturn.warehouseId,
+              userId: purchaseReturn.userId,
+              quantity: item.quantity,
+              balance: inv?.quantity ?? 0,
+              type: 'RETURN',
+              reference: purchaseReturn.referenceNumber,
+              note: `Purchase return #${purchaseReturn.referenceNumber} deleted`,
+            },
+          });
+        }
 
         // Delete the return
         await tx.purchaseReturn.delete({ where: { id } });

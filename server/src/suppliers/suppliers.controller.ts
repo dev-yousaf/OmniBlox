@@ -28,10 +28,7 @@ export class SuppliersController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
-  async create(
-    @Body() dto: CreateSupplierDto,
-    @CompanyId() companyId: string,
-  ) {
+  async create(@Body() dto: CreateSupplierDto, @CompanyId() companyId: string) {
     return this.suppliersService.create(dto, companyId);
   }
 
@@ -50,10 +47,7 @@ export class SuppliersController {
 
   @Get(':id')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
-  async findOne(
-    @Param('id') id: string,
-    @CompanyId() companyId: string,
-  ) {
+  async findOne(@Param('id') id: string, @CompanyId() companyId: string) {
     return this.suppliersService.findOne(id, companyId);
   }
 
@@ -70,10 +64,7 @@ export class SuppliersController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
-  async remove(
-    @Param('id') id: string,
-    @CompanyId() companyId: string,
-  ) {
+  async remove(@Param('id') id: string, @CompanyId() companyId: string) {
     await this.suppliersService.remove(id, companyId);
   }
 }

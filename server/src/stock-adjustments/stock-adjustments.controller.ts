@@ -17,7 +17,7 @@ export class StockAdjustmentsController {
 
   @Post()
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
-  async create(
+  create(
     @Body() dto: CreateStockAdjustmentDto,
     @UserId() userId: string,
     @CompanyId() companyId: string,
@@ -27,13 +27,13 @@ export class StockAdjustmentsController {
 
   @Get()
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
-  async findAll(@CompanyId() companyId: string) {
+  findAll(@CompanyId() companyId: string) {
     return this.stockAdjustmentsService.findAll(companyId);
   }
 
   @Get(':id')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
-  async findOne(@Param('id') id: string, @CompanyId() companyId: string) {
+  findOne(@Param('id') id: string, @CompanyId() companyId: string) {
     return this.stockAdjustmentsService.findOne(id, companyId);
   }
 }

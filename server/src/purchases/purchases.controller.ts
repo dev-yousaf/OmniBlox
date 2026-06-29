@@ -59,10 +59,7 @@ export class PurchasesController {
 
   @Delete(':id')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
-  async remove(
-    @Param('id') id: string,
-    @CompanyId() companyId: string,
-  ) {
+  async remove(@Param('id') id: string, @CompanyId() companyId: string) {
     return this.purchasesService.remove(id, companyId);
   }
 
@@ -74,7 +71,12 @@ export class PurchasesController {
     @UserId() userId: string,
     @CompanyId() companyId: string,
   ) {
-    return this.purchasesService.receive(id, dto.warehouseId, userId, companyId);
+    return this.purchasesService.receive(
+      id,
+      dto.warehouseId,
+      userId,
+      companyId,
+    );
   }
 
   @Patch(':id/mark-paid')

@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AuditLogEntryDto, AuditLogListResponseDto, CreateAuditLogDto } from './dto/audit-log.dto';
+import {
+  AuditLogEntryDto,
+  AuditLogListResponseDto,
+  CreateAuditLogDto,
+} from './dto/audit-log.dto';
 
 @Injectable()
 export class AuditLogService {

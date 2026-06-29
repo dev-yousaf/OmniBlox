@@ -26,7 +26,9 @@ export class VariantAttributesService {
     });
 
     if (existing) {
-      throw new ConflictException('A variant attribute with this name already exists');
+      throw new ConflictException(
+        'A variant attribute with this name already exists',
+      );
     }
 
     const slug = dto.slug || this.generateSlug(dto.name);
@@ -43,7 +45,7 @@ export class VariantAttributesService {
     });
   }
 
-  async findAll(companyId: string) {
+  findAll(companyId: string) {
     return this.prisma.variantAttribute.findMany({
       where: { companyId },
       orderBy: { name: 'asc' },
@@ -71,7 +73,9 @@ export class VariantAttributesService {
       });
 
       if (existing) {
-        throw new ConflictException('A variant attribute with this name already exists');
+        throw new ConflictException(
+          'A variant attribute with this name already exists',
+        );
       }
     }
 
@@ -109,14 +113,20 @@ export class VariantAttributesService {
         });
 
         if (!attribute) {
-          results.failed.push({ id, error: 'Variant attribute not found or access denied' });
+          results.failed.push({
+            id,
+            error: 'Variant attribute not found or access denied',
+          });
           continue;
         }
 
         await this.prisma.variantAttribute.delete({ where: { id } });
         results.deleted.push(id);
       } catch (error) {
-        results.failed.push({ id, error: error.message || 'Failed to delete variant attribute' });
+        results.failed.push({
+          id,
+          error: error.message || 'Failed to delete variant attribute',
+        });
       }
     }
 

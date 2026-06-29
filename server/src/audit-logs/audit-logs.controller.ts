@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Query, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { AuditLogService } from './audit-logs.service';
 import { CreateAuditLogDto } from './dto/audit-log.dto';
 import { AuthGuard } from '@thallesp/nestjs-better-auth';
@@ -23,7 +31,14 @@ export class AuditLogController {
     @Req() req: Request,
   ) {
     const ip = req.ip || req.socket?.remoteAddress;
-    return this.auditLogService.create(dto, companyId, user.id, user.name || user.email, user.role, ip);
+    return this.auditLogService.create(
+      dto,
+      companyId,
+      user.id,
+      user.name || user.email,
+      user.role,
+      ip,
+    );
   }
 
   @Get()

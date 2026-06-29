@@ -187,12 +187,12 @@ export class AuthService {
         password,
         hash: user.password,
       });
-    } catch (error) {
+    } catch {
       // If Better Auth verification fails, try bcrypt (legacy passwords)
       try {
         isPasswordValid = await bcrypt.compare(password, user.password);
         needsPasswordMigration = isPasswordValid; // If bcrypt works, we need to migrate
-      } catch (bcryptError) {
+      } catch {
         isPasswordValid = false;
       }
     }

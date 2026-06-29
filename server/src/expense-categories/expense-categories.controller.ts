@@ -65,10 +65,7 @@ export class ExpenseCategoriesController {
   @Post('bulk-delete')
   @HttpCode(200)
   @Roles(UserRole.OWNER, UserRole.ADMIN)
-  bulkRemove(
-    @Body() body: { ids: string[] },
-    @CompanyId() companyId: string,
-  ) {
+  bulkRemove(@Body() body: { ids: string[] }, @CompanyId() companyId: string) {
     return this.expenseCategoriesService.bulkRemove(body.ids, companyId);
   }
 }

@@ -6,11 +6,7 @@ import { CreateStockAdjustmentDto } from './dto/create-stock-adjustment.dto';
 export class StockAdjustmentsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(
-    dto: CreateStockAdjustmentDto,
-    userId: string,
-    companyId: string,
-  ) {
+  create(dto: CreateStockAdjustmentDto, userId: string, companyId: string) {
     if (!dto.items?.length) {
       throw new BadRequestException(
         'A stock adjustment must include at least one item',
@@ -147,7 +143,7 @@ export class StockAdjustmentsService {
     );
   }
 
-  async findAll(companyId: string) {
+  findAll(companyId: string) {
     return this.prisma.stockAdjustment.findMany({
       where: { companyId },
       include: {
@@ -181,7 +177,7 @@ export class StockAdjustmentsService {
     });
   }
 
-  async findOne(id: string, companyId: string) {
+  findOne(id: string, companyId: string) {
     return this.prisma.stockAdjustment.findUnique({
       where: { id, companyId },
       include: {

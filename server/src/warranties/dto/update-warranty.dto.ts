@@ -1,13 +1,21 @@
 import { IsString, IsOptional, IsInt, Min, MaxLength } from 'class-validator';
 export class UpdateWarrantyDto {
-  @IsString() @IsOptional() @MaxLength(100)
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
   name?: string;
-  @IsInt() @IsOptional() @Min(1)
+  @IsInt()
+  @IsOptional()
+  @Min(1)
   duration?: number;
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   durationType?: string;
-  @IsString() @IsOptional() @MaxLength(500)
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
   description?: string;
-  @IsString() @IsOptional()
+  @IsString()
+  @IsOptional()
   status?: string;
 }

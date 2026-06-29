@@ -17,7 +17,12 @@ import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 const ORDER_STATUS_VALUES = Object.values(OrderStatus);
 const PAYMENT_STATUS_VALUES = Object.values(PaymentStatus);
-const PAYMENT_METHOD_VALUES = ['CASH', 'CREDIT_CARD', 'BANK_TRANSFER', 'CHECK'] as const;
+const PAYMENT_METHOD_VALUES = [
+  'CASH',
+  'CREDIT_CARD',
+  'BANK_TRANSFER',
+  'CHECK',
+] as const;
 
 export class CreatePurchaseItemDto {
   @IsString()
@@ -67,7 +72,7 @@ export class CreatePurchaseOrderDto {
   @IsIn(PAYMENT_METHOD_VALUES, {
     message: 'Invalid payment method',
   })
-  readonly paymentMethod?: typeof PAYMENT_METHOD_VALUES[number];
+  readonly paymentMethod?: (typeof PAYMENT_METHOD_VALUES)[number];
 
   @IsOptional()
   @IsIn(ORDER_STATUS_VALUES, {

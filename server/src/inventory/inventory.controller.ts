@@ -49,10 +49,7 @@ export class InventoryController {
 
   @Get('warehouses/:id')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
-  getWarehouse(
-    @CompanyId() companyId: string,
-    @Param('id') id: string,
-  ) {
+  getWarehouse(@CompanyId() companyId: string, @Param('id') id: string) {
     return this.inventoryService.getWarehouse(companyId, id);
   }
 
@@ -68,10 +65,7 @@ export class InventoryController {
 
   @Delete('warehouses/:id')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
-  deleteWarehouse(
-    @CompanyId() companyId: string,
-    @Param('id') id: string,
-  ) {
+  deleteWarehouse(@CompanyId() companyId: string, @Param('id') id: string) {
     return this.inventoryService.deleteWarehouse(companyId, id);
   }
 
@@ -157,15 +151,16 @@ export class InventoryController {
   ) {
     const parsedPage = page ? parseInt(page, 10) : 1;
     const parsedLimit = limit ? parseInt(limit, 10) : 20;
-    return this.inventoryService.getTransfers(companyId, parsedPage, parsedLimit);
+    return this.inventoryService.getTransfers(
+      companyId,
+      parsedPage,
+      parsedLimit,
+    );
   }
 
   @Get('transfers/:id')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
-  getTransfer(
-    @CompanyId() companyId: string,
-    @Param('id') id: string,
-  ) {
+  getTransfer(@CompanyId() companyId: string, @Param('id') id: string) {
     return this.inventoryService.getTransfer(companyId, id);
   }
 

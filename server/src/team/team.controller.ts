@@ -71,9 +71,7 @@ export class TeamController {
 
   @Get('stats')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
-  async getStats(
-    @CompanyId() companyId: string,
-  ): Promise<UserStatsDto> {
+  async getStats(@CompanyId() companyId: string): Promise<UserStatsDto> {
     return this.teamService.getStats(companyId);
   }
 

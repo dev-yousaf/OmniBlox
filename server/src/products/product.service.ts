@@ -33,7 +33,15 @@ export class ProductService {
     companyId: string,
     userId?: string,
   ): Promise<ProductResponseDto> {
-    const { sku, category, brand, subCategory, warehouseId, stock = 0, comboItems, ...productData } = createProductDto;
+    const {
+      sku,
+      category,
+      brand,
+      subCategory,
+      stock = 0,
+      comboItems,
+      ...productData
+    } = createProductDto;
 
     // Check if SKU already exists within this company (Golden Rule applied)
     const existingProduct = await this.prisma.product.findUnique({
@@ -96,20 +104,30 @@ export class ProductService {
       // Validate combo items if provided
       const productType = createProductDto.type || 'STANDARD';
       if (productType === 'COMBO' && comboItems && comboItems.length > 0) {
-        const comboProductIds = comboItems.map(i => i.productId);
+        const comboProductIds = comboItems.map((i) => i.productId);
         const existingComponents = await this.prisma.product.findMany({
           where: { id: { in: comboProductIds }, companyId },
           select: { id: true, name: true },
         });
         if (existingComponents.length !== comboProductIds.length) {
-          throw new BadRequestException('One or more combo component products not found');
+          throw new BadRequestException(
+            'One or more combo component products not found',
+          );
         }
       }
 
       // Create product with companyId (Golden Rule applied)
-      const { type, manufacturedDate, expiryDate, unit, warranty, ...restProductData } = productData;
+      const {
+        type,
+        manufacturedDate,
+        expiryDate,
+        unit,
+        warranty,
+        ...restProductData
+      } = productData;
       const dateData: Record<string, Date> = {};
-      if (manufacturedDate) dateData.manufacturedDate = new Date(manufacturedDate);
+      if (manufacturedDate)
+        dateData.manufacturedDate = new Date(manufacturedDate);
       if (expiryDate) dateData.expiryDate = new Date(expiryDate);
 
       let unitId: string | undefined;
@@ -151,27 +169,34 @@ export class ProductService {
           brandId: brandRecord?.id || null,
           companyId,
           createdById: userId || null,
-          ...(comboItems?.length ? {
-            comboComponents: {
-              create: comboItems.map(ci => ({
-                productId: ci.productId,
-                quantity: ci.quantity,
-              })),
-            },
-          } : {}),
+          ...(comboItems?.length
+            ? {
+                comboComponents: {
+                  create: comboItems.map((ci) => ({
+                    productId: ci.productId,
+                    quantity: ci.quantity,
+                  })),
+                },
+              }
+            : {}),
         },
         include: {
           category: true,
           brand: true,
           createdBy: { select: { id: true, name: true, image: true } },
           comboComponents: {
-            include: { product: { select: { id: true, name: true, sku: true } } },
+            include: {
+              product: { select: { id: true, name: true, sku: true } },
+            },
           },
         },
       });
 
       // Only create inventory for physical products (STANDARD or COMBO)
-      if (createProductDto.type !== 'DIGITAL' && createProductDto.type !== 'SERVICE') {
+      if (
+        createProductDto.type !== 'DIGITAL' &&
+        createProductDto.type !== 'SERVICE'
+      ) {
         let targetWarehouseId = createProductDto.warehouseId;
 
         if (!targetWarehouseId) {
@@ -203,7 +228,9 @@ export class ProductService {
 
       return this.transformToDto(product, stock);
     } catch (error: any) {
-      throw new BadRequestException(error?.message || 'Failed to create product');
+      throw new BadRequestException(
+        error?.message || 'Failed to create product',
+      );
     }
   }
 
@@ -295,10 +322,7 @@ export class ProductService {
           );
           stock = warehouseInv ? warehouseInv.quantity : 0;
         } else {
-          stock = product.inventory.reduce(
-            (sum, inv) => sum + inv.quantity,
-            0,
-          );
+          stock = product.inventory.reduce((sum, inv) => sum + inv.quantity, 0);
         }
         return this.transformToDto(product, stock);
       }),
@@ -413,10 +437,22 @@ export class ProductService {
     }
 
     try {
-      const { category, brand, stock, comboItems, manufacturedDate, expiryDate, ...productData } = updateProductDto;
+      const {
+        category,
+        brand,
+        stock,
+        comboItems,
+        manufacturedDate,
+        expiryDate,
+        ...productData
+      } = updateProductDto;
       const updateData: any = { ...productData };
-      if (manufacturedDate !== undefined) updateData.manufacturedDate = manufacturedDate ? new Date(manufacturedDate) : null;
-      if (expiryDate !== undefined) updateData.expiryDate = expiryDate ? new Date(expiryDate) : null;
+      if (manufacturedDate !== undefined)
+        updateData.manufacturedDate = manufacturedDate
+          ? new Date(manufacturedDate)
+          : null;
+      if (expiryDate !== undefined)
+        updateData.expiryDate = expiryDate ? new Date(expiryDate) : null;
 
       if (category !== undefined) {
         let categoryRecord = await this.prisma.productCategory.findUnique({
@@ -464,19 +500,21 @@ export class ProductService {
 
       // Handle combo items update
       if (comboItems !== undefined) {
-        const comboProductIds = comboItems.map(i => i.productId);
+        const comboProductIds = comboItems.map((i) => i.productId);
         const existingComponents = await this.prisma.product.findMany({
           where: { id: { in: comboProductIds }, companyId },
           select: { id: true },
         });
         if (existingComponents.length !== comboProductIds.length) {
-          throw new BadRequestException('One or more combo component products not found');
+          throw new BadRequestException(
+            'One or more combo component products not found',
+          );
         }
 
         await this.prisma.comboItem.deleteMany({ where: { comboId: id } });
         if (comboItems.length > 0) {
           await this.prisma.comboItem.createMany({
-            data: comboItems.map(ci => ({
+            data: comboItems.map((ci) => ({
               comboId: id,
               productId: ci.productId,
               quantity: ci.quantity,
@@ -493,7 +531,9 @@ export class ProductService {
           brand: true,
           inventory: { include: { warehouse: true } },
           comboComponents: {
-            include: { product: { select: { id: true, name: true, sku: true } } },
+            include: {
+              product: { select: { id: true, name: true, sku: true } },
+            },
           },
         },
       });
@@ -525,7 +565,7 @@ export class ProductService {
         0,
       );
       return this.transformToDto(product, totalStock);
-    } catch (error) {
+    } catch {
       throw new BadRequestException('Failed to update product');
     }
   }
@@ -553,7 +593,9 @@ export class ProductService {
         ...(existingProduct.variants?.length
           ? [
               this.prisma.inventory.deleteMany({
-                where: { productId: { in: existingProduct.variants.map(v => v.id) } },
+                where: {
+                  productId: { in: existingProduct.variants.map((v) => v.id) },
+                },
               }),
               this.prisma.product.deleteMany({
                 where: { parentId: id },
@@ -564,7 +606,7 @@ export class ProductService {
           where: { id },
         }),
       ]);
-    } catch (error) {
+    } catch {
       throw new BadRequestException(
         'Failed to delete product. It may be referenced by other records.',
       );
@@ -949,7 +991,9 @@ export class ProductService {
       itemCode: product.itemCode || null,
       manufacturer: product.manufacturer || null,
       warranty: product.warranty || null,
-      manufacturedDate: product.manufacturedDate ? product.manufacturedDate.toISOString() : null,
+      manufacturedDate: product.manufacturedDate
+        ? product.manufacturedDate.toISOString()
+        : null,
       expiryDate: product.expiryDate ? product.expiryDate.toISOString() : null,
       taxRate: Number(product.taxRate || 0),
       alertQuantity: product.alertQuantity || 0,
@@ -965,7 +1009,10 @@ export class ProductService {
       variants: product.variants
         ? product.variants.map((v: any) => {
             const variantStock = v.inventory
-              ? v.inventory.reduce((sum: number, inv: any) => sum + inv.quantity, 0)
+              ? v.inventory.reduce(
+                  (sum: number, inv: any) => sum + inv.quantity,
+                  0,
+                )
               : 0;
             return {
               id: v.id,
@@ -981,7 +1028,9 @@ export class ProductService {
               itemCode: v.itemCode || null,
               manufacturer: v.manufacturer || null,
               warranty: v.warranty || null,
-              manufacturedDate: v.manufacturedDate ? v.manufacturedDate.toISOString() : null,
+              manufacturedDate: v.manufacturedDate
+                ? v.manufacturedDate.toISOString()
+                : null,
               expiryDate: v.expiryDate ? v.expiryDate.toISOString() : null,
               taxRate: Number(v.taxRate || 0),
               alertQuantity: v.alertQuantity || 0,
@@ -1008,7 +1057,11 @@ export class ProductService {
           }))
         : undefined,
       createdBy: product.createdBy
-        ? { id: product.createdBy.id, name: product.createdBy.name, image: product.createdBy.image }
+        ? {
+            id: product.createdBy.id,
+            name: product.createdBy.name,
+            image: product.createdBy.image,
+          }
         : undefined,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
@@ -1070,7 +1123,8 @@ export class ProductService {
     );
 
     // Auto-calculate adjustment type from net change
-    const adjustmentType = netChange > 0 ? 'ADDITION' : netChange < 0 ? 'REMOVAL' : 'ADDITION';
+    const adjustmentType =
+      netChange > 0 ? 'ADDITION' : netChange < 0 ? 'REMOVAL' : 'ADDITION';
 
     try {
       return await this.prisma.$transaction(async (prisma) => {
@@ -1175,7 +1229,7 @@ export class ProductService {
           })),
         };
       });
-    } catch (error) {
+    } catch {
       throw new BadRequestException('Failed to create stock adjustment');
     }
   }
@@ -1325,7 +1379,10 @@ export class ProductService {
     });
 
     return variants.map((v) => {
-      const totalStock = v.inventory.reduce((sum, inv) => sum + inv.quantity, 0);
+      const totalStock = v.inventory.reduce(
+        (sum, inv) => sum + inv.quantity,
+        0,
+      );
       return this.transformToDto(v, totalStock);
     });
   }
@@ -1379,11 +1436,17 @@ export class ProductService {
       orderBy: { createdAt: 'desc' },
     });
 
-    const header = 'SKU,Name,Description,Type,Category,Brand,Unit,SalePrice,CostPrice,Stock,ReorderLevel,Status,BarcodeSymbology,TaxRate,AlertQuantity,ComboItems';
+    const header =
+      'SKU,Name,Description,Type,Category,Brand,Unit,SalePrice,CostPrice,Stock,ReorderLevel,Status,BarcodeSymbology,TaxRate,AlertQuantity,ComboItems';
     const rows = products.map((p) => {
-      const totalStock = p.inventory.reduce((sum, inv) => sum + inv.quantity, 0);
+      const totalStock = p.inventory.reduce(
+        (sum, inv) => sum + inv.quantity,
+        0,
+      );
       const comboInfo = p.comboComponents?.length
-        ? p.comboComponents.map(c => `${c.product.sku}:${c.quantity}`).join(';')
+        ? p.comboComponents
+            .map((c) => `${c.product.sku}:${c.quantity}`)
+            .join(';')
         : '';
       return [
         p.sku,
@@ -1447,11 +1510,17 @@ export class ProductService {
       orderBy: { createdAt: 'desc' },
     });
 
-    const header = 'SKU,Name,Description,Type,Category,Brand,Unit,SalePrice,CostPrice,Stock,ReorderLevel,Status,BarcodeSymbology,TaxRate,AlertQuantity,ComboItems';
+    const header =
+      'SKU,Name,Description,Type,Category,Brand,Unit,SalePrice,CostPrice,Stock,ReorderLevel,Status,BarcodeSymbology,TaxRate,AlertQuantity,ComboItems';
     const rows = products.map((p) => {
-      const totalStock = p.inventory.reduce((sum, inv) => sum + inv.quantity, 0);
+      const totalStock = p.inventory.reduce(
+        (sum, inv) => sum + inv.quantity,
+        0,
+      );
       const comboInfo = p.comboComponents?.length
-        ? p.comboComponents.map(c => `${c.product.sku}:${c.quantity}`).join(';')
+        ? p.comboComponents
+            .map((c) => `${c.product.sku}:${c.quantity}`)
+            .join(';')
         : '';
       return [
         p.sku,

@@ -24,10 +24,7 @@ export class WarrantiesController {
 
   @Post()
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
-  create(
-    @Body() createDto: CreateWarrantyDto,
-    @CompanyId() companyId: string,
-  ) {
+  create(@Body() createDto: CreateWarrantyDto, @CompanyId() companyId: string) {
     return this.warrantiesService.create(createDto, companyId);
   }
 

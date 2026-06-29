@@ -78,13 +78,13 @@ export class CreateProductDto {
   @IsOptional()
   expiryDate?: string;
 
-  @Transform(({value}) => parseFloat(value))
-  @IsNumber({maxDecimalPlaces:2})
+  @Transform(({ value }) => parseFloat(value))
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @IsOptional()
   taxRate?: number = 0;
 
-  @Transform(({value}) => parseInt(value))
+  @Transform(({ value }) => parseInt(value))
   @IsInt()
   @Min(0)
   @IsOptional()

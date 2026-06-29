@@ -76,10 +76,7 @@ export class SalesController {
 
   @Get(':id')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
-  async findOne(
-    @Param('id') id: string,
-    @CompanyId() companyId: string,
-  ) {
+  async findOne(@Param('id') id: string, @CompanyId() companyId: string) {
     return this.salesService.findOne(id, companyId);
   }
 
@@ -106,10 +103,7 @@ export class SalesController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
-  async remove(
-    @Param('id') id: string,
-    @CompanyId() companyId: string,
-  ) {
+  async remove(@Param('id') id: string, @CompanyId() companyId: string) {
     await this.salesService.remove(id, companyId);
   }
 }

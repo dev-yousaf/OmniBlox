@@ -333,14 +333,28 @@ export class SalesService {
     }
 
     try {
-      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true, role: true } });
-      await this.auditLogService.create({
-        action: 'CREATE',
-        entity: 'Sale',
-        entityId: saleId,
-        details: JSON.stringify({ invoiceNumber: saleInvoiceNumber, amount: saleTotalAmount }),
-      }, companyId, userId, user?.name || 'Unknown', user?.role || 'Unknown');
-    } catch { /* non-critical */ }
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true, role: true },
+      });
+      await this.auditLogService.create(
+        {
+          action: 'CREATE',
+          entity: 'Sale',
+          entityId: saleId,
+          details: JSON.stringify({
+            invoiceNumber: saleInvoiceNumber,
+            amount: saleTotalAmount,
+          }),
+        },
+        companyId,
+        userId,
+        user?.name || 'Unknown',
+        user?.role || 'Unknown',
+      );
+    } catch {
+      /* non-critical */
+    }
 
     return result;
   }
@@ -430,9 +444,12 @@ export class SalesService {
     const processingMap = new Map<string, number>();
     const completedMap = new Map<string, number>();
     for (const r of allReturns) {
-      if (r.status === 'PENDING') pendingMap.set(r.saleId, (pendingMap.get(r.saleId) ?? 0) + 1);
-      else if (r.status === 'PROCESSING') processingMap.set(r.saleId, (processingMap.get(r.saleId) ?? 0) + 1);
-      else if (r.status === 'COMPLETED') completedMap.set(r.saleId, (completedMap.get(r.saleId) ?? 0) + 1);
+      if (r.status === 'PENDING')
+        pendingMap.set(r.saleId, (pendingMap.get(r.saleId) ?? 0) + 1);
+      else if (r.status === 'PROCESSING')
+        processingMap.set(r.saleId, (processingMap.get(r.saleId) ?? 0) + 1);
+      else if (r.status === 'COMPLETED')
+        completedMap.set(r.saleId, (completedMap.get(r.saleId) ?? 0) + 1);
     }
 
     return {
@@ -468,14 +485,16 @@ export class SalesService {
     });
     const returnCounts = {
       pendingReturnCount: allRet.filter((r) => r.status === 'PENDING').length,
-      processingReturnCount: allRet.filter((r) => r.status === 'PROCESSING').length,
-      completedReturnCount: allRet.filter((r) => r.status === 'COMPLETED').length,
+      processingReturnCount: allRet.filter((r) => r.status === 'PROCESSING')
+        .length,
+      completedReturnCount: allRet.filter((r) => r.status === 'COMPLETED')
+        .length,
     };
 
     return this.transformSale(sale, returnCounts);
   }
 
-  async update(
+  update(
     id: string,
     dto: UpdateSaleDto,
     companyId: string,
@@ -739,7 +758,11 @@ export class SalesService {
     );
   }
 
-  async markAsPaid(id: string, userId: string, companyId: string): Promise<SaleResponseDto> {
+  async markAsPaid(
+    id: string,
+    userId: string,
+    companyId: string,
+  ): Promise<SaleResponseDto> {
     const result = await this.prisma.$transaction(
       async (tx) => {
         const existing = await tx.sale.findUnique({
@@ -798,14 +821,28 @@ export class SalesService {
     );
 
     try {
-      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true, role: true } });
-      await this.auditLogService.create({
-        action: 'MARK_PAID',
-        entity: 'Sale',
-        entityId: result.id,
-        details: JSON.stringify({ invoiceNumber: result.invoiceNumber, amount: Number(result.totalAmount) }),
-      }, companyId, userId, user?.name || 'Unknown', user?.role || 'Unknown');
-    } catch { /* non-critical */ }
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true, role: true },
+      });
+      await this.auditLogService.create(
+        {
+          action: 'MARK_PAID',
+          entity: 'Sale',
+          entityId: result.id,
+          details: JSON.stringify({
+            invoiceNumber: result.invoiceNumber,
+            amount: Number(result.totalAmount),
+          }),
+        },
+        companyId,
+        userId,
+        user?.name || 'Unknown',
+        user?.role || 'Unknown',
+      );
+    } catch {
+      /* non-critical */
+    }
 
     return result;
   }
@@ -1120,7 +1157,14 @@ export class SalesService {
     };
   }
 
-  private transformSaleSummary(sale: any, returnCounts?: { pendingReturnCount: number; processingReturnCount: number; completedReturnCount: number }): SaleSummaryDto {
+  private transformSaleSummary(
+    sale: any,
+    returnCounts?: {
+      pendingReturnCount: number;
+      processingReturnCount: number;
+      completedReturnCount: number;
+    },
+  ): SaleSummaryDto {
     const {
       pendingReturnCount = 0,
       processingReturnCount = 0,
@@ -1181,7 +1225,14 @@ export class SalesService {
     };
   }
 
-  private transformSale(sale: any, returnCounts?: { pendingReturnCount: number; processingReturnCount: number; completedReturnCount: number }): SaleResponseDto {
+  private transformSale(
+    sale: any,
+    returnCounts?: {
+      pendingReturnCount: number;
+      processingReturnCount: number;
+      completedReturnCount: number;
+    },
+  ): SaleResponseDto {
     return {
       ...this.transformSaleSummary(sale, returnCounts),
       notes: sale.notes,
