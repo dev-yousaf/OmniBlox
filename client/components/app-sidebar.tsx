@@ -113,6 +113,7 @@ const sections: SidebarSection[] = [
     label: "Purchases",
     items: [
       { id: "purchases", name: "Purchases", href: "/purchases", icon: ShoppingBag },
+      { id: "bills", name: "Bills", href: "/purchases/bills", icon: FileText },
       { id: "purchase-return", name: "Purchase Return", href: "/purchase-returns", icon: RotateCcw },
     ],
   },

@@ -26,6 +26,11 @@ export type ReturnStatus = 'NONE' | 'PARTIAL' | 'ALL';
 export interface PurchaseOrder {
   id: string;
   referenceNumber: string;
+  billNumber?: string | null;
+  billDate?: string | null;
+  dueDate?: string | null;
+  paymentStatus: string;
+  paymentMethod?: string | null;
   orderDate: string;
   status: OrderStatus;
   hasReturns: boolean;
@@ -47,8 +52,14 @@ export interface CreatePurchaseOrderDto {
   supplierId: string;
   orderDate: string; // ISO string
   referenceNumber?: string;
+  billNumber?: string;
+  billDate?: string;
+  dueDate?: string;
+  paymentStatus?: string;
+  paymentMethod?: string;
   status?: OrderStatus;
   notes?: string;
+  warehouseId?: string;
   items: Array<{
     productId: string;
     quantity: number;
@@ -59,6 +70,11 @@ export interface CreatePurchaseOrderDto {
 export interface UpdatePurchaseOrderDto {
   supplierId: string;
   orderDate: string;
+  billNumber?: string;
+  billDate?: string;
+  dueDate?: string;
+  paymentStatus?: string;
+  paymentMethod?: string;
   warehouseId?: string | null;
   notes?: string;
   items: Array<{

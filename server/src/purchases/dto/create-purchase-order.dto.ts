@@ -13,9 +13,11 @@ import {
   ArrayMinSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 const ORDER_STATUS_VALUES = Object.values(OrderStatus);
+const PAYMENT_STATUS_VALUES = Object.values(PaymentStatus);
+const PAYMENT_METHOD_VALUES = ['CASH', 'CREDIT_CARD', 'BANK_TRANSFER', 'CHECK'] as const;
 
 export class CreatePurchaseItemDto {
   @IsString()
@@ -42,6 +44,30 @@ export class CreatePurchaseOrderDto {
   @IsOptional()
   @IsString()
   readonly referenceNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  readonly billNumber?: string;
+
+  @IsOptional()
+  @IsDateString()
+  readonly billDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  readonly dueDate?: string;
+
+  @IsOptional()
+  @IsIn(PAYMENT_STATUS_VALUES, {
+    message: 'Invalid payment status',
+  })
+  readonly paymentStatus?: PaymentStatus;
+
+  @IsOptional()
+  @IsIn(PAYMENT_METHOD_VALUES, {
+    message: 'Invalid payment method',
+  })
+  readonly paymentMethod?: typeof PAYMENT_METHOD_VALUES[number];
 
   @IsOptional()
   @IsIn(ORDER_STATUS_VALUES, {

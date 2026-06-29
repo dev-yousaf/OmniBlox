@@ -111,6 +111,11 @@ export class PurchasesService {
     const purchaseOrder = await this.prisma.purchaseOrder.create({
       data: {
         referenceNumber,
+        billNumber: dto.billNumber ?? null,
+        billDate: dto.billDate ? new Date(dto.billDate) : null,
+        dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
+        paymentStatus: dto.paymentStatus ?? 'PENDING',
+        paymentMethod: dto.paymentMethod ?? null,
         orderDate: new Date(dto.orderDate),
         status: dto.status || OrderStatus.PENDING,
         totalAmount,
@@ -477,6 +482,11 @@ export class PurchasesService {
       where: { id },
       data: {
         supplierId: dto.supplierId,
+        billNumber: dto.billNumber ?? null,
+        billDate: dto.billDate ? new Date(dto.billDate) : null,
+        dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
+        paymentStatus: dto.paymentStatus ?? undefined,
+        paymentMethod: dto.paymentMethod ?? null,
         orderDate: new Date(dto.orderDate),
         warehouseId: dto.warehouseId ?? null,
         notes: dto.notes,
@@ -597,6 +607,11 @@ export class PurchasesService {
     return {
       id: po.id,
       referenceNumber: po.referenceNumber,
+      billNumber: po.billNumber ?? null,
+      billDate: po.billDate ? po.billDate.toISOString() : null,
+      dueDate: po.dueDate ? po.dueDate.toISOString() : null,
+      paymentStatus: po.paymentStatus ?? 'PENDING',
+      paymentMethod: po.paymentMethod ?? null,
       orderDate: po.orderDate.toISOString(),
       status: po.status,
       hasReturns: Boolean(po.hasReturns),
