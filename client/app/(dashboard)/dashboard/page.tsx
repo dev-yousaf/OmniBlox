@@ -14,9 +14,7 @@ import { LowStockProducts } from "@/components/dashboard/low-stock-products";
 import { RecentSales } from "@/components/dashboard/recent-sales";
 import { SalesStatistics } from "@/components/dashboard/sales-statistics";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
-import { TopCustomers } from "@/components/dashboard/top-customers";
-import { TopCategories } from "@/components/dashboard/top-categories";
-import { OrderStatistics } from "@/components/dashboard/order-statistics";
+
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -76,8 +74,8 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-[1440px] mx-auto flex flex-col gap-6">
-        <WelcomeHeader user={user} loading={loading} />
-        <NotificationBar visible={notificationVisible} onDismiss={() => setNotificationVisible(false)} />
+        <WelcomeHeader user={user} ordersCount={data?.ordersCount} period={period} loading={loading} />
+        <NotificationBar visible={notificationVisible} onDismiss={() => setNotificationVisible(false)} lowStockProducts={data?.lowStockProducts ?? []} />
         <SummaryCards amounts={summaryAmounts} changes={summaryChanges} loading={loading} />
         <FinancialCards amounts={financialAmounts} changes={financialChanges} loading={loading} />
 
@@ -131,18 +129,6 @@ export default function DashboardPage() {
           </div>
           <div className="col-span-5">
             <RecentTransactions sales={data?.recentSales} loading={loading} />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-4">
-            <TopCustomers />
-          </div>
-          <div className="col-span-4">
-            <TopCategories />
-          </div>
-          <div className="col-span-4">
-            <OrderStatistics />
           </div>
         </div>
 

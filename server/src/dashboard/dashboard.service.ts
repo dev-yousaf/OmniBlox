@@ -21,6 +21,7 @@ export class DashboardService {
       currentPurchaseReturnAgg,
       prevPurchaseReturnAgg,
       invoiceDueAgg,
+      prevInvoiceDueAgg,
       totalExpenses,
       totalExpensesPrev,
       totalPaymentReturns,
@@ -74,9 +75,14 @@ export class DashboardService {
         where: { companyId, returnDate: { gte: prevRange.start, lte: prevRange.end }, status: { not: 'CANCELLED' } },
         _sum: { totalAmount: true },
       }),
-      // Invoice due (all unpaid sales)
+      // Invoice due current period (unpaid sales)
       this.prisma.sale.aggregate({
-        where: { companyId, paymentStatus: { not: 'PAID' }, status: { not: 'CANCELLED' } },
+        where: { companyId, paymentStatus: { not: 'PAID' }, status: { not: 'CANCELLED' }, saleDate: { gte: range.start, lte: range.end } },
+        _sum: { totalAmount: true },
+      }),
+      // Invoice due previous period
+      this.prisma.sale.aggregate({
+        where: { companyId, paymentStatus: { not: 'PAID' }, status: { not: 'CANCELLED' }, saleDate: { gte: prevRange.start, lte: prevRange.end } },
         _sum: { totalAmount: true },
       }),
       // Total expenses current period
@@ -129,6 +135,7 @@ export class DashboardService {
     const prevExpenses = Number(totalExpensesPrev._sum.amount || 0);
     const paymentReturns = Number(totalPaymentReturns._sum.totalAmount || 0);
     const prevPaymentReturns = Number(paymentReturnsPrev._sum.totalAmount || 0);
+    const prevInvoiceDue = Number(prevInvoiceDueAgg._sum.totalAmount || 0);
 
     const totalSalesAmount = await this.getTotalAllTime(companyId, 'sale');
     const totalPurchaseAmount = await this.getTotalAllTime(companyId, 'purchase');
@@ -150,7 +157,7 @@ export class DashboardService {
       profitChange: this.directionalArrow((sales - salesReturn - purchase + purchaseReturn - expenses), (prevSales - prevSalesReturn - prevPurchase + prevPurchaseReturn - prevExpenses)),
       invoiceDue: Number(invoiceDueAgg._sum.totalAmount || 0),
       invoiceDueLabel: '% from last month',
-      invoiceDueChange: 0,
+      invoiceDueChange: this.pctChange(Number(invoiceDueAgg._sum.totalAmount || 0), prevInvoiceDue),
       totalExpenses: expenses,
       expensesLabel: '% from last month',
       expensesChange: this.pctChange(expenses, prevExpenses),

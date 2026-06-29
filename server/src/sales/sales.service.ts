@@ -332,6 +332,16 @@ export class SalesService {
       }
     }
 
+    try {
+      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true, role: true } });
+      await this.auditLogService.create({
+        action: 'CREATE',
+        entity: 'Sale',
+        entityId: saleId,
+        details: JSON.stringify({ invoiceNumber: saleInvoiceNumber, amount: saleTotalAmount }),
+      }, companyId, userId, user?.name || 'Unknown', user?.role || 'Unknown');
+    } catch { /* non-critical */ }
+
     return result;
   }
 

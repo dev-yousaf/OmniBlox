@@ -165,6 +165,16 @@ export class PurchasesService {
       },
     });
 
+    try {
+      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true, role: true } });
+      await this.auditLogService.create({
+        action: 'CREATE',
+        entity: 'Purchase',
+        entityId: purchaseOrder.id,
+        details: JSON.stringify({ referenceNumber: purchaseOrder.referenceNumber, amount: Number(purchaseOrder.totalAmount) }),
+      }, companyId, userId, user?.name || 'Unknown', user?.role || 'Unknown');
+    } catch { /* non-critical */ }
+
     return this.transformPurchase(purchaseOrder);
   }
 
