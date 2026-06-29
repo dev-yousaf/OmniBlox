@@ -83,15 +83,6 @@ export const formatCompactCurrency = (value: number) => {
   return `$${value.toFixed(0)}`;
 };
 
-export const PERIODS = ["1D", "1W", "1M", "3M", "6M", "1Y"] as const;
-
-export interface SummaryCardData {
-  title: string;
-  amount: number;
-  change: number;
-  iconBg: string;
-}
-
 export interface FinancialCardData {
   title: string;
   amount: number;

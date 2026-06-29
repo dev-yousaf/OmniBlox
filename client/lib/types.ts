@@ -39,11 +39,6 @@ export interface Product {
   updatedAt: string
 }
 
-export interface ComboItemInput {
-  productId: string
-  quantity: number
-}
-
 export interface StockLedgerEntry {
   id: string
   quantity: number
@@ -108,13 +103,6 @@ export interface User {
   avatar?: string
   createdAt: string
   lastLogin?: string
-}
-
-export interface Permission {
-  id: string
-  module: string
-  action: string
-  description: string
 }
 
 export interface Role {

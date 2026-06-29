@@ -263,12 +263,4 @@ export class TokenManager {
 // Export singleton instance
 export const api = new ApiClient();
 
-// Utility function for requiring auth (will be handled by AuthContext)
-export function requireAuth(): void {
-  // This will be handled by the AuthContext and middleware
-  // If we reach this point without auth, redirect to login
-  if (typeof window !== "undefined") {
-    window.location.href = "/login";
-  }
-  throw new Error("Authentication required");
-}
+

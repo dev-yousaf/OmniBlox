@@ -48,16 +48,6 @@ export function PageLoadingSkeleton({
   );
 }
 
-export function TableLoadingSkeleton({ rows = 6 }: { rows?: number }) {
-  return (
-    <div className="space-y-3">
-      {Array.from({ length: rows }).map((_, index) => (
-        <Skeleton key={index} className="h-10 w-full" />
-      ))}
-    </div>
-  );
-}
-
 export function TableBodyLoadingRows({
   rows = 5,
   columns = 5,

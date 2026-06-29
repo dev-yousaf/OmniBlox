@@ -50,30 +50,6 @@ export function ProtectedRoute({
   return <>{children}</>;
 }
 
-// Higher-order component for protecting pages
-export function withAuth<P extends object>(
-  Component: React.ComponentType<P>,
-  options: {
-    requireAuth?: boolean;
-    redirectTo?: string;
-    fallback?: ReactNode;
-  } = {}
-) {
-  const { requireAuth = true, redirectTo = "/login", fallback } = options;
-
-  return function AuthenticatedComponent(props: P) {
-    return (
-      <ProtectedRoute
-        requireAuth={requireAuth}
-        redirectTo={redirectTo}
-        fallback={fallback}
-      >
-        <Component {...props} />
-      </ProtectedRoute>
-    );
-  };
-}
-
 // Auth guard for guest routes (login, signup)
 export function GuestRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();

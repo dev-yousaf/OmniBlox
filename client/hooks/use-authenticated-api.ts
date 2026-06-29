@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 /**

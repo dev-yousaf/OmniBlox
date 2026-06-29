@@ -208,25 +208,3 @@ export function useAuth() {
   }
   return context;
 }
-
-// Hook for requiring authentication
-export function useRequireAuth(): User {
-  const { user, isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.replace("/login");
-    }
-  }, [isAuthenticated, isLoading, router]);
-
-  if (isLoading) {
-    return null as any; // Loading state
-  }
-
-  if (!isAuthenticated || !user) {
-    return null as any; // Will redirect
-  }
-
-  return user;
-}
