@@ -24,6 +24,7 @@ import { useWarrantiesApi } from "@/hooks/use-warranties-api";
 import { useVariantAttributesApi, VariantAttribute as ApiVariantAttribute } from "@/hooks/use-variant-attributes-api";
 import { useInventoryApi } from "@/hooks/use-inventory-api";
 import { useToast } from "@/hooks/use-toast";
+import type { Product } from "@/lib/types";
 import Image from "next/image";
 import {
   Info,
@@ -91,7 +92,9 @@ interface ProductFormProps {
   initialData?: Partial<ProductFormData>;
   isEdit?: boolean;
   productId?: string;
-  onSuccess?: () => void;
+  onSuccess?: (product?: Product) => void;
+  hideWarehouse?: boolean;
+  formId?: string;
 }
 
 const BARCODE_OPTIONS = [
@@ -159,7 +162,7 @@ function FormField({
 }
 
 const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
-  function ProductForm({ initialData, isEdit = false, productId, onSuccess }, ref) {
+  function ProductForm({ initialData, isEdit = false, productId, onSuccess, hideWarehouse = false, formId }, ref) {
     const router = useRouter();
     const { toast } = useToast();
     const { createProduct, updateProduct, getBrands, getProducts } =
@@ -172,6 +175,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
     const { getWarehouses } = useInventoryApi();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
     const [categories, setCategories] = useState<
       Array<{ id: string; name: string }>
     >([]);
@@ -437,6 +441,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
       e.preventDefault();
       if (isSubmitting) return;
       setIsSubmitting(true);
+      setSubmitError(null);
 
       try {
         const finalCategory = showCustomCategory ? formData.customCategory : formData.category;
@@ -469,10 +474,10 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
           warranty: customFieldsEnabled.warranties ? formData.warranty || undefined : undefined,
           manufacturedDate: customFieldsEnabled.expiry ? formData.manufacturedDate || undefined : undefined,
           expiryDate: customFieldsEnabled.expiry ? formData.expiryDate || undefined : undefined,
-          salePrice: parseFloat(formData.salePrice),
-          costPrice: parseFloat(formData.costPrice),
-          stock: isDigitalOrService || isCombo ? undefined : parseInt(formData.stock),
-          reorderLevel: isDigitalOrService || isCombo ? undefined : parseInt(formData.reorderLevel),
+          salePrice: parseFloat(formData.salePrice) || 0,
+          costPrice: parseFloat(formData.costPrice) || 0,
+          stock: isDigitalOrService || isCombo ? undefined : parseInt(formData.stock) || undefined,
+          reorderLevel: isDigitalOrService || isCombo ? undefined : parseInt(formData.reorderLevel) || undefined,
           alertQuantity: formData.alertQuantity ? parseInt(formData.alertQuantity) : undefined,
           barcodeSymbology: formData.barcodeSymbology,
           taxRate: formData.taxRate ? parseFloat(formData.taxRate) : undefined,
@@ -490,22 +495,28 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
           toast({ title: "Success", description: "Product updated successfully" });
         } else {
           if (selectedWarehouseId) productData.warehouseId = selectedWarehouseId;
-          await createProduct(productData as any);
+          const created = await createProduct(productData as any);
           const whName = warehouses.find((w) => w.id === selectedWarehouseId)?.name || "Default Warehouse";
           toast({ title: "Success", description: `Product created with ${formData.stock || 0} units in ${whName}` });
+          if (onSuccess) onSuccess(created);
+          else router.push("/products");
         }
-
-        if (onSuccess) onSuccess();
-        else router.push("/products");
       } catch (error: any) {
-        toast({ title: "Error", description: error.message || "Failed to save product", variant: "destructive" });
+        const msg = error?.message || "Failed to save product";
+        toast({ title: "Error", description: msg, variant: "destructive" });
+        setSubmitError(msg);
       } finally {
         setIsSubmitting(false);
       }
     };
 
     return (
-      <form ref={ref} onSubmit={handleSubmit} className="space-y-5">
+      <form ref={ref} id={formId} onSubmit={handleSubmit} className="space-y-5">
+        {submitError && (
+          <div className="bg-destructive/10 border border-destructive text-destructive text-sm rounded-md px-4 py-3">
+            {submitError}
+          </div>
+        )}
         {/* Product Information */}
         <CardSection icon={<Info className="h-4 w-4" />} title="Product Information">
           <div className="space-y-4">
@@ -699,21 +710,23 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                   onChange={(e) => handleInputChange("stock", e.target.value)}
                   className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
               </FormField>
-              <FormField label="Warehouse" className="flex-1">
-                <Select value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
-                  <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses.length > 0 ? warehouses.map((wh) => (
-                      <SelectItem key={wh.id} value={wh.id}>{wh.name}</SelectItem>
-                    )) : (
-                      <SelectItem value="__none" disabled>No warehouses (auto-created)</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-                <p className="text-[11px] text-muted-foreground mt-1">Stock will be assigned to this warehouse</p>
-              </FormField>
+              {!hideWarehouse && (
+                <FormField label="Warehouse" className="flex-1">
+                  <Select value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
+                    <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses.length > 0 ? warehouses.map((wh) => (
+                        <SelectItem key={wh.id} value={wh.id}>{wh.name}</SelectItem>
+                      )) : (
+                        <SelectItem value="__none" disabled>No warehouses (auto-created)</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground mt-1">Stock will be assigned to this warehouse</p>
+                </FormField>
+              )}
               <FormField label="Price" required className="flex-1">
                 <Input type="number" step="0.01" placeholder="0.00" value={formData.salePrice}
                   onChange={(e) => handleInputChange("salePrice", e.target.value)} required

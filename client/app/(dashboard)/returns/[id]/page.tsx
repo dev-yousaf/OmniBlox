@@ -37,7 +37,7 @@ const statusConfig: Record<string, { label: string; className: string }> = {
       "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800",
   },
   COMPLETED: {
-    label: "Completed",
+    label: "Returned",
     className:
       "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
   },
@@ -254,7 +254,7 @@ export default function ReturnDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {canManage && (
+          {canManage && data.status !== "COMPLETED" && data.status !== "CANCELLED" && (
             <>
               <Link href={`/returns/${data.id}/edit`}>
                 <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">
@@ -299,7 +299,7 @@ export default function ReturnDetailPage() {
           <div className="flex items-center gap-2 px-5 py-3 bg-emerald-50 text-emerald-800 text-sm border border-emerald-200 rounded-[5px]">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
             <span>
-              This return has been completed. The original{" "}
+              This return has been processed. The original{" "}
               {type === "customer" ? "sale" : "purchase order"} now shows return
               indicators with the returned quantities.
             </span>
@@ -398,7 +398,7 @@ export default function ReturnDetailPage() {
                 {statusLabel}
               </Badge>
             </div>
-            {canManage && data.status !== "CANCELLED" && (
+            {canManage && data.status !== "COMPLETED" && data.status !== "CANCELLED" && (
               <div className="space-y-2 pt-1">
                 {data.status === "PENDING" && (
                   <Button
@@ -423,20 +423,6 @@ export default function ReturnDetailPage() {
                       <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Completing...</>
                     ) : (
                       <><CheckCircle2 className="mr-2 h-4 w-4" /> Mark Completed</>
-                    )}
-                  </Button>
-                )}
-                {data.status === "COMPLETED" && (
-                  <Button
-                    variant="outline"
-                    className="w-full h-[38px] rounded-[5px] text-sm"
-                    disabled={statusUpdateLoading}
-                    onClick={() => handleStatusChange("PENDING")}
-                  >
-                    {statusUpdateLoading ? (
-                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resetting...</>
-                    ) : (
-                      <><Undo2 className="mr-2 h-4 w-4" /> Reset to Pending</>
                     )}
                   </Button>
                 )}

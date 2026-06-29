@@ -1,5 +1,5 @@
 import { useAuthenticatedApi } from "./use-authenticated-api";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 export interface ExpenseReportFilters {
   startDate: string;
@@ -59,7 +59,5 @@ export function useReportsApi() {
     [post]
   );
 
-  return {
-    generateExpenseReport,
-  };
+  return useMemo(() => ({ generateExpenseReport }), [generateExpenseReport]);
 }

@@ -56,6 +56,7 @@ import {
   type UpdatePurchaseOrderDto,
 } from "@/hooks/use-purchases-api";
 import { useAllProducts } from "@/hooks/use-products";
+import { QuickCreateProductDialog } from "@/components/products/quick-create-product-dialog";
 import { useWarehouses } from "@/hooks/use-warehouses";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@/lib/types";
@@ -100,6 +101,9 @@ export default function EditPurchasePage() {
   const { getSuppliers } = useSuppliersApi();
   const { products, loading: productsLoading } = useAllProducts();
   const { warehouses, loading: warehousesLoading } = useWarehouses();
+
+
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
 
   const [purchase, setPurchase] = useState<PurchaseOrder | null>(null);
   const [loading, setLoading] = useState(true);
@@ -147,14 +151,14 @@ export default function EditPurchasePage() {
             notes: "",
           });
           setItems(
-            (result.items ?? []).map((item) => ({
-              id: item.id,
-              productId: item.productId,
-              productName: item.product?.name ?? "",
-              quantity: item.quantity,
-              unitCost: item.unitCost,
-              total: item.quantity * item.unitCost,
-            }))
+              (result.items ?? []).map((item) => ({
+                id: item.id,
+                productId: item.productId,
+                productName: item.product?.name ?? "",
+                quantity: item.quantity,
+                unitCost: item.unitCost,
+                total: item.quantity * item.unitCost,
+              }))
           );
         }
       } catch (err) {
@@ -174,6 +178,14 @@ export default function EditPurchasePage() {
       active = false;
     };
   }, [purchaseId, getById, today]);
+
+  useEffect(() => {
+    if (products.length > 0) {
+      setAllProducts(products);
+    }
+  }, [products]);
+
+
 
   useEffect(() => {
     let active = true;
@@ -222,10 +234,11 @@ export default function EditPurchasePage() {
   );
 
   const addItem = () => {
+    const id = createItemId();
     setItems((prev) => [
       ...prev,
       {
-        id: createItemId(),
+        id,
         productId: "",
         productName: "",
         quantity: 1,
@@ -254,22 +267,16 @@ export default function EditPurchasePage() {
 
         if (field === "productId" && typeof value === "string") {
           next.productId = value;
-          const product = products.find((p) => p.id === value);
+          const product = allProducts.find((p) => p.id === value);
           if (product) {
             next.productName = product.name;
             next.unitCost = Number(product.costPrice) || 0;
           }
-        }
-
-        if (field === "quantity" && typeof value === "number") {
+        } else if (field === "quantity" && typeof value === "number") {
           next.quantity = Math.max(1, Math.floor(value));
-        }
-
-        if (field === "unitCost" && typeof value === "number") {
+        } else if (field === "unitCost" && typeof value === "number") {
           next.unitCost = Math.max(0, value);
-        }
-
-        if (field === "productName" && typeof value === "string") {
+        } else if (field === "productName" && typeof value === "string") {
           next.productName = value;
         }
 
@@ -638,38 +645,49 @@ export default function EditPurchasePage() {
                       <div className="flex-1 grid gap-4 md:grid-cols-4">
                         <div className="space-y-2">
                           <Label className="text-xs font-medium">Product</Label>
-                          <Select
-                            value={item.productId}
-                            onValueChange={(value) =>
-                              updateItem(item.id, "productId", value)
-                            }
-                          >
-                            <SelectTrigger className="h-[34px] rounded-[5px] text-sm">
-                              <SelectValue placeholder="Select product" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {productsLoading && (
-                                <SelectItem value="LOADING" disabled>
-                                  Loading products...
-                                </SelectItem>
-                              )}
-                              {!productsLoading &&
-                                products.length === 0 && (
-                                  <SelectItem value="NO_PRODUCTS" disabled>
-                                    No products available
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={item.productId}
+                              onValueChange={(value) =>
+                                updateItem(item.id, "productId", value)
+                              }
+                            >
+                              <SelectTrigger className="h-[34px] rounded-[5px] text-sm flex-1">
+                                <SelectValue placeholder="Select product" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {productsLoading && (
+                                  <SelectItem value="LOADING" disabled>
+                                    Loading products...
                                   </SelectItem>
                                 )}
-                              {!productsLoading &&
-                                products.map((product) => (
-                                  <SelectItem
-                                    key={product.id}
-                                    value={product.id}
-                                  >
-                                    {product.name}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
+                                {!productsLoading &&
+                                  allProducts.length === 0 && (
+                                    <SelectItem value="NO_PRODUCTS" disabled>
+                                      No products available
+                                    </SelectItem>
+                                  )}
+                                {!productsLoading &&
+                                  allProducts.map((product) => (
+                                    <SelectItem
+                                      key={product.id}
+                                      value={product.id}
+                                    >
+                                      {product.name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                            <QuickCreateProductDialog
+                              onProductCreated={(product) => {
+                                setAllProducts((prev) => {
+                                  if (prev.some((p) => p.id === product.id)) return prev;
+                                  return [...prev, product];
+                                });
+                                updateItem(item.id, "productId", product.id);
+                              }}
+                            />
+                          </div>
                         </div>
                         <div className="space-y-2">
                           <Label className="text-xs font-medium">Quantity</Label>

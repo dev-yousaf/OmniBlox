@@ -22,6 +22,9 @@ export interface SaleSummaryDto {
   warehouseId: string;
   warehouseName: string;
   hasReturns: boolean;
+  returnStatus: 'NONE' | 'PARTIAL' | 'ALL';
+  returnedValue: number;
+  netTotal: number;
   subtotal: number;
   tax: number;
   discount: number;

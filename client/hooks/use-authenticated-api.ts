@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 /**
@@ -96,15 +96,18 @@ export function useAuthenticatedApi() {
     [makeRequest]
   );
 
-  return {
-    get,
-    post,
-    put,
-    patch,
-    delete: del,
-    makeRequest,
-    isAuthenticated,
-  };
+  return useMemo(
+    () => ({
+      get,
+      post,
+      put,
+      patch,
+      delete: del,
+      makeRequest,
+      isAuthenticated,
+    }),
+    [get, post, put, patch, del, makeRequest, isAuthenticated],
+  );
 }
 
 /**

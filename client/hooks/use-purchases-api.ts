@@ -8,9 +8,12 @@ export type OrderStatus = "PENDING" | "COMPLETED" | "CANCELLED" | string;
 export interface PurchaseOrderItem {
   id: string;
   productId: string;
+  productName?: string;
+  productSku?: string;
   quantity: number;
   returnedQuantity: number;
   unitCost: number;
+  total?: number;
   product?: {
     id: string;
     name: string;
@@ -18,12 +21,17 @@ export interface PurchaseOrderItem {
   };
 }
 
+export type ReturnStatus = 'NONE' | 'PARTIAL' | 'ALL';
+
 export interface PurchaseOrder {
   id: string;
   referenceNumber: string;
   orderDate: string;
   status: OrderStatus;
   hasReturns: boolean;
+  returnStatus?: ReturnStatus;
+  returnedValue?: number;
+  netTotal?: number;
   subtotal?: number;
   totalAmount: number;
   supplier: { id: string; name: string };

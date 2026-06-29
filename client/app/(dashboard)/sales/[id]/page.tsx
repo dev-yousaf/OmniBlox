@@ -89,6 +89,7 @@ export default function SaleDetailPage() {
   const status = getStatus();
   const statusLabel = statusLabels[status] || status;
   const totalUnits = sale.items.reduce((sum, item) => sum + item.quantity, 0);
+  const allReturned = sale.items?.every((item) => (item.returnedQuantity ?? 0) >= item.quantity) ?? false;
 
   return (
     <div className="space-y-5">
@@ -117,8 +118,12 @@ export default function SaleDetailPage() {
               </Badge>
               {sale.hasReturns && (
                 <Link href={`/returns?search=${sale.invoiceNumber}`}>
-                  <Badge variant="outline" className="font-medium text-xs text-orange-600 border-orange-200 bg-orange-50 hover:bg-orange-100 cursor-pointer transition-colors">
-                    <RotateCcw className="mr-1 h-3 w-3" /> Returns
+                  <Badge variant="outline" className={`font-medium text-xs cursor-pointer transition-colors ${
+                    sale.returnStatus === "ALL"
+                      ? "text-purple-600 border-purple-200 bg-purple-50 hover:bg-purple-100"
+                      : "text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
+                  }`}>
+                    <RotateCcw className="mr-1 h-3 w-3" /> {sale.returnStatus === "ALL" ? "All Returned" : "Returned"}
                   </Badge>
                 </Link>
               )}
@@ -151,15 +156,17 @@ export default function SaleDetailPage() {
                   )}
                 </Button>
               )}
-              <Link href={`/returns/new?saleId=${sale.id}`}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-[34px] rounded-[5px] text-[13px]"
-                >
-                  <Undo2 className="mr-1.5 h-3.5 w-3.5" /> Return
-                </Button>
-              </Link>
+              {!allReturned && (
+                <Link href={`/returns/new?saleId=${sale.id}`}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-[34px] rounded-[5px] text-[13px]"
+                  >
+                    <Undo2 className="mr-1.5 h-3.5 w-3.5" /> Return
+                  </Button>
+                </Link>
+              )}
               <Link href={`/sales/${sale.id}/edit`}>
                 <Button
                   variant="outline"
@@ -297,6 +304,18 @@ export default function SaleDetailPage() {
                 <span className="font-semibold text-foreground">Total</span>
                 <span className="text-xl font-bold tabular-nums">{formatCurrency.format(sale.totalAmount)}</span>
               </div>
+              {sale.returnedValue != null && sale.returnedValue > 0 && (
+                <div className="flex justify-between text-sm text-destructive border-t pt-2">
+                  <span className="text-muted-foreground">Returned</span>
+                  <span className="font-medium">-{formatCurrency.format(sale.returnedValue)}</span>
+                </div>
+              )}
+              {sale.netTotal != null && sale.returnedValue != null && sale.returnedValue > 0 && (
+                <div className="flex justify-between border-t-2 pt-2">
+                  <span className="font-semibold text-foreground">Net Total</span>
+                  <span className="text-lg font-bold tabular-nums">{formatCurrency.format(sale.netTotal)}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -353,6 +372,22 @@ export default function SaleDetailPage() {
                 <span className="text-muted-foreground">Customer</span>
                 <span className="font-semibold text-xs truncate max-w-[140px] text-right">{sale.customerName}</span>
               </div>
+              <div className="flex justify-between border-t pt-2">
+                <span className="text-muted-foreground">Total</span>
+                <span className="font-bold text-base">{formatCurrency.format(sale.totalAmount)}</span>
+              </div>
+              {sale.returnedValue != null && sale.returnedValue > 0 && (
+                <div className="flex justify-between text-destructive">
+                  <span className="text-muted-foreground">Returned</span>
+                  <span className="font-semibold">-{formatCurrency.format(sale.returnedValue)}</span>
+                </div>
+              )}
+              {sale.netTotal != null && sale.returnedValue != null && sale.returnedValue > 0 && (
+                <div className="flex justify-between border-t pt-2">
+                  <span className="text-muted-foreground">Net Total</span>
+                  <span className="font-bold text-base">{formatCurrency.format(sale.netTotal)}</span>
+                </div>
+              )}
               <div className="flex justify-between border-t pt-2">
                 <span className="text-muted-foreground">Balance</span>
                 <span className={`font-bold text-base ${

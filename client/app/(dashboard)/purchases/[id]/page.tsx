@@ -126,6 +126,11 @@ export default function PurchaseDetailPage() {
   const status = purchase.status;
   const statusLabel = statusLabels[status] || status;
   const totalUnits = purchase.items?.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
+  const allReturned = purchase.items?.every((item) => (item.returnedQuantity ?? 0) >= item.quantity) ?? false;
+  const totalReturnedValue = purchase.items?.reduce(
+    (sum, item) => sum + (item.returnedQuantity ?? 0) * item.unitCost,
+    0,
+  ) ?? 0;
 
   return (
     <div className="space-y-5">
@@ -154,8 +159,12 @@ export default function PurchaseDetailPage() {
               </Badge>
               {purchase.hasReturns && (
                 <Link href={`/returns?search=${purchase.referenceNumber}`}>
-                  <Badge variant="outline" className="font-medium text-xs text-orange-600 border-orange-200 bg-orange-50 hover:bg-orange-100 cursor-pointer transition-colors">
-                    <RotateCcw className="mr-1 h-3 w-3" /> Returns
+                  <Badge variant="outline" className={`font-medium text-xs cursor-pointer transition-colors ${
+                    allReturned
+                      ? "text-purple-600 border-purple-200 bg-purple-50 hover:bg-purple-100"
+                      : "text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
+                  }`}>
+                    <RotateCcw className="mr-1 h-3 w-3" /> {allReturned ? "All Returned" : "Returned"}
                   </Badge>
                 </Link>
               )}
@@ -180,6 +189,13 @@ export default function PurchaseDetailPage() {
                 <Link href={`/purchases/${purchase.id}/edit`}>
                   <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">
                     <Edit className="mr-1.5 h-3.5 w-3.5" /> Edit
+                  </Button>
+                </Link>
+              )}
+              {!allReturned && (
+                <Link href={`/returns/new?purchaseId=${purchase.id}`}>
+                  <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">
+                    <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Return
                   </Button>
                 </Link>
               )}
@@ -261,10 +277,10 @@ export default function PurchaseDetailPage() {
                             <div className="bg-muted rounded-[5px] size-[30px] flex items-center justify-center overflow-hidden shrink-0">
                               <Package className="h-3.5 w-3.5 text-muted-foreground" />
                             </div>
-                            <span className="font-medium text-foreground">{item.product?.name || "N/A"}</span>
+                            <span className="font-medium text-foreground">{item.productName || "N/A"}</span>
                           </div>
                         </td>
-                        <td className="px-4 text-left tabular-nums text-muted-foreground">{item.product?.sku || "—"}</td>
+                        <td className="px-4 text-left tabular-nums text-muted-foreground">{item.productSku || "—"}</td>
                         <td className="px-4 text-right tabular-nums">{item.quantity}</td>
                         <td className="px-4 text-right">
                           {item.returnedQuantity > 0 ? (
@@ -288,6 +304,22 @@ export default function PurchaseDetailPage() {
                       <td colSpan={5} className="p-3 text-right text-sm">Total</td>
                       <td className="p-3 text-right text-sm font-semibold">{formatCurrency.format(purchase.totalAmount)}</td>
                     </tr>
+                    {totalReturnedValue > 0 && (
+                      <tr className="bg-muted/30">
+                        <td colSpan={5} className="px-3 py-2 text-right text-xs text-muted-foreground">Returned</td>
+                        <td className="px-3 py-2 text-right text-xs text-destructive font-medium">
+                          -{formatCurrency.format(totalReturnedValue)}
+                        </td>
+                      </tr>
+                    )}
+                    {totalReturnedValue > 0 && (
+                      <tr className="border-t-2 border-muted font-semibold">
+                        <td colSpan={5} className="px-3 py-3 text-right text-sm">Net Total</td>
+                        <td className="px-3 py-3 text-right text-sm font-bold">
+                          {formatCurrency.format(purchase.totalAmount - totalReturnedValue)}
+                        </td>
+                      </tr>
+                    )}
                   </tfoot>
                 </table>
               </div>
@@ -334,6 +366,20 @@ export default function PurchaseDetailPage() {
                 <span className="text-muted-foreground">Total</span>
                 <span className="font-bold text-base">{formatCurrency.format(purchase.totalAmount)}</span>
               </div>
+              {totalReturnedValue > 0 && (
+                <div className="flex justify-between text-destructive">
+                  <span className="text-muted-foreground">Returned</span>
+                  <span className="font-semibold">-{formatCurrency.format(totalReturnedValue)}</span>
+                </div>
+              )}
+              {totalReturnedValue > 0 && (
+                <div className="flex justify-between border-t pt-2">
+                  <span className="text-muted-foreground">Net Total</span>
+                  <span className="font-bold text-base">
+                    {formatCurrency.format(purchase.totalAmount - totalReturnedValue)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

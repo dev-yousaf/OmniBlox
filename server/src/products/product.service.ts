@@ -33,7 +33,7 @@ export class ProductService {
     companyId: string,
     userId?: string,
   ): Promise<ProductResponseDto> {
-    const { sku, category, brand, stock = 0, comboItems, ...productData } = createProductDto;
+    const { sku, category, brand, subCategory, warehouseId, stock = 0, comboItems, ...productData } = createProductDto;
 
     // Check if SKU already exists within this company (Golden Rule applied)
     const existingProduct = await this.prisma.product.findUnique({
@@ -128,6 +128,14 @@ export class ProductService {
         if (warrantyRecord) warrantyId = warrantyRecord.id;
       }
 
+      let subCategoryId: string | null = null;
+      if (subCategory) {
+        const subCatRecord = await this.prisma.subCategory.findFirst({
+          where: { name: subCategory, companyId },
+        });
+        if (subCatRecord) subCategoryId = subCatRecord.id;
+      }
+
       const product = await this.prisma.product.create({
         data: {
           sku,
@@ -136,6 +144,7 @@ export class ProductService {
           warranty,
           ...restProductData,
           ...dateData,
+          subCategoryId,
           unitId: unitId || null,
           warrantyId: warrantyId || null,
           categoryId: categoryRecord.id,
@@ -193,8 +202,8 @@ export class ProductService {
       }
 
       return this.transformToDto(product, stock);
-    } catch (error) {
-      throw new BadRequestException('Failed to create product');
+    } catch (error: any) {
+      throw new BadRequestException(error?.message || 'Failed to create product');
     }
   }
 

@@ -65,6 +65,25 @@ export class PurchaseReturnsService {
           `Insufficient stock for product ${product?.name || item.productId}. Available: ${inventory?.quantity || 0}, Required: ${item.quantity}`,
         );
       }
+
+      // Validate against purchase order item remaining quantity
+      if (item.purchaseOrderItemId) {
+        const poi = await this.prisma.purchaseOrderItem.findUnique({
+          where: { id: item.purchaseOrderItemId },
+          select: { quantity: true, returnedQuantity: true },
+        });
+
+        if (!poi) {
+          throw new BadRequestException('Purchase order item not found');
+        }
+
+        const available = poi.quantity - poi.returnedQuantity;
+        if (item.quantity > available) {
+          throw new BadRequestException(
+            `Cannot return ${item.quantity} of this item. Only ${available} remaining unreturned.`,
+          );
+        }
+      }
     }
 
     // Use transaction to ensure atomicity
@@ -254,6 +273,20 @@ export class PurchaseReturnsService {
 
             // Update returned quantity on original purchase item if linked
             if (item.purchaseOrderItemId) {
+              const poi = await tx.purchaseOrderItem.findUnique({
+                where: { id: item.purchaseOrderItemId },
+                select: { quantity: true, returnedQuantity: true },
+              });
+
+              if (poi) {
+                const newReturned = poi.returnedQuantity + item.quantity;
+                if (newReturned > poi.quantity) {
+                  throw new BadRequestException(
+                    `Cannot return more than ordered quantity (${poi.quantity}). Already returned: ${poi.returnedQuantity}.`,
+                  );
+                }
+              }
+
               await tx.purchaseOrderItem.update({
                 where: { id: item.purchaseOrderItemId },
                 data: {

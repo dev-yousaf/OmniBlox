@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   PieChart,
   Pie,
@@ -8,13 +9,34 @@ import {
 } from "recharts";
 import { ChevronDown, CalendarDays, Box } from "lucide-react";
 
-const PIE_DATA = [
+interface CategoryData {
+  name: string;
+  value: number;
+  color: string;
+  sales: number;
+}
+
+const FALLBACK_CATEGORIES: CategoryData[] = [
   { name: "Electronics", value: 24, color: "#3538cd", sales: 698 },
   { name: "Sports", value: 50, color: "#e04f16", sales: 545 },
   { name: "Lifestyles", value: 16, color: "#dd2590", sales: 456 },
 ];
 
-export function TopCategories() {
+interface TopCategoriesProps {
+  categories?: CategoryData[];
+  totalCategories?: number;
+  totalProducts?: number;
+  loading?: boolean;
+}
+
+export function TopCategories({
+  categories,
+  totalCategories = 698,
+  totalProducts = 7899,
+  loading,
+}: TopCategoriesProps) {
+  const pieData = categories && categories.length > 0 ? categories : FALLBACK_CATEGORIES;
+
   return (
     <div className="border border-border rounded-lg h-full">
       <div className="border-b border-border px-5 py-[15px] flex items-center gap-2">
@@ -36,7 +58,7 @@ export function TopCategories() {
             <ResponsiveContainer width={165} height={165}>
               <PieChart>
                 <Pie
-                  data={PIE_DATA}
+                  data={pieData as any}
                   cx="50%"
                   cy="50%"
                   innerRadius={50}
@@ -46,7 +68,7 @@ export function TopCategories() {
                   startAngle={90}
                   endAngle={-270}
                 >
-                  {PIE_DATA.map((entry, index) => (
+                  {pieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -54,7 +76,7 @@ export function TopCategories() {
             </ResponsiveContainer>
           </div>
           <div className="flex-1 space-y-3 min-w-0">
-            {PIE_DATA.map((cat) => (
+            {pieData.map((cat) => (
               <div key={cat.name}>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">{cat.name}</span>
@@ -68,22 +90,22 @@ export function TopCategories() {
           </div>
         </div>
 
-        <div className="border border-border rounded-lg">
+        <Link href="/products" className="block border border-border rounded-lg">
           <div className="border-b border-border px-4 py-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-sm bg-[#3538cd]" />
               <span className="text-sm text-muted-foreground">Total Number Of Categories</span>
             </div>
-            <span className="text-base font-bold text-card-foreground">698</span>
+            <span className="text-base font-bold text-card-foreground">{totalCategories}</span>
           </div>
           <div className="px-4 py-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-sm bg-[#e04f16]" />
               <span className="text-sm text-muted-foreground">Total Number Of Products</span>
             </div>
-            <span className="text-base font-bold text-card-foreground">7899</span>
+            <span className="text-base font-bold text-card-foreground">{totalProducts}</span>
           </div>
-        </div>
+        </Link>
       </div>
     </div>
   );

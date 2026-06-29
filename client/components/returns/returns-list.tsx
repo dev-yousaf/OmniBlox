@@ -25,7 +25,14 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 
 const ROWS_PER_PAGE = 20;
 
-export default function ReturnsPage() {
+interface ReturnsListProps {
+  type: "customer" | "supplier";
+  title: string;
+  description: string;
+  newLink: string;
+}
+
+export function ReturnsList({ type, title, description, newLink }: ReturnsListProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
@@ -41,13 +48,13 @@ export default function ReturnsPage() {
       setLoading(true);
       setError(null);
       const data = await getAllReturns();
-      setReturns(data);
+      setReturns(data.filter((r) => r.type === type));
     } catch (err: any) {
       setError(err.message || "Failed to load returns");
     } finally {
       setLoading(false);
     }
-  }, [getAllReturns]);
+  }, [getAllReturns, type]);
 
   useEffect(() => { loadReturns(); }, [loadReturns]);
 
@@ -57,9 +64,9 @@ export default function ReturnsPage() {
     return returns.filter((r) =>
       r.referenceNumber.toLowerCase().includes(q) ||
       r.reason?.toLowerCase().includes(q) ||
-      (r.type === "supplier" && r.supplier?.name.toLowerCase().includes(q))
+      (type === "supplier" && r.supplier?.name.toLowerCase().includes(q))
     );
-  }, [returns, search]);
+  }, [returns, search, type]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE));
   const paged = filtered.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
@@ -67,16 +74,14 @@ export default function ReturnsPage() {
   const stats = useMemo(() => ({
     total: returns.length,
     value: returns.reduce((s, r) => s + Number(r.totalAmount), 0),
-    customer: returns.filter((r) => r.type === "customer").length,
-    supplier: returns.filter((r) => r.type === "supplier").length,
   }), [returns]);
 
   const exportCSV = () => {
-    const headers = ["Reference", "Type", "Entity", "Date", "Items", "Amount", "Status"];
+    const entityLabel = type === "customer" ? "Customer" : "Supplier";
+    const headers = ["Reference", entityLabel, "Date", "Items", "Amount", "Status"];
     const rows = filtered.map((r) => [
       r.referenceNumber,
-      r.type === "customer" ? "Customer Return" : "Supplier Return",
-      r.type === "supplier" ? r.supplier?.name || "" : "Customer",
+      type === "supplier" ? r.supplier?.name || "" : "—",
       format(new Date(r.returnDate), "MMM dd, yyyy"),
       String(r.items.length),
       Number(r.totalAmount).toFixed(2),
@@ -89,10 +94,10 @@ export default function ReturnsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `returns-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `${type}-returns-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: "Exported", description: "Returns data exported as CSV" });
+    toast({ title: "Exported", description: `${title} data exported as CSV` });
   };
 
   const formatCurrency = new Intl.NumberFormat("en-US", {
@@ -105,14 +110,14 @@ export default function ReturnsPage() {
       <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
         <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
         <ChevronRight className="h-3.5 w-3.5" />
-        <span className="text-foreground">Returns</span>
+        <span className="text-foreground">{title}</span>
       </div>
 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[18px] font-bold text-foreground">Returns</h1>
-          <p className="text-sm text-muted-foreground">Manage customer and supplier returns</p>
+          <h1 className="text-[18px] font-bold text-foreground">{title}</h1>
+          <p className="text-sm text-muted-foreground">{description}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" className="h-[34px] w-[34px] rounded-[5px]" title="Export CSV" onClick={exportCSV}>
@@ -125,7 +130,7 @@ export default function ReturnsPage() {
             <RefreshCw className="h-4 w-4" />
           </Button>
           {canManage && (
-            <Link href="/returns/new">
+            <Link href={newLink}>
               <Button className="h-[34px] rounded-[5px] bg-[#ff9025] hover:bg-[#ff9025]/90 text-white text-[13px] font-medium px-3">
                 <Plus className="mr-1.5 h-3.5 w-3.5" />New Return
               </Button>
@@ -138,12 +143,12 @@ export default function ReturnsPage() {
       <Alert className="border-blue-200 bg-blue-50">
         <Info className="h-4 w-4 text-blue-600" />
         <AlertDescription className="text-blue-800 text-sm">
-          <strong>Note:</strong> Returns must be marked as <strong>Completed</strong> before inventory is adjusted. Only completed returns affect stock levels and show indicators on original invoices.
+          <strong>Note:</strong> Returns must be marked as <strong>Completed</strong> before inventory is adjusted.
         </AlertDescription>
       </Alert>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* Stats Card */}
+      <div className="grid gap-4 md:grid-cols-2">
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Total Returns</p>
           <p className="text-2xl font-bold">{stats.total}</p>
@@ -151,20 +156,6 @@ export default function ReturnsPage() {
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Total Value</p>
           <p className="text-2xl font-bold">{formatCurrency.format(stats.value)}</p>
-        </div>
-        <div className="border rounded-[5px] bg-card shadow-sm p-5">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Customer Returns</p>
-            <TrendingDown className="h-4 w-4 text-red-500" />
-          </div>
-          <p className="text-2xl font-bold text-red-600">{stats.customer}</p>
-        </div>
-        <div className="border rounded-[5px] bg-card shadow-sm p-5">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Supplier Returns</p>
-            <TrendingUp className="h-4 w-4 text-emerald-500" />
-          </div>
-          <p className="text-2xl font-bold text-emerald-600">{stats.supplier}</p>
         </div>
       </div>
 
@@ -196,7 +187,7 @@ export default function ReturnsPage() {
           <div className="flex flex-col items-center py-12 text-muted-foreground">
             <RotateCcw className="h-12 w-12 mb-3 text-muted-foreground/50" />
             <p className="font-medium">
-              {search ? "No returns match your search" : "No returns yet"}
+              {search ? "No returns match your search" : `No ${type} returns yet`}
             </p>
             <p className="text-sm mt-1">
               {search ? "Try a different search term" : "Create a return to get started."}
@@ -208,8 +199,9 @@ export default function ReturnsPage() {
               <thead>
                 <tr className="bg-muted h-[33px]">
                   <th className="px-5 py-2 text-left font-semibold text-foreground min-w-[140px]">Reference</th>
-                  <th className="px-5 py-2 text-left font-semibold text-foreground w-[140px]">Type</th>
-                  <th className="px-5 py-2 text-left font-semibold text-foreground min-w-[140px]">Entity</th>
+                  {type === "supplier" && (
+                    <th className="px-5 py-2 text-left font-semibold text-foreground min-w-[140px]">Supplier</th>
+                  )}
                   <th className="w-[110px] px-5 py-2 text-left font-semibold text-foreground">Date</th>
                   <th className="w-[70px] px-5 py-2 text-right font-semibold text-foreground">Items</th>
                   <th className="w-[130px] px-5 py-2 text-right font-semibold text-foreground">Amount</th>
@@ -225,20 +217,11 @@ export default function ReturnsPage() {
                         {r.referenceNumber}
                       </Link>
                     </td>
-                    <td className="px-5">
-                      <Badge variant="outline" className={
-                        r.type === "customer"
-                          ? "border-red-200 bg-red-50 text-red-700"
-                          : "border-emerald-200 bg-emerald-50 text-emerald-700"
-                      }>
-                        {r.type === "customer" ? "Customer" : "Supplier"}
-                      </Badge>
-                    </td>
-                    <td className="px-5">
-                      <span className="font-medium text-foreground">
-                        {r.type === "customer" ? "—" : r.supplier?.name || "—"}
-                      </span>
-                    </td>
+                    {type === "supplier" && (
+                      <td className="px-5">
+                        <span className="font-medium text-foreground">{r.supplier?.name || "—"}</span>
+                      </td>
+                    )}
                     <td className="px-5 text-muted-foreground">
                       {format(new Date(r.returnDate), "MMM dd, yyyy")}
                     </td>
@@ -272,11 +255,7 @@ export default function ReturnsPage() {
               Showing page {page} of {totalPages} ({filtered.length} total)
             </p>
             <div className="flex items-center gap-1">
-              <Button
-                variant="outline" size="icon" className="h-[30px] w-[30px] rounded-[5px]"
-                disabled={page <= 1}
-                onClick={() => setPage(page - 1)}
-              >
+              <Button variant="outline" size="icon" className="h-[30px] w-[30px] rounded-[5px]" disabled={page <= 1} onClick={() => setPage(page - 1)}>
                 <ChevronLeft className="h-3.5 w-3.5" />
               </Button>
               {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
@@ -284,22 +263,12 @@ export default function ReturnsPage() {
                 const p = start + i;
                 if (p > totalPages) return null;
                 return (
-                  <Button
-                    key={p}
-                    variant={p === page ? "default" : "outline"}
-                    size="icon"
-                    className="h-[30px] w-[30px] rounded-[5px] text-xs"
-                    onClick={() => setPage(p)}
-                  >
+                  <Button key={p} variant={p === page ? "default" : "outline"} size="icon" className="h-[30px] w-[30px] rounded-[5px] text-xs" onClick={() => setPage(p)}>
                     {p}
                   </Button>
                 );
               })}
-              <Button
-                variant="outline" size="icon" className="h-[30px] w-[30px] rounded-[5px]"
-                disabled={page >= totalPages}
-                onClick={() => setPage(page + 1)}
-              >
+              <Button variant="outline" size="icon" className="h-[30px] w-[30px] rounded-[5px]" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
                 <ChevronRight className="h-3.5 w-3.5" />
               </Button>
             </div>

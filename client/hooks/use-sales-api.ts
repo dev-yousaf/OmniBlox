@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuthenticatedApi } from "./use-authenticated-api";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 export interface SaleItem {
   id: string;
@@ -20,10 +20,19 @@ export interface Sale {
   id: string;
   invoiceNumber: string;
   saleDate: string;
+  dueDate: string;
   totalAmount: number;
+  subtotal: number;
+  tax: number;
+  discount: number;
+  balanceDue: number;
   status: string;
   paymentStatus: string;
+  paymentMethod?: string;
   hasReturns: boolean;
+  returnStatus?: 'NONE' | 'PARTIAL' | 'ALL';
+  returnedValue?: number;
+  netTotal?: number;
   warehouseId?: string;
   warehouse?: {
     id: string;
@@ -74,8 +83,5 @@ export function useSalesApi() {
     [get]
   );
 
-  return {
-    getSales,
-    getSale,
-  };
+  return useMemo(() => ({ getSales, getSale }), [getSales, getSale]);
 }

@@ -79,7 +79,7 @@ export default function PurchasesPage() {
       format(new Date(p.orderDate), "MMM dd, yyyy"),
       Number(p.totalAmount).toFixed(2),
       statusConfig[p.status]?.label || p.status,
-      p.hasReturns ? "Yes" : "No",
+      p.hasReturns ? "Returned" : "No",
     ]);
     const csv = [headers, ...rows].map((row) =>
       row.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")
@@ -240,8 +240,12 @@ export default function PurchasesPage() {
                     </td>
                     <td className="px-5 text-center">
                       {p.hasReturns && (
-                        <Badge variant="outline" className="font-medium text-xs text-orange-600 border-orange-200 bg-orange-50">
-                          <RotateCcw className="mr-1 h-3 w-3" /> Yes
+                        <Badge variant="outline" className={`font-medium text-xs ${
+                          p.returnStatus === "ALL"
+                            ? "text-purple-600 border-purple-200 bg-purple-50"
+                            : "text-emerald-600 border-emerald-200 bg-emerald-50"
+                        }`}>
+                          <RotateCcw className="mr-1 h-3 w-3" /> {p.returnStatus === "ALL" ? "All Returned" : "Returned"}
                         </Badge>
                       )}
                     </td>

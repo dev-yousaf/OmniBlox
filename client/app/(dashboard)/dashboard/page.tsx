@@ -120,10 +120,17 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-7">
-            <SalesStatistics />
+            <SalesStatistics
+              data={data?.salesPurchaseChart}
+              totalRevenue={data?.totalSales}
+              totalExpenses={data?.totalExpenses}
+              revenueChange={data?.salesChange}
+              expenseChange={data?.expensesChange}
+              loading={loading}
+            />
           </div>
           <div className="col-span-5">
-            <RecentTransactions />
+            <RecentTransactions sales={data?.recentSales} loading={loading} />
           </div>
         </div>
 

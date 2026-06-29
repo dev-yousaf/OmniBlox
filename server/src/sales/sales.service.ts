@@ -1023,6 +1023,23 @@ export class SalesService {
     const isPaid = sale.paymentStatus === PaymentStatus.PAID;
     const isOverdue = !isPaid && sale.dueDate < new Date();
 
+    const items = sale.items?.map((i: any) => this.transformSaleItem(i)) ?? [];
+
+    const returnedValue = items.reduce(
+      (sum: number, i: any) => sum + (i.returnedQuantity ?? 0) * i.unitPrice,
+      0,
+    );
+
+    let returnStatus: 'NONE' | 'PARTIAL' | 'ALL' = 'NONE';
+    if (items.length > 0) {
+      const anyReturned = items.some((i: any) => (i.returnedQuantity ?? 0) > 0);
+      const allReturned = items.every(
+        (i: any) => (i.returnedQuantity ?? 0) >= i.quantity,
+      );
+      if (allReturned) returnStatus = 'ALL';
+      else if (anyReturned) returnStatus = 'PARTIAL';
+    }
+
     return {
       id: sale.id,
       invoiceNumber: sale.invoiceNumber,
@@ -1037,6 +1054,9 @@ export class SalesService {
       warehouseId: sale.warehouseId,
       warehouseName: sale.warehouse?.name ?? '',
       hasReturns: Boolean(sale.hasReturns),
+      returnStatus,
+      returnedValue: this.roundCurrency(returnedValue),
+      netTotal: this.roundCurrency(total - returnedValue),
       subtotal,
       tax,
       discount,

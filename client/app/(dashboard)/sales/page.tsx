@@ -419,9 +419,13 @@ export default function SalesPage() {
                       </td>
                       <td className="w-[60px] px-5 text-center">
                         {sale.hasReturns && (
-                          <Badge variant="outline" className="font-medium text-xs text-orange-600 border-orange-200 bg-orange-50 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800">
+                          <Badge variant="outline" className={`font-medium text-xs ${
+                            sale.returnStatus === "ALL"
+                              ? "text-purple-600 border-purple-200 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800"
+                              : "text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800"
+                          }`}>
                             <RotateCcw className="mr-1 h-3 w-3" />
-                            Yes
+                            {sale.returnStatus === "ALL" ? "All Returned" : "Returned"}
                           </Badge>
                         )}
                       </td>

@@ -101,9 +101,10 @@ export default function NewReturnPage() {
   const { list: listPurchases, getById: getPurchase } = usePurchasesApi();
 
   const preselectedSaleId = searchParams?.get("saleId");
+  const preselectedPurchaseId = searchParams?.get("purchaseId");
 
   const [tab, setTab] = useState<"customer" | "supplier">(
-    preselectedSaleId ? "customer" : "customer"
+    preselectedPurchaseId ? "supplier" : preselectedSaleId ? "customer" : "customer"
   );
 
   const [submitting, setSubmitting] = useState(false);
@@ -316,6 +317,35 @@ export default function NewReturnPage() {
     })();
     return () => { cancelled = true; };
   }, [preselectedSaleId, selectedSaleId, getSale]);
+
+  useEffect(() => {
+    if (!preselectedPurchaseId || selectedPurchaseId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const purchase = await getPurchase(preselectedPurchaseId);
+        if (cancelled || !purchase) return;
+        setSelectedPurchaseId(preselectedPurchaseId);
+        setSupplierForm({
+          warehouseId: purchase.warehouse?.id || (purchase as any).warehouseId || "",
+          supplierId: purchase.supplier.id,
+          reason: `Return for purchase ${purchase.referenceNumber}`,
+          purchaseOrderId: purchase.id,
+          items: purchase.items?.map((item: any) => ({
+            id: crypto.randomUUID(),
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: Number(item.unitCost),
+            purchaseOrderItemId: item.id,
+            maxQuantity: item.quantity,
+          })) || [],
+        });
+      } catch (err) {
+        console.error("Failed to pre-fill purchase:", err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [preselectedPurchaseId, selectedPurchaseId, getPurchase]);
 
   const productsById = useMemo(() => {
     const map = new Map<string, any>();

@@ -156,6 +156,36 @@ export class PurchasesService {
       },
     });
 
+    // Auto-create expense for this purchase
+    try {
+      const expenseCategory = await this.prisma.expenseCategory.upsert({
+        where: {
+          companyId_name: { companyId, name: 'Purchases' },
+        },
+        update: {},
+        create: {
+          name: 'Purchases',
+          companyId,
+        },
+      });
+
+      await this.prisma.expense.create({
+        data: {
+          reference: referenceNumber,
+          amount: totalAmount,
+          expenseDate: new Date(dto.orderDate),
+          vendor: supplier.name,
+          categoryId: expenseCategory.id,
+          purchaseOrderId: purchaseOrder.id,
+          description: dto.notes || `Purchase order ${referenceNumber}`,
+          userId,
+          companyId,
+        },
+      });
+    } catch {
+      // Expense creation is non-critical; purchase order creation succeeded
+    }
+
     return this.transformPurchase(purchaseOrder);
   }
 
@@ -179,6 +209,12 @@ export class PurchasesService {
             id: true,
             name: true,
             email: true,
+          },
+        },
+        warehouse: {
+          select: {
+            id: true,
+            name: true,
           },
         },
         user: {
@@ -499,6 +535,7 @@ export class PurchasesService {
       id: item.id,
       productId: item.productId,
       productName: item.product?.name ?? item.productId,
+      productSku: item.product?.sku ?? null,
       quantity: item.quantity,
       returnedQuantity: item.returnedQuantity ?? 0,
       unitCost,
@@ -508,13 +545,33 @@ export class PurchasesService {
 
   private transformPurchaseSummary(po: any) {
     const total = this.decimalToNumber(po.totalAmount);
+    const items = po.items?.map((i: any) => this.transformPurchaseItem(i)) ?? [];
+
+    const returnedValue = items.reduce(
+      (sum: number, i: any) => sum + (i.returnedQuantity ?? 0) * i.unitCost,
+      0,
+    );
+
+    let returnStatus: 'NONE' | 'PARTIAL' | 'ALL' = 'NONE';
+    if (items.length > 0) {
+      const anyReturned = items.some((i: any) => (i.returnedQuantity ?? 0) > 0);
+      const allReturned = items.every(
+        (i: any) => (i.returnedQuantity ?? 0) >= i.quantity,
+      );
+      if (allReturned) returnStatus = 'ALL';
+      else if (anyReturned) returnStatus = 'PARTIAL';
+    }
+
     return {
       id: po.id,
       referenceNumber: po.referenceNumber,
       orderDate: po.orderDate.toISOString(),
       status: po.status,
       hasReturns: Boolean(po.hasReturns),
-      subtotal: 0, // not currently tracked separately for purchases
+      returnStatus,
+      returnedValue: this.roundCurrency(returnedValue),
+      netTotal: this.roundCurrency(total - returnedValue),
+      subtotal: 0,
       totalAmount: total,
       supplier: po.supplier
         ? { id: po.supplier.id, name: po.supplier.name }
@@ -523,7 +580,7 @@ export class PurchasesService {
       warehouse: po.warehouse
         ? { id: po.warehouse.id, name: po.warehouse.name }
         : null,
-      items: po.items?.map((i) => this.transformPurchaseItem(i)) ?? [],
+      items,
     };
   }
 

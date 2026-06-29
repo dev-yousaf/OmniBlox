@@ -1,5 +1,5 @@
 import { useAuthenticatedApi } from "./use-authenticated-api";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 export enum ExpenseStatus {
   PENDING = "PENDING",
@@ -173,15 +173,22 @@ export function useExpensesApi() {
     [del]
   );
 
-  return {
-    getExpenses,
-    getExpense,
-    getExpenseStats,
-    createExpense,
-    updateExpense,
-    updateExpenseStatus,
-    deleteExpense,
-    uploadAttachment,
-    deleteAttachment,
-  };
+  return useMemo(
+    () => ({
+      getExpenses,
+      getExpense,
+      getExpenseStats,
+      createExpense,
+      updateExpense,
+      updateExpenseStatus,
+      deleteExpense,
+      uploadAttachment,
+      deleteAttachment,
+    }),
+    [
+      getExpenses, getExpense, getExpenseStats,
+      createExpense, updateExpense, updateExpenseStatus,
+      deleteExpense, uploadAttachment, deleteAttachment,
+    ],
+  );
 }

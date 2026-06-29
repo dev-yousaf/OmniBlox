@@ -38,6 +38,27 @@ export class SalesReturnsService {
       throw new BadRequestException('One or more products not found');
     }
 
+    // Validate against sale item remaining quantity
+    for (const item of dto.items) {
+      if (item.saleItemId) {
+        const si = await this.prisma.saleItem.findUnique({
+          where: { id: item.saleItemId },
+          select: { quantity: true, returnedQuantity: true },
+        });
+
+        if (!si) {
+          throw new BadRequestException('Sale item not found');
+        }
+
+        const available = si.quantity - si.returnedQuantity;
+        if (item.quantity > available) {
+          throw new BadRequestException(
+            `Cannot return ${item.quantity} of this item. Only ${available} remaining unreturned.`,
+          );
+        }
+      }
+    }
+
     // Use transaction to ensure atomicity
     return await this.prisma.$transaction(
       async (tx) => {
@@ -85,14 +106,6 @@ export class SalesReturnsService {
             warehouse: true,
           },
         });
-
-        // Mark the sale as having returns if linked (even for PENDING returns)
-        if (dto.saleId) {
-          await tx.sale.update({
-            where: { id: dto.saleId },
-            data: { hasReturns: true },
-          });
-        }
 
         return salesReturn;
       },
@@ -239,6 +252,20 @@ export class SalesReturnsService {
 
             // Update returned quantity on original sale item if linked
             if (item.saleItemId) {
+              const si = await tx.saleItem.findUnique({
+                where: { id: item.saleItemId },
+                select: { quantity: true, returnedQuantity: true },
+              });
+
+              if (si) {
+                const newReturned = si.returnedQuantity + item.quantity;
+                if (newReturned > si.quantity) {
+                  throw new BadRequestException(
+                    `Cannot return more than sold quantity (${si.quantity}). Already returned: ${si.returnedQuantity}.`,
+                  );
+                }
+              }
+
               await tx.saleItem.update({
                 where: { id: item.saleItemId },
                 data: {

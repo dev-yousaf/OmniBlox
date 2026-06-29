@@ -1,14 +1,23 @@
 "use client";
 
+import Link from "next/link";
 import { MapPin } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
-const CUSTOMERS = [
-  { name: "Carlos Curran", location: "USA", orders: 24, amount: "$8965" },
-  { name: "Stan Gaunter", location: "UAE", orders: 22, amount: "$6985" },
-  { name: "Richard Wilson", location: "Germany", orders: 14, amount: "$5366" },
-  { name: "Mary Bronson", location: "Belgium", orders: 8, amount: "$4569" },
-  { name: "Annie Tremblay", location: "Greenland", orders: 14, amount: "$35,698" },
+interface CustomerData {
+  id: string;
+  name: string;
+  location: string;
+  orders: number;
+  amount: number;
+}
+
+const FALLBACK_CUSTOMERS: CustomerData[] = [
+  { id: "1", name: "Carlos Curran", location: "USA", orders: 24, amount: 8965 },
+  { id: "2", name: "Stan Gaunter", location: "UAE", orders: 22, amount: 6985 },
+  { id: "3", name: "Richard Wilson", location: "Germany", orders: 14, amount: 5366 },
+  { id: "4", name: "Mary Bronson", location: "Belgium", orders: 8, amount: 4569 },
+  { id: "5", name: "Annie Tremblay", location: "Greenland", orders: 14, amount: 35698 },
 ];
 
 const AVATAR_COLORS = [
@@ -19,7 +28,14 @@ const AVATAR_COLORS = [
   "from-amber-100 to-amber-200 dark:from-amber-800 dark:to-amber-900",
 ];
 
-export function TopCustomers() {
+interface TopCustomersProps {
+  customers?: CustomerData[];
+  loading?: boolean;
+}
+
+export function TopCustomers({ customers, loading }: TopCustomersProps) {
+  const list = customers && customers.length > 0 ? customers : FALLBACK_CUSTOMERS;
+
   return (
     <div className="border border-border rounded-lg h-full">
       <div className="border-b border-border px-5 py-[15px] flex items-center gap-2">
@@ -29,16 +45,16 @@ export function TopCustomers() {
         <h3 className="text-lg font-bold text-card-foreground flex-1">
           Top Customers
         </h3>
-        <span className="text-[13px] font-medium text-card-foreground underline cursor-pointer">
+        <Link href="/people/customers" className="text-[13px] font-medium text-card-foreground underline cursor-pointer">
           View All
-        </span>
+        </Link>
       </div>
       <div className="p-5 space-y-0">
-        {CUSTOMERS.map((c, i) => (
-          <div key={c.name}>
-            <div className="flex items-center justify-between py-3">
+        {list.map((c, i) => (
+          <div key={c.id}>
+            <Link href={`/people/customers/${c.id}`} className="flex items-center justify-between py-3">
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <div className={`w-12 h-12 rounded-[10px] bg-gradient-to-br ${AVATAR_COLORS[i]} flex items-center justify-center text-gray-700 dark:text-gray-300 font-bold text-sm shrink-0`}>
+                <div className={`w-12 h-12 rounded-[10px] bg-gradient-to-br ${AVATAR_COLORS[i % AVATAR_COLORS.length]} flex items-center justify-center text-gray-700 dark:text-gray-300 font-bold text-sm shrink-0`}>
                   {c.name.charAt(0)}
                 </div>
                 <div className="min-w-0">
@@ -53,9 +69,11 @@ export function TopCustomers() {
                   </div>
                 </div>
               </div>
-              <span className="text-base font-bold text-card-foreground shrink-0 ml-2">{c.amount}</span>
-            </div>
-            {i < CUSTOMERS.length - 1 && <Separator />}
+              <span className="text-base font-bold text-card-foreground shrink-0 ml-2">
+                ${c.amount.toLocaleString()}
+              </span>
+            </Link>
+            {i < list.length - 1 && <Separator />}
           </div>
         ))}
       </div>
