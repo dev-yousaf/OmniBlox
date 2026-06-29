@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,6 +25,7 @@ interface ReceivePurchaseDialogProps {
   onOpenChange: (open: boolean) => void;
   onConfirm: (warehouseId: string) => Promise<void>;
   purchaseReference: string;
+  defaultWarehouseId?: string | null;
 }
 
 export function ReceivePurchaseDialog({
@@ -32,10 +33,18 @@ export function ReceivePurchaseDialog({
   onOpenChange,
   onConfirm,
   purchaseReference,
+  defaultWarehouseId,
 }: ReceivePurchaseDialogProps) {
-  const [selectedWarehouse, setSelectedWarehouse] = useState<string>("");
+  const [selectedWarehouse, setSelectedWarehouse] = useState<string>(defaultWarehouseId ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { warehouses, loading } = useWarehouses();
+
+  // Reset to default when dialog opens with a different purchase
+  useEffect(() => {
+    if (open) {
+      setSelectedWarehouse(defaultWarehouseId ?? "");
+    }
+  }, [open, defaultWarehouseId]);
 
   const handleConfirm = async () => {
     if (!selectedWarehouse) return;

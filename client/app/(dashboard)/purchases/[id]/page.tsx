@@ -440,6 +440,7 @@ export default function PurchaseDetailPage() {
             onOpenChange={setShowReceiveDialog}
             onConfirm={handleReceiveConfirm}
             purchaseReference={purchase.referenceNumber}
+            defaultWarehouseId={purchase.warehouseId}
           />
         </div>
       </div>
