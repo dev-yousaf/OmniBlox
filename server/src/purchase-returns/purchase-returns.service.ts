@@ -48,6 +48,22 @@ export class PurchaseReturnsService {
       throw new BadRequestException('One or more products not found');
     }
 
+    // Reject if the linked purchase order has all items already fully returned
+    if (dto.purchaseOrderId) {
+      const poItems = await this.prisma.purchaseOrderItem.findMany({
+        where: { purchaseOrderId: dto.purchaseOrderId },
+        select: { quantity: true, returnedQuantity: true },
+      });
+      const allReturned = poItems.every(
+        (poi) => poi.returnedQuantity >= poi.quantity,
+      );
+      if (allReturned) {
+        throw new BadRequestException(
+          'All items on this purchase order have already been fully returned.',
+        );
+      }
+    }
+
     // Check inventory levels before proceeding
     for (const item of dto.items) {
       const inventory = await this.prisma.inventory.findUnique({

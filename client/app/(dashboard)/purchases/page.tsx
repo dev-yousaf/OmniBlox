@@ -68,6 +68,8 @@ export default function PurchasesPage() {
     pending: purchases.filter((p) => p.status === "PENDING").length,
     received: purchases.filter((p) => p.status === "COMPLETED").length,
     totalAmount: purchases.reduce((s, p) => s + Number(p.totalAmount), 0),
+    netCost: purchases.reduce((s, p) => s + Number(p.netTotal ?? p.totalAmount), 0),
+    returnedCost: purchases.reduce((s, p) => s + Number(p.returnedValue ?? 0), 0),
   }), [purchases]);
 
   const exportCSV = () => {
@@ -154,7 +156,12 @@ export default function PurchasesPage() {
         </div>
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Total Cost</p>
-          <p className="text-2xl font-bold">{formatCurrency.format(stats.totalAmount)}</p>
+          <p className="text-2xl font-bold">{formatCurrency.format(stats.netCost)}</p>
+          {stats.returnedCost > 0 && (
+            <p className="text-xs text-destructive mt-0.5">
+              {formatCurrency.format(stats.returnedCost)} returned
+            </p>
+          )}
         </div>
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Pending</p>

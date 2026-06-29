@@ -38,6 +38,22 @@ export class SalesReturnsService {
       throw new BadRequestException('One or more products not found');
     }
 
+    // Reject if the linked sale has all items already fully returned
+    if (dto.saleId) {
+      const saleItems = await this.prisma.saleItem.findMany({
+        where: { saleId: dto.saleId },
+        select: { quantity: true, returnedQuantity: true },
+      });
+      const allReturned = saleItems.every(
+        (si) => si.returnedQuantity >= si.quantity,
+      );
+      if (allReturned) {
+        throw new BadRequestException(
+          'All items on this sale have already been fully returned.',
+        );
+      }
+    }
+
     // Validate against sale item remaining quantity
     for (const item of dto.items) {
       if (item.saleItemId) {

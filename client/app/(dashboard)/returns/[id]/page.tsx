@@ -426,7 +426,6 @@ export default function ReturnDetailPage() {
                     )}
                   </Button>
                 )}
-                {data.status !== "COMPLETED" && (
                   <Button
                     variant="outline"
                     className="w-full h-[38px] rounded-[5px] text-sm text-destructive hover:text-destructive"
@@ -439,7 +438,6 @@ export default function ReturnDetailPage() {
                       <><XCircle className="mr-2 h-4 w-4" /> Cancel Return</>
                     )}
                   </Button>
-                )}
               </div>
             )}
           </div>
