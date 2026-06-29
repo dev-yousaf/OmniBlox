@@ -1,83 +1,71 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { NotificationDto, NotificationsListResponseDto, CreateNotificationDto } from './dto/notification-response.dto';
+import { AuditLogEntryDto, AuditLogListResponseDto, CreateAuditLogDto } from './dto/audit-log.dto';
 
 @Injectable()
 export class NotificationsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateNotificationDto, companyId: string): Promise<NotificationDto> {
-    const notification = await this.prisma.notification.create({
+  async create(
+    dto: CreateAuditLogDto,
+    companyId: string,
+    userId: string,
+    userName: string,
+    userRole: string,
+    ipAddress?: string,
+  ): Promise<AuditLogEntryDto> {
+    const log = await this.prisma.auditLog.create({
       data: {
-        type: dto.type,
-        title: dto.title,
-        message: dto.message,
-        link: dto.link ?? null,
-        userId: dto.userId ?? null,
+        action: dto.action,
+        entity: dto.entity,
+        entityId: dto.entityId ?? null,
+        details: dto.details ?? null,
         companyId,
+        userId,
+        userName,
+        userRole,
+        ipAddress: ipAddress ?? null,
       },
     });
-    return this.toDto(notification);
+    return this.toDto(log);
   }
 
   async findAll(
     companyId: string,
-    userId?: string,
     page: number = 1,
-    limit: number = 20,
-  ): Promise<NotificationsListResponseDto> {
+    limit: number = 50,
+  ): Promise<AuditLogListResponseDto> {
     const skip = (page - 1) * limit;
 
-    const where: any = { companyId };
-
-    const [notifications, total, unreadCount] = await Promise.all([
-      this.prisma.notification.findMany({
-        where,
+    const [logs, total] = await Promise.all([
+      this.prisma.auditLog.findMany({
+        where: { companyId },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.notification.count({ where }),
-      this.prisma.notification.count({ where: { ...where, read: false } }),
+      this.prisma.auditLog.count({ where: { companyId } }),
     ]);
 
     return {
-      notifications: notifications.map((n) => this.toDto(n)),
+      logs: logs.map((l) => this.toDto(l)),
       total,
-      unreadCount,
+      page,
+      limit,
     };
   }
 
-  async markAsRead(id: string, companyId: string): Promise<NotificationDto> {
-    const notification = await this.prisma.notification.findFirst({
-      where: { id, companyId },
-    });
-    if (!notification) throw new Error('Notification not found');
-
-    const updated = await this.prisma.notification.update({
-      where: { id },
-      data: { read: true },
-    });
-    return this.toDto(updated);
-  }
-
-  async markAllAsRead(companyId: string): Promise<{ count: number }> {
-    const result = await this.prisma.notification.updateMany({
-      where: { companyId, read: false },
-      data: { read: true },
-    });
-    return { count: result.count };
-  }
-
-  private toDto(n: any): NotificationDto {
+  private toDto(l: any): AuditLogEntryDto {
     return {
-      id: n.id,
-      type: n.type,
-      title: n.title,
-      message: n.message,
-      read: n.read,
-      link: n.link || undefined,
-      createdAt: n.createdAt.toISOString(),
+      id: l.id,
+      userId: l.userId,
+      userName: l.userName,
+      userRole: l.userRole,
+      action: l.action,
+      entity: l.entity,
+      entityId: l.entityId || undefined,
+      details: l.details || undefined,
+      createdAt: l.createdAt.toISOString(),
     };
   }
 }

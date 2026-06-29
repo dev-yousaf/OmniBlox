@@ -1,30 +1,29 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
-import { CreateNotificationDto } from './dto/notification-response.dto';
+import { CreateAuditLogDto } from './dto/audit-log.dto';
 import { AuthGuard } from '@thallesp/nestjs-better-auth';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CompanyId } from '../auth/decorators/company-id.decorator';
+import { GetCurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
+import type { Request } from 'express';
 
-@Controller('notifications')
+@Controller('audit-logs')
 @UseGuards(AuthGuard, RolesGuard)
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(private readonly auditLogService: NotificationsService) {}
 
   @Post()
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
-  create(@Body() dto: CreateNotificationDto, @CompanyId() companyId: string) {
-    return this.notificationsService.create(dto, companyId);
+  create(
+    @Body() dto: CreateAuditLogDto,
+    @CompanyId() companyId: string,
+    @GetCurrentUser() user: any,
+    @Req() req: Request,
+  ) {
+    const ip = req.ip || req.socket?.remoteAddress;
+    return this.auditLogService.create(dto, companyId, user.id, user.name || user.email, user.role, ip);
   }
 
   @Get()
@@ -34,23 +33,10 @@ export class NotificationsController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.notificationsService.findAll(
+    return this.auditLogService.findAll(
       companyId,
-      undefined,
       page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
+      limit ? parseInt(limit) : 50,
     );
-  }
-
-  @Put(':id/read')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
-  markAsRead(@Param('id') id: string, @CompanyId() companyId: string) {
-    return this.notificationsService.markAsRead(id, companyId);
-  }
-
-  @Put('mark-all-read')
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
-  markAllAsRead(@CompanyId() companyId: string) {
-    return this.notificationsService.markAllAsRead(companyId);
   }
 }

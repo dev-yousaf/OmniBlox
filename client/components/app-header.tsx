@@ -6,7 +6,6 @@ import {
   ChevronDown,
   Globe,
   Maximize2,
-  Bell,
   Settings,
   LogOut,
   Moon,
@@ -23,7 +22,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useCommandMenu } from "./command-menu-provider";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import {
   DropdownMenu,
@@ -38,18 +37,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
-import { useAuthenticatedApi } from "@/hooks/use-authenticated-api";
 import Link from "next/link";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 type AppHeaderProps = Record<string, never>;
 
@@ -135,114 +125,6 @@ function CalculatorPopover() {
         </div>
       </PopoverContent>
     </Popover>
-  );
-}
-
-interface NotificationItem {
-  id: string;
-  type: string;
-  title: string;
-  message: string;
-  read: boolean;
-  link?: string;
-  createdAt: string;
-}
-
-function NotificationBell() {
-  const [open, setOpen] = useState(false);
-  const [items, setItems] = useState<NotificationItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [unread, setUnread] = useState(0);
-  const { get, put } = useAuthenticatedApi();
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await get("/notifications?limit=50") as { notifications: NotificationItem[]; unreadCount: number };
-      setItems(data.notifications || []);
-      setUnread(data.unreadCount || 0);
-    } catch { /* ignore */ }
-    setLoading(false);
-  }, [get]);
-
-  useEffect(() => { if (open) load(); }, [open, load]);
-
-  const markRead = async (id: string) => {
-    try {
-      await put(`/notifications/${id}/read`, {});
-      setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-      setUnread((u) => Math.max(0, u - 1));
-    } catch { /* ignore */ }
-  };
-
-  const markAllRead = async () => {
-    try {
-      await put("/notifications/mark-all-read", {});
-      setItems((prev) => prev.map((n) => ({ ...n, read: true })));
-      setUnread(0);
-    } catch { /* ignore */ }
-  };
-
-  return (
-    <>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger asChild>
-          <div className="relative flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-header-icon-bg text-header-icon-color cursor-pointer">
-            <Bell className="h-4 w-4" />
-            {unread > 0 && (
-              <div className="absolute -top-1 -right-1 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-header-notification-dot">
-                <span className="text-[9px] font-semibold text-header-primary-text leading-[13px]">{unread > 9 ? "9+" : unread}</span>
-              </div>
-            )}
-          </div>
-        </SheetTrigger>
-        <SheetContent side="right" className="w-[380px] sm:w-[440px] p-0">
-          <SheetHeader className="px-5 py-4 border-b">
-            <div className="flex items-center justify-between">
-              <SheetTitle className="text-base">Notifications</SheetTitle>
-              <div className="flex items-center gap-2">
-                {unread > 0 && (
-                  <button onClick={markAllRead} className="text-xs text-primary hover:underline">
-                    Mark all read
-                  </button>
-                )}
-                <Link href="/notifications" className="text-xs text-primary hover:underline" onClick={() => setOpen(false)}>
-                  View all
-                </Link>
-              </div>
-            </div>
-          </SheetHeader>
-          <ScrollArea className="h-[calc(100vh-65px)]">
-            {loading ? (
-              <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-            ) : items.length === 0 ? (
-              <div className="text-center py-12 text-sm text-muted-foreground">No notifications</div>
-            ) : (
-              items.map((n) => (
-                <div
-                  key={n.id}
-                  className={`px-5 py-4 border-b last:border-0 cursor-pointer hover:bg-muted/50 transition-colors ${!n.read ? "bg-muted/20" : ""}`}
-                  onClick={() => markRead(n.id)}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        {!n.read && <div className="h-2 w-2 rounded-full bg-primary shrink-0" />}
-                        <p className={`text-sm ${n.read ? "font-normal" : "font-semibold"} truncate`}>{n.title}</p>
-                      </div>
-                      <p className="text-xs text-muted-foreground line-clamp-3">{n.message}</p>
-                      <p className="text-[11px] text-muted-foreground/60 mt-1">
-                        {new Date(n.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </ScrollArea>
-        </SheetContent>
-      </Sheet>
-    </>
   );
 }
 
@@ -362,9 +244,6 @@ export function AppHeader(_props: AppHeaderProps) {
 
           {/* Calculator */}
           <CalculatorPopover />
-
-          {/* Notifications */}
-          <NotificationBell />
 
           {/* Theme Toggle */}
           <ThemeToggleIcon />

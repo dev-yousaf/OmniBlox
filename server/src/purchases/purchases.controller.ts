@@ -71,14 +71,19 @@ export class PurchasesController {
   async receive(
     @Param('id') id: string,
     @Body() dto: ReceivePurchaseOrderDto,
+    @UserId() userId: string,
     @CompanyId() companyId: string,
   ) {
-    return this.purchasesService.receive(id, dto.warehouseId, companyId);
+    return this.purchasesService.receive(id, dto.warehouseId, userId, companyId);
   }
 
   @Patch(':id/mark-paid')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
-  async markAsPaid(@Param('id') id: string, @CompanyId() companyId: string) {
-    return this.purchasesService.markAsPaid(id, companyId);
+  async markAsPaid(
+    @Param('id') id: string,
+    @UserId() userId: string,
+    @CompanyId() companyId: string,
+  ) {
+    return this.purchasesService.markAsPaid(id, userId, companyId);
   }
 }

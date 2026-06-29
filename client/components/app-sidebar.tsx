@@ -15,7 +15,7 @@ import {
   Users,
   Warehouse,
   Settings,
-  Bell,
+  History,
   FileText,
   AlertTriangle,
   FolderTree,
@@ -139,7 +139,7 @@ const sections: SidebarSection[] = [
     label: "Settings",
     items: [
       { id: "settings", name: "Settings", href: "/settings", icon: Settings },
-      { id: "notifications", name: "Notifications", href: "/notifications", icon: Bell },
+      { id: "audit-log", name: "Audit Log", href: "/audit-log", icon: History },
     ],
   },
 ];

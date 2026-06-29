@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useSuppliersApi, type Supplier } from "@/hooks/use-suppliers-api";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
 import { format } from "date-fns";
 import {
   AlertDialog,
@@ -27,12 +28,14 @@ import {
 export default function SupplierDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const { getSupplier, deleteSupplier } = useSuppliersApi();
   const { toast } = useToast();
+  const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
 
   useEffect(() => {
     const load = async () => {

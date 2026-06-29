@@ -45,7 +45,7 @@ model Company {
   expenseCategories   ExpenseCategory[]
   stockAdjustments    StockAdjustment[]
   deliveries          Delivery[]
-  notifications       Notification[]
+  auditLogs           AuditLog[]
 
   @@map("companies")
 }
@@ -89,7 +89,7 @@ model User {
   // Created products
   createdProducts Product[] @relation("CreatedProducts")
 
-  notifications   Notification[]
+  auditLogs       AuditLog[]
 
   // Stock Ledger
   stockLedgerEntries StockLedger[]
@@ -880,25 +880,25 @@ model PurchaseReturnItem {
   @@map("purchase_return_items")
 }
 
-model Notification {
+model AuditLog {
   id        String   @id @default(uuid())
   companyId String
-  userId    String?
-  type      String   // low_stock, payment, order, expiry, quotation, system
-  title     String
-  message   String
-  read      Boolean  @default(false)
-  link      String?
+  userId    String
+  userName  String
+  userRole  String
+  action    String   // CREATE, UPDATE, DELETE, MARK_PAID, RECEIVE, LOGIN, etc.
+  entity    String   // Sale, Purchase, Product, Customer, Supplier, etc.
+  entityId  String?
+  details   String?  // JSON string with extra context
+  ipAddress String?
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  user    User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([companyId])
-  @@index([userId])
-  @@index([read])
-  @@map("notifications")
+  @@index([companyId, createdAt])
+  @@index([companyId, entity, entityId])
+  @@map("audit_logs")
 }
 
 // --- ENUMS ---

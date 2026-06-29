@@ -729,7 +729,7 @@ export class SalesService {
     );
   }
 
-  async markAsPaid(id: string, companyId: string): Promise<SaleResponseDto> {
+  async markAsPaid(id: string, userId: string, companyId: string): Promise<SaleResponseDto> {
     const result = await this.prisma.$transaction(
       async (tx) => {
         const existing = await tx.sale.findUnique({
@@ -788,12 +788,13 @@ export class SalesService {
     );
 
     try {
+      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true, role: true } });
       await this.notificationsService.create({
-        type: 'payment',
-        title: 'Payment Received',
-        message: `Payment of $${Number(result.totalAmount).toFixed(2)} received for invoice #${result.invoiceNumber}`,
-        link: `/sales/${result.id}`,
-      }, companyId);
+        action: 'MARK_PAID',
+        entity: 'Sale',
+        entityId: result.id,
+        details: JSON.stringify({ invoiceNumber: result.invoiceNumber, amount: Number(result.totalAmount) }),
+      }, companyId, userId, user?.name || 'Unknown', user?.role || 'Unknown');
     } catch { /* non-critical */ }
 
     return result;

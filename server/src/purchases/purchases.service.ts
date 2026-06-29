@@ -286,7 +286,7 @@ export class PurchasesService {
     return this.transformPurchase(purchaseOrder, returnCounts);
   }
 
-  async receive(id: string, warehouseId: string, companyId: string) {
+  async receive(id: string, warehouseId: string, userId: string, companyId: string) {
     const result = await this.prisma.$transaction(
       async (tx) => {
         // 1. Verify the warehouse belongs to this company
@@ -436,18 +436,19 @@ export class PurchasesService {
     }
 
     try {
+      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true, role: true } });
       await this.notificationsService.create({
-        type: 'order',
-        title: 'Purchase Received',
-        message: `Purchase order #${result.referenceNumber} has been received and inventory updated`,
-        link: `/purchases/${result.id}`,
-      }, companyId);
+        action: 'RECEIVE',
+        entity: 'Purchase',
+        entityId: result.id,
+        details: JSON.stringify({ referenceNumber: result.referenceNumber, amount: Number(result.totalAmount) }),
+      }, companyId, userId, user?.name || 'Unknown', user?.role || 'Unknown');
     } catch { /* non-critical */ }
 
     return result;
   }
 
-  async markAsPaid(id: string, companyId: string) {
+  async markAsPaid(id: string, userId: string, companyId: string) {
     const existing = await this.prisma.purchaseOrder.findFirst({
       where: { id, companyId },
     });
@@ -478,12 +479,13 @@ export class PurchasesService {
     const result = this.transformPurchase(po);
 
     try {
+      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true, role: true } });
       await this.notificationsService.create({
-        type: 'payment',
-        title: 'Bill Paid',
-        message: `Bill #${result.referenceNumber} has been marked as paid`,
-        link: `/purchases/${result.id}`,
-      }, companyId);
+        action: 'MARK_PAID',
+        entity: 'Purchase',
+        entityId: result.id,
+        details: JSON.stringify({ referenceNumber: result.referenceNumber, amount: Number(result.totalAmount) }),
+      }, companyId, userId, user?.name || 'Unknown', user?.role || 'Unknown');
     } catch { /* non-critical */ }
 
     return result;

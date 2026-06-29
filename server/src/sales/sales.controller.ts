@@ -97,9 +97,10 @@ export class SalesController {
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
   async markAsPaid(
     @Param('id') id: string,
+    @UserId() userId: string,
     @CompanyId() companyId: string,
   ) {
-    return this.salesService.markAsPaid(id, companyId);
+    return this.salesService.markAsPaid(id, userId, companyId);
   }
 
   @Delete(':id')
