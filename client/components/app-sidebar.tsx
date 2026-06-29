@@ -14,7 +14,6 @@ import {
   Building,
   Users,
   Warehouse,
-  BarChart3,
   Settings,
   Bell,
   FileText,
@@ -133,7 +132,7 @@ const sections: SidebarSection[] = [
   {
     label: "Reports",
     items: [
-      { id: "reports", name: "Reports", href: "/reports", icon: BarChart3, allowedRoles: ["OWNER", "ADMIN", "MANAGER"] },
+
     ],
   },
   {

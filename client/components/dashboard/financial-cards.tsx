@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { TrendingUp, FileText, Receipt, Banknote } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCompactCurrency, type FinancialCardData } from "./types";
@@ -63,12 +62,7 @@ export function FinancialCards({ amounts, changes, loading }: FinancialCardsProp
                 </span>{" "}
                 {card.label}
               </p>
-              <Link
-                href="/reports"
-                className="text-[13px] font-medium text-card-foreground underline"
-              >
-                View All
-              </Link>
+
             </div>
           </div>
         );

@@ -14,7 +14,6 @@ import {
   Package,
   FileText,
   Warehouse,
-  BarChart3,
   Settings,
 } from "lucide-react";
 
@@ -53,12 +52,7 @@ export function CommandMenu({ open, onOpenChange }: CommandMenuProps) {
             <Warehouse className="mr-2 h-4 w-4" />
             <span>Inventory</span>
           </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => router.push("/reports"))}
-          >
-            <BarChart3 className="mr-2 h-4 w-4" />
-            <span>Reports</span>
-          </CommandItem>
+
           <CommandItem
             onSelect={() => runCommand(() => router.push("/settings"))}
           >
