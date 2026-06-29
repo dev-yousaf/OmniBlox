@@ -1,6 +1,5 @@
 "use client";
 
-import { CalendarDays } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import type { PlanDistributionItem } from "./types";
@@ -21,14 +20,8 @@ export function PlansSection({ data, loading }: PlansSectionProps) {
     <div className="border border-border rounded-[5px] flex flex-col h-full">
       <div className="bg-card border-b border-border flex items-center gap-[10px] px-[20px] py-[15px] rounded-tl-[5px] rounded-tr-[5px]">
         <p className="flex-1 text-[16px] font-semibold text-[#212b36] dark:text-[#f1f3f4] leading-[24px]">
-          Top Plans
+          Users by Role
         </p>
-        <div className="bg-card border border-border flex items-center px-[12px] py-[6px] rounded-[4px]">
-          <div className="flex items-center gap-[4px]">
-            <CalendarDays className="h-3 w-3 text-[#212b36] dark:text-[#d1d5db]" />
-            <span className="text-[12px] font-semibold text-[#212b36] dark:text-[#d1d5db] leading-[18px]">This Month</span>
-          </div>
-        </div>
       </div>
       <div className="bg-card flex-1 p-[20px] rounded-bl-[5px] rounded-br-[5px] drop-shadow-[0px_1px_0.5px_rgba(198,198,198,0.2)]">
         <div className="flex flex-col items-center gap-[16px] h-full">

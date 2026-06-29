@@ -1,18 +1,18 @@
 "use client";
 
-import { Building2, Activity, Users, DollarSign } from "lucide-react";
+import { DollarSign, Users, Package, Warehouse } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCompactCurrency } from "./types";
 
 interface StatCardsProps {
-  totalCompanies: number;
-  companiesChange: number;
-  activeCompanies: number;
-  activeCompaniesChange: number;
-  totalSubscribers: number;
-  subscribersChange: number;
-  totalEarnings: number;
-  earningsChange: number;
+  totalSales: number;
+  salesChange: number;
+  teamMembers: number;
+  teamChange: number;
+  totalProducts: number;
+  productsChange: number;
+  inventoryValue: number;
+  inventoryChange: number;
   loading: boolean;
 }
 
@@ -47,51 +47,51 @@ function Badge({ value, positive }: { value: number; positive: boolean }) {
 }
 
 const barSets: Record<string, number[]> = {
-  companies: [21, 40, 28, 21, 40, 28, 21],
-  active: [21, 10, 28, 21, 10, 38, 21],
-  subscribers: [21, 28, 28, 21, 21, 28, 21],
-  earnings: [21, 40, 28, 21, 40, 28, 21],
+  sales: [21, 40, 28, 21, 40, 28, 21],
+  team: [21, 28, 28, 21, 10, 28, 21],
+  products: [21, 10, 28, 21, 21, 28, 21],
+  inventory: [21, 40, 28, 21, 40, 28, 21],
 };
 
 export function SuperadminStatCards({
-  totalCompanies, companiesChange,
-  activeCompanies, activeCompaniesChange,
-  totalSubscribers, subscribersChange,
-  totalEarnings, earningsChange,
+  totalSales, salesChange,
+  teamMembers, teamChange,
+  totalProducts, productsChange,
+  inventoryValue, inventoryChange,
   loading,
 }: StatCardsProps) {
   const cards = [
     {
-      label: "Total Companies",
-      value: String(totalCompanies),
-      change: companiesChange,
-      icon: Building2,
-      chartColor: "#fe9f43",
-      bars: barSets.companies,
-    },
-    {
-      label: "Active Companies",
-      value: String(activeCompanies),
-      change: activeCompaniesChange,
-      icon: Activity,
-      chartColor: "#6938ef",
-      bars: barSets.active,
-    },
-    {
-      label: "Total Subscribers",
-      value: String(totalSubscribers),
-      change: subscribersChange,
-      icon: Users,
-      chartColor: "#06aed4",
-      bars: barSets.subscribers,
-    },
-    {
-      label: "Total Earnings",
-      value: formatCompactCurrency(totalEarnings),
-      change: earningsChange,
+      label: "Total Sales",
+      value: formatCompactCurrency(totalSales),
+      change: salesChange,
       icon: DollarSign,
       chartColor: "#3eb780",
-      bars: barSets.earnings,
+      bars: barSets.sales,
+    },
+    {
+      label: "Team Members",
+      value: String(teamMembers),
+      change: teamChange,
+      icon: Users,
+      chartColor: "#6938ef",
+      bars: barSets.team,
+    },
+    {
+      label: "Total Products",
+      value: String(totalProducts),
+      change: productsChange,
+      icon: Package,
+      chartColor: "#06aed4",
+      bars: barSets.products,
+    },
+    {
+      label: "Inventory Value",
+      value: formatCompactCurrency(inventoryValue),
+      change: inventoryChange,
+      icon: Warehouse,
+      chartColor: "#fe9f43",
+      bars: barSets.inventory,
     },
   ];
 

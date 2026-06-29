@@ -9,6 +9,7 @@ export interface SuperadminData {
   earningsChange: number;
   newCompaniesToday: number;
   adminName: string;
+  storeName: string;
   companiesChart: BarChartItem[];
   companiesChartChange: number;
   companiesChartChangeText: string;
@@ -20,6 +21,8 @@ export interface SuperadminData {
   recentTransactions: TransactionItem[];
   topCompanies: TopCompanyItem[];
   expiringSubscriptions: ExpiringSubscriptionItem[];
+  inventoryValue: number;
+  inventoryChange: number;
 }
 
 export interface BarChartItem {
@@ -43,10 +46,8 @@ export interface TransactionItem {
   id: string;
   companyName: string;
   companyLogo?: string;
-  transactionId: string;
-  date: string;
-  amount: number;
-  plan: string;
+  createdAt: string;
+  usersCount: number;
 }
 
 export interface TopCompanyItem {
@@ -61,8 +62,8 @@ export interface ExpiringSubscriptionItem {
   id: string;
   companyName: string;
   companyLogo?: string;
-  expirationDate: string;
-  plan: string;
+  totalSales: number;
+  lastSaleDate: string | null;
 }
 
 export const formatCurrency = (value: number) =>

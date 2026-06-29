@@ -9,6 +9,7 @@ export interface SuperadminDashboardDto {
   earningsChange: number;
   newCompaniesToday: number;
   adminName: string;
+  storeName: string;
   companiesChart: BarChartItem[];
   companiesChartChange: number;
   companiesChartChangeText: string;
@@ -20,6 +21,8 @@ export interface SuperadminDashboardDto {
   recentTransactions: TransactionDto[];
   topCompanies: TopCompanyDto[];
   expiringSubscriptions: ExpiringSubscriptionDto[];
+  inventoryValue: number;
+  inventoryChange: number;
 }
 
 export interface BarChartItem {
@@ -42,10 +45,8 @@ export interface TransactionDto {
   id: string;
   companyName: string;
   companyLogo?: string;
-  transactionId: string;
-  date: string;
-  amount: number;
-  plan: string;
+  createdAt: string;
+  usersCount: number;
 }
 
 export interface TopCompanyDto {
@@ -60,6 +61,6 @@ export interface ExpiringSubscriptionDto {
   id: string;
   companyName: string;
   companyLogo?: string;
-  expirationDate: string;
-  plan: string;
+  totalSales: number;
+  lastSaleDate: string | null;
 }

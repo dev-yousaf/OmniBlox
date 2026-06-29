@@ -276,6 +276,7 @@ export class AuthService {
       email: user.email,
       name: user.name,
       role: user.role,
+      isSuperadmin: user.isSuperadmin,
       companyId: user.companyId,
       company: {
         id: user.company.id,

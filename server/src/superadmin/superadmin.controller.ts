@@ -1,15 +1,18 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { SuperadminService } from './superadmin.service';
-import { AuthGuard } from '@thallesp/nestjs-better-auth';
 import { SuperadminGuard } from './guards/superadmin.guard';
+import { CompanyId } from '../auth/decorators/company-id.decorator';
 
 @Controller('superadmin')
-@UseGuards(AuthGuard, SuperadminGuard)
+@UseGuards(SuperadminGuard)
 export class SuperadminController {
   constructor(private readonly superadminService: SuperadminService) {}
 
   @Get('dashboard')
-  async getDashboard() {
-    return this.superadminService.getDashboard();
+  async getDashboard(
+    @CompanyId() companyId: string,
+    @Query('period') period?: string,
+  ) {
+    return this.superadminService.getDashboard(companyId, period || '1Y');
   }
 }

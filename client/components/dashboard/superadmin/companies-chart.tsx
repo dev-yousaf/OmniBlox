@@ -1,6 +1,5 @@
 "use client";
 
-import { CalendarDays } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { BarChartItem } from "./types";
 
@@ -9,9 +8,19 @@ interface CompaniesChartProps {
   change: number;
   changeText: string;
   loading: boolean;
+  period: string;
+  onPeriodChange: (period: string) => void;
 }
 
-export function CompaniesChart({ data, change, changeText, loading }: CompaniesChartProps) {
+const tabs = [
+  { key: "1W", label: "1W" },
+  { key: "1M", label: "1M" },
+  { key: "3M", label: "3M" },
+  { key: "6M", label: "6M" },
+  { key: "1Y", label: "1Y" },
+];
+
+export function CompaniesChart({ data, change, changeText, loading, period, onPeriodChange }: CompaniesChartProps) {
   const maxCount = Math.max(...data.map((d) => d.count), 1);
 
   if (loading) {
@@ -24,15 +33,22 @@ export function CompaniesChart({ data, change, changeText, loading }: CompaniesC
     <div className="border border-border rounded-[5px] flex flex-col h-full">
       <div className="bg-card border-b border-border flex items-center gap-[10px] px-[20px] py-[15px] rounded-tl-[5px] rounded-tr-[5px]">
         <p className="flex-1 text-[16px] font-semibold text-[#212b36] dark:text-[#f1f3f4] leading-[24px]">
-          Companies
+          Activity
         </p>
-        <div className="bg-card border border-border flex items-center px-[12px] py-[6px] rounded-[4px]">
-          <div className="flex items-center gap-[4px]">
-            <CalendarDays className="h-3 w-3 text-[#212b36] dark:text-[#d1d5db]" />
-            <span className="text-[12px] font-semibold text-[#212b36] dark:text-[#d1d5db] leading-[18px]">
-              This Week
-            </span>
-          </div>
+        <div className="flex items-center gap-1">
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => onPeriodChange(t.key)}
+              className={`px-2 py-1 text-[11px] font-medium rounded ${
+                period === t.key
+                  ? "bg-[#fe9f43] text-white"
+                  : "text-[#646b72] dark:text-[#a6b0c0] hover:bg-accent"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
       </div>
       <div className="bg-card flex-1 p-[20px] rounded-bl-[5px] rounded-br-[5px] drop-shadow-[0px_1px_0.5px_rgba(198,198,198,0.2)]">

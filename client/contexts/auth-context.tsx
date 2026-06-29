@@ -16,6 +16,7 @@ interface User {
   name: string | null;
   companyId: string;
   role: string;
+  isSuperadmin?: boolean;
   company?: {
     id: string;
     name: string;

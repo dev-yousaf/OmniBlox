@@ -16,19 +16,20 @@ import { ExpiringSubscriptions } from "@/components/dashboard/superadmin/expirin
 export default function SuperadminPage() {
   const [data, setData] = useState<SuperadminData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState("1Y");
   const [notificationVisible, setNotificationVisible] = useState(true);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get<SuperadminData>("/superadmin/dashboard");
+      const res = await api.get<SuperadminData>(`/superadmin/dashboard?period=${period}`);
       setData(res);
     } catch (err) {
       console.warn("Failed to load superadmin data:", err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [period]);
 
   useEffect(() => {
     fetchData();
@@ -37,21 +38,29 @@ export default function SuperadminPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-[1440px] mx-auto flex flex-col gap-6">
-        <SuperadminWelcomeHeader adminName={data?.adminName ?? "Super Admin"} loading={loading} />
+        <SuperadminWelcomeHeader
+          adminName={data?.adminName ?? "Super Admin"}
+          storeName={data?.storeName ?? "My Store"}
+          totalUsers={data?.totalSubscribers}
+          period={period}
+          onPeriodChange={setPeriod}
+          loading={loading}
+        />
         <SuperadminNotificationBar
           newCompaniesToday={data?.newCompaniesToday ?? 0}
+          lowStockCount={data?.expiringSubscriptions?.length ?? 0}
           visible={notificationVisible}
           onDismiss={() => setNotificationVisible(false)}
         />
         <SuperadminStatCards
-          totalCompanies={data?.totalCompanies ?? 0}
-          companiesChange={data?.companiesChange ?? 0}
-          activeCompanies={data?.activeCompanies ?? 0}
-          activeCompaniesChange={data?.activeCompaniesChange ?? 0}
-          totalSubscribers={data?.totalSubscribers ?? 0}
-          subscribersChange={data?.subscribersChange ?? 0}
-          totalEarnings={data?.totalEarnings ?? 0}
-          earningsChange={data?.earningsChange ?? 0}
+          totalSales={data?.totalEarnings ?? 0}
+          salesChange={data?.earningsChange ?? 0}
+          teamMembers={data?.activeCompanies ?? 0}
+          teamChange={data?.activeCompaniesChange ?? 0}
+          totalProducts={data?.totalSubscribers ?? 0}
+          productsChange={data?.subscribersChange ?? 0}
+          inventoryValue={data?.inventoryValue ?? 0}
+          inventoryChange={data?.inventoryChange ?? 0}
           loading={loading}
         />
 
@@ -61,6 +70,8 @@ export default function SuperadminPage() {
               data={data?.companiesChart ?? []}
               change={data?.companiesChartChange ?? 0}
               changeText={data?.companiesChartChangeText ?? ""}
+              period={period}
+              onPeriodChange={setPeriod}
               loading={loading}
             />
           </div>
@@ -70,6 +81,8 @@ export default function SuperadminPage() {
               amount={data?.revenueAmount ?? 0}
               change={data?.revenueChange ?? 0}
               changeText={data?.revenueChangeText ?? ""}
+              period={period}
+              onPeriodChange={setPeriod}
               loading={loading}
             />
           </div>

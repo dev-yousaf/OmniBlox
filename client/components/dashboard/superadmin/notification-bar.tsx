@@ -4,28 +4,23 @@ interface NotificationBarProps {
   newCompaniesToday: number;
   visible: boolean;
   onDismiss: () => void;
+  lowStockCount?: number;
 }
 
-export function SuperadminNotificationBar({ newCompaniesToday, visible, onDismiss }: NotificationBarProps) {
+export function SuperadminNotificationBar({ newCompaniesToday, visible, onDismiss, lowStockCount }: NotificationBarProps) {
   if (!visible) return null;
 
   return (
     <div className="bg-[#fe9f43] rounded-[5px] p-[40px] relative overflow-hidden flex items-center gap-[10px]">
       <div className="flex-1">
         <p className="text-[24px] font-bold text-white leading-[36px]">
-          Welcome Back, Super Admin
+          Welcome Back
         </p>
         <p className="text-[14px] text-[#f9fafb] leading-[21px]">
-          {newCompaniesToday} New Companies Subscribed Today !!!
+          {newCompaniesToday} customers &middot; {lowStockCount ?? 0} low-stock products
         </p>
       </div>
       <div className="flex gap-[10px] items-start shrink-0">
-        <button className="bg-[#212529] text-white text-[13px] font-medium px-[16px] py-[8px] rounded-[5px] leading-[16px]">
-          Companies
-        </button>
-        <button className="bg-[#f8f9fa] text-[#212b36] text-[13px] font-medium px-[16px] py-[8px] rounded-[5px] leading-[16px]">
-          All Packages
-        </button>
         <button
           onClick={onDismiss}
           className="text-white/70 hover:text-white ml-2"

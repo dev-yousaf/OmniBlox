@@ -152,9 +152,10 @@ type AppSidebarProps = {
   onCollapsedChange: (collapsed: boolean) => void;
 };
 
-function filterItems(items: SidebarItem[], role: Role): SidebarItem[] {
+function filterItems(items: SidebarItem[], role: Role, isSuperadmin?: boolean): SidebarItem[] {
   const isManagement = MANAGEMENT_ROLES.has(role);
   return items.filter((item) => {
+    if (item.id === "superadmin" && !isSuperadmin) return false;
     if (item.allowedRoles && !item.allowedRoles.includes(role)) return false;
     if (item.mutationOnly && !isManagement) return false;
     return true;
@@ -202,6 +203,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const userRole = (user?.role || "").toUpperCase() as Role;
+  const isSuperadmin = user?.isSuperadmin === true;
 
   // Exactly one item is ever marked active: the single best match across
   // the whole nav (by id, not display name), so two items that resolve to
@@ -260,7 +262,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-6 space-y-4">
         {sections.map((section) => {
-          const visibleItems = filterItems(section.items, userRole);
+          const visibleItems = filterItems(section.items, userRole, isSuperadmin);
           if (visibleItems.length === 0) return null;
 
           return (
