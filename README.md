@@ -1,10 +1,10 @@
-# OmniBlox
+# NexHub
 
-OmniBlox is a full-stack, multi-tenant ERP platform for wholesale and distribution teams. It centralizes inventory, warehouses, sales, purchases, quotations, returns, expenses, reporting, and team access control in one system.
+NexHub is a full-stack, multi-tenant ERP platform for wholesale and distribution teams. It centralizes inventory, warehouses, sales, purchases, quotations, returns, expenses, reporting, and team access control in one system.
 
 ## What This Project Does
 
-OmniBlox helps businesses run daily operations end-to-end:
+NexHub helps businesses run daily operations end-to-end:
 
 - manages products, categories, brands, and stock across multiple warehouses
 - handles sales lifecycle: quotations, invoices, deliveries, and sales returns
@@ -70,7 +70,7 @@ Each company has its own isolated workspace, users, and business data.
 ## Repository Structure
 
 ```text
-OmniBlox/
+NexHub/
 ├── client/                          # Next.js 15 frontend
 │   ├── app/                         # App Router pages
 │   │   ├── (auth)/                  # Auth pages (login, signup, etc.)

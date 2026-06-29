@@ -74,7 +74,7 @@ export default function LoginPage() {
             <Package className="h-7 w-7 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">
-            Welcome to OmniBlox
+            Welcome to NexHub
           </CardTitle>
           <CardDescription className="text-base text-muted-foreground">
             {showMagicLink

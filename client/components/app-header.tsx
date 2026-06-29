@@ -3,7 +3,6 @@
 import {
   Search,
   Command,
-  ChevronDown,
   Globe,
   Maximize2,
   Settings,
@@ -132,7 +131,7 @@ export function AppHeader(_props: AppHeaderProps) {
   const { setOpen } = useCommandMenu();
   const { logout, user } = useAuth();
 
-  const companyName = user?.company?.name || "OmniBlox";
+  const companyName = user?.company?.name || "NexHub";
   const initials = companyName
     .split(" ")
     .map((w) => w[0])
@@ -170,7 +169,6 @@ export function AppHeader(_props: AppHeaderProps) {
           <span className="text-sm text-header-dropdown-text">
             {companyName}
           </span>
-          <ChevronDown className="h-3 w-3 text-header-icon-color" />
         </div>
 
         {/* Action Buttons */}

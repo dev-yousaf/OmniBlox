@@ -120,7 +120,7 @@ export default function DashboardPage() {
 
         <div className="py-4 border-t border-border">
           <p className="text-xs text-muted-foreground text-center">
-            &copy; {new Date().getFullYear()} OmniBlox. All rights reserved.
+            &copy; {new Date().getFullYear()} NexHub. All rights reserved.
           </p>
         </div>
       </div>

@@ -8,8 +8,8 @@ export class EmailService {
   async sendOtpEmail(to: string, name: string, otp: string): Promise<void> {
     await this.mailerService.sendMail({
       to,
-      subject: 'Your OTP Code - OmniBlox',
-      text: `Hello ${name},\n\nYour OTP code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this code, please ignore this email.\n\nBest regards,\nOmniBlox Team`,
+      subject: 'Your OTP Code - NexHub',
+      text: `Hello ${name},\n\nYour OTP code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this code, please ignore this email.\n\nBest regards,\nNexHub Team`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333;">Hello ${name},</h2>
@@ -20,7 +20,7 @@ export class EmailService {
           <p style="font-size: 14px; color: #666;">This code will expire in 10 minutes.</p>
           <p style="font-size: 14px; color: #666;">If you didn't request this code, please ignore this email.</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-          <p style="font-size: 12px; color: #999;">Best regards,<br>OmniBlox Team</p>
+          <p style="font-size: 12px; color: #999;">Best regards,<br>NexHub Team</p>
         </div>
       `,
     });
@@ -36,8 +36,8 @@ export class EmailService {
 
     await this.mailerService.sendMail({
       to,
-      subject: 'Your Magic Login Link - OmniBlox',
-      text: `Hello ${name},\n\nClick the link below to log in:\n\n${loginLink}\n\nThis link will expire in 15 minutes.\n\nBest regards,\nOmniBlox Team`,
+      subject: 'Your Magic Login Link - NexHub',
+      text: `Hello ${name},\n\nClick the link below to log in:\n\n${loginLink}\n\nThis link will expire in 15 minutes.\n\nBest regards,\nNexHub Team`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333;">Hello ${name},</h2>
@@ -48,7 +48,7 @@ export class EmailService {
           <p style="font-size: 14px; color: #666;">This link will expire in 15 minutes.</p>
           <p style="font-size: 14px; color: #666;">If you didn't request this, please ignore this email.</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-          <p style="font-size: 12px; color: #999;">Best regards,<br>OmniBlox Team</p>
+          <p style="font-size: 12px; color: #999;">Best regards,<br>NexHub Team</p>
         </div>
       `,
     });
@@ -66,11 +66,11 @@ export class EmailService {
 
     await this.mailerService.sendMail({
       to,
-      subject: `You've been invited to ${companyName} - OmniBlox`,
+      subject: `You've been invited to ${companyName} - NexHub`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333;">Hello ${name},</h2>
-          <p style="font-size: 16px; color: #555;">${invitedByName} has invited you to join <strong>${companyName}</strong> on OmniBlox.</p>
+          <p style="font-size: 16px; color: #555;">${invitedByName} has invited you to join <strong>${companyName}</strong> on NexHub.</p>
           <p style="font-size: 16px; color: #555;">Click the button below to set up your account and get started:</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${inviteLink}" style="background-color: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-size: 16px; display: inline-block;">Accept Invitation</a>
@@ -78,7 +78,7 @@ export class EmailService {
           <p style="font-size: 14px; color: #666;">This invitation link will expire in 48 hours.</p>
           <p style="font-size: 14px; color: #666;">If you weren't expecting this invitation, please ignore this email.</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-          <p style="font-size: 12px; color: #999;">Best regards,<br>OmniBlox Team</p>
+          <p style="font-size: 12px; color: #999;">Best regards,<br>NexHub Team</p>
         </div>
       `,
     });
@@ -94,8 +94,8 @@ export class EmailService {
 
     await this.mailerService.sendMail({
       to,
-      subject: 'Reset Your Password - OmniBlox',
-      text: `Hello ${name},\n\nClick the link below to reset your password:\n\n${resetLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.\n\nBest regards,\nOmniBlox Team`,
+      subject: 'Reset Your Password - NexHub',
+      text: `Hello ${name},\n\nClick the link below to reset your password:\n\n${resetLink}\n\nThis link will expire in 15 minutes.\n\nIf you didn't request this, please ignore this email.\n\nBest regards,\nNexHub Team`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333;">Hello ${name},</h2>
@@ -106,7 +106,7 @@ export class EmailService {
           <p style="font-size: 14px; color: #666;">This link will expire in 15 minutes.</p>
           <p style="font-size: 14px; color: #666;">If you didn't request a password reset, please ignore this email. Your password will remain unchanged.</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-          <p style="font-size: 12px; color: #999;">Best regards,<br>OmniBlox Team</p>
+          <p style="font-size: 12px; color: #999;">Best regards,<br>NexHub Team</p>
         </div>
       `,
     });

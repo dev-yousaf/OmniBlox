@@ -86,7 +86,7 @@ export default function SignupPage() {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-            Create Your OmniBlox Workspace
+            Create Your NexHub Workspace
           </h1>
           <p className="mt-2 text-muted-foreground text-base">
             One step away from automating your business.
@@ -234,7 +234,7 @@ export default function SignupPage() {
                     />
                   </div>
                   <span className="inline-flex items-center rounded-r-md border border-l-0 bg-muted px-3 text-sm text-muted-foreground">
-                    .omniblox.app
+                    .NexHub.app
                   </span>
                 </div>
               </div>
@@ -338,7 +338,7 @@ export default function SignupPage() {
                 htmlFor="terms"
                 className="cursor-pointer text-sm text-muted-foreground leading-snug"
               >
-                I agree to the OmniBlox{" "}
+                I agree to the NexHub{" "}
                 <Link
                   href="/terms"
                   className="underline font-medium hover:text-primary"

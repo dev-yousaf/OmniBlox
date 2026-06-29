@@ -236,14 +236,17 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
       )}
     >
       {/* Logo */}
-      <div className="flex h-[65px] items-center justify-between border-b border-sidebar-border px-4 py-[15px] shrink-0">
+      <div className={cn(
+        "flex h-[65px] items-center border-b border-sidebar-border shrink-0",
+        collapsed ? "justify-center px-0" : "justify-between px-4"
+      )}>
         {!collapsed && (
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-sidebar-accent-foreground text-sidebar-accent font-bold text-sm">
-              O
+              N
             </div>
             <span className="text-sm font-semibold text-sidebar-section-label">
-              OmniBlox
+              NexHub
             </span>
           </Link>
         )}
@@ -251,7 +254,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 ml-auto shrink-0 text-sidebar-muted hover:text-sidebar-foreground"
+          className="h-8 w-8 shrink-0 text-sidebar-muted hover:text-sidebar-foreground"
           onClick={() => onCollapsedChange(!collapsed)}
         >
           {collapsed ? (
@@ -263,7 +266,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="sidebar-nav flex-1 overflow-y-auto p-6 space-y-4">
+      <nav className={cn("sidebar-nav flex-1 overflow-y-auto space-y-4", collapsed ? "px-1 py-4" : "p-6")}>
         {sections.map((section) => {
           const visibleItems = filterItems(section.items, userRole, isSuperadmin);
           if (visibleItems.length === 0) return null;
@@ -289,7 +292,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
                         <Button
                           variant="ghost"
                           className={cn(
-                            "w-full justify-center px-2 h-9",
+                            "w-full justify-center h-9",
                             active
                               ? "bg-sidebar-accent text-sidebar-accent-foreground"
                               : "text-sidebar-foreground hover:bg-sidebar-hover"
@@ -326,7 +329,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
       </nav>
 
       {/* Bottom User Info */}
-      <div className="border-t border-sidebar-border p-4 shrink-0">
+      <div className={cn("border-t border-sidebar-border shrink-0", collapsed ? "p-2" : "p-4")}>
         {!collapsed ? (
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-hover text-xs font-medium text-sidebar-foreground">
@@ -334,7 +337,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
             </div>
             <div className="flex-1 text-sm">
               <div className="font-medium text-sidebar-foreground">{user?.name || "Admin User"}</div>
-              <div className="text-xs text-sidebar-muted">{user?.email || "admin@omniblox.com"}</div>
+              <div className="text-xs text-sidebar-muted">{user?.email || "admin@NexHub.com"}</div>
             </div>
           </div>
         ) : (

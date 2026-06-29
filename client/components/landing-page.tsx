@@ -67,7 +67,7 @@ export function LandingPage() {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-2">
               <Package className="h-8 w-8 text-blue-600" />
-              <span className="text-2xl font-bold text-gray-900">OmniBlox</span>
+              <span className="text-2xl font-bold text-gray-900">NexHub</span>
             </div>
             <div className="flex items-center space-x-4">
               <Link href="/login">
@@ -148,7 +148,7 @@ export function LandingPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">
-                Why Choose OmniBlox?
+                Why Choose NexHub?
               </h2>
               <p className="text-lg text-gray-600 mb-8">
                 Built for modern businesses that need flexibility, scalability, and reliability.
@@ -206,7 +206,7 @@ export function LandingPage() {
             Ready to Transform Your Business?
           </h2>
           <p className="text-xl text-blue-100 mb-8">
-            Join thousands of businesses already using OmniBlox to streamline their operations.
+            Join thousands of businesses already using NexHub to streamline their operations.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/signup">
@@ -229,10 +229,10 @@ export function LandingPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Package className="h-6 w-6 text-blue-400" />
-              <span className="text-xl font-bold">OmniBlox</span>
+              <span className="text-xl font-bold">NexHub</span>
             </div>
             <p className="text-gray-400">
-              © 2025 OmniBlox. All rights reserved.
+              © 2025 NexHub. All rights reserved.
             </p>
           </div>
         </div>
