@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogEntryDto, AuditLogListResponseDto, CreateAuditLogDto } from './dto/audit-log.dto';
 
 @Injectable()
-export class NotificationsService {
+export class AuditLogService {
   constructor(private prisma: PrismaService) {}
 
   async create(

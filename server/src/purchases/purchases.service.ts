@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import { AuditLogService } from '../audit-logs/audit-logs.service';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
@@ -13,7 +13,7 @@ import { OrderStatus, PaymentStatus } from '@prisma/client';
 export class PurchasesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   /**
@@ -437,7 +437,7 @@ export class PurchasesService {
 
     try {
       const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true, role: true } });
-      await this.notificationsService.create({
+      await this.auditLogService.create({
         action: 'RECEIVE',
         entity: 'Purchase',
         entityId: result.id,
@@ -480,7 +480,7 @@ export class PurchasesService {
 
     try {
       const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true, role: true } });
-      await this.notificationsService.create({
+      await this.auditLogService.create({
         action: 'MARK_PAID',
         entity: 'Purchase',
         entityId: result.id,

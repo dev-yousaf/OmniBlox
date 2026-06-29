@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import { AuditLogService } from '../audit-logs/audit-logs.service';
 import { CreateSaleDto, CreateSaleItemDto } from './dto/create-sale.dto';
 import { UpdateSaleDto } from './dto/update-sale.dto';
 import {
@@ -21,7 +21,7 @@ import {
 export class SalesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   /**
@@ -789,7 +789,7 @@ export class SalesService {
 
     try {
       const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true, role: true } });
-      await this.notificationsService.create({
+      await this.auditLogService.create({
         action: 'MARK_PAID',
         entity: 'Sale',
         entityId: result.id,

@@ -31,7 +31,7 @@ import { BrandsModule } from './brands/brands.module';
 import { VariantAttributesModule } from './variant-attributes/variant-attributes.module';
 import { UnitsModule } from './units/units.module';
 import { WarrantiesModule } from './warranties/warranties.module';
-import { NotificationsModule } from './notifications/notifications.module';
+import { AuditLogModule } from './audit-logs/audit-logs.module';
 
 @Module({
   imports: [
@@ -63,7 +63,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     VariantAttributesModule,
     UnitsModule,
     WarrantiesModule,
-    NotificationsModule,
+    AuditLogModule,
   ],
   controllers: [AppController],
   providers: [AppService],

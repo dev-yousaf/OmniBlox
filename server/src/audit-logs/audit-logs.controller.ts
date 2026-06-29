@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
-import { NotificationsService } from './notifications.service';
+import { Controller, Get, Post, Body, Query, UseGuards, Req } from '@nestjs/common';
+import { AuditLogService } from './audit-logs.service';
 import { CreateAuditLogDto } from './dto/audit-log.dto';
 import { AuthGuard } from '@thallesp/nestjs-better-auth';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -11,8 +11,8 @@ import type { Request } from 'express';
 
 @Controller('audit-logs')
 @UseGuards(AuthGuard, RolesGuard)
-export class NotificationsController {
-  constructor(private readonly auditLogService: NotificationsService) {}
+export class AuditLogController {
+  constructor(private readonly auditLogService: AuditLogService) {}
 
   @Post()
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
