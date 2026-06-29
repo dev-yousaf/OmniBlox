@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState, useCallback } from "react";
 import {
   BarChart,
   Bar,
@@ -10,32 +11,43 @@ import {
 } from "recharts";
 import { AlertTriangle, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { api } from "@/lib/api";
 import type { SalesPurchaseChartItem } from "./types";
 
-const PERIOD_LABELS: Record<string, string> = {
-  "1D": "24H", "1W": "7D", "1M": "1M", "3M": "3M", "6M": "6M", "1Y": "1Y",
-};
+const PERIODS = ["1D", "1W", "1M", "3M", "6M", "1Y"] as const;
 
-interface SalesStatisticsProps {
-  data?: SalesPurchaseChartItem[];
-  period: string;
-  totalRevenue?: number;
-  totalExpenses?: number;
-  revenueChange?: number;
-  expenseChange?: number;
-  loading?: boolean;
+interface SalesStatsResponse {
+  chart: SalesPurchaseChartItem[];
+  totalRevenue: number;
+  totalExpenses: number;
+  revenueChange: number;
+  expenseChange: number;
 }
 
-export function SalesStatistics({
-  data,
-  period,
-  totalRevenue = 0,
-  totalExpenses = 0,
-  revenueChange = 0,
-  expenseChange = 0,
-  loading,
-}: SalesStatisticsProps) {
-  const chartData = data && data.length > 0 ? data : [];
+export function SalesStatistics() {
+  const [data, setData] = useState<SalesStatsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState("1Y");
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await api.get<SalesStatsResponse>(`/dashboard/sales-stats?period=${period}`);
+      setData(result);
+    } catch {
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [period]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const chartData = data?.chart && data.chart.length > 0 ? data.chart : [];
+  const totalRevenue = data?.totalRevenue ?? 0;
+  const totalExpenses = data?.totalExpenses ?? 0;
+  const revenueChange = data?.revenueChange ?? 0;
+  const expenseChange = data?.expenseChange ?? 0;
 
   return (
     <div className="border border-border rounded-lg h-full">
@@ -46,9 +58,19 @@ export function SalesStatistics({
         <h3 className="text-lg font-bold text-card-foreground flex-1">
           Sales Statics
         </h3>
-        <span className="text-xs text-muted-foreground border border-border rounded px-2.5 py-1">
-          {PERIOD_LABELS[period] || period}
-        </span>
+        <div className="flex items-center bg-muted rounded-[4px] h-[26px]">
+          {PERIODS.map((tab, idx) => (
+            <button
+              key={tab}
+              onClick={() => setPeriod(tab)}
+              className={`px-2 py-0.5 text-[11px] font-medium transition-colors ${
+                tab === period ? "text-card-foreground font-semibold" : "text-muted-foreground hover:text-card-foreground"
+              } ${idx < PERIODS.length - 1 ? "border-r border-border" : ""}`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="p-5 space-y-4">
         {loading ? (
@@ -102,30 +124,10 @@ export function SalesStatistics({
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} barGap={2} barCategoryGap="10%">
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                  <XAxis
-                    dataKey="month"
-                    axisLine={{ stroke: "#E5E7EB" }}
-                    tickLine={false}
-                    tick={{ fill: "#9CA3AF", fontSize: 12 }}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#9CA3AF", fontSize: 12 }}
-                    tickFormatter={(v: number) => `${Math.abs(v)}K`}
-                  />
-                  <Bar
-                    dataKey="sales"
-                    fill="#0e9384"
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={12}
-                  />
-                  <Bar
-                    dataKey="purchase"
-                    fill="#e04f16"
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={12}
-                  />
+                  <XAxis dataKey="month" axisLine={{ stroke: "#E5E7EB" }} tickLine={false} tick={{ fill: "#9CA3AF", fontSize: 12 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: "#9CA3AF", fontSize: 12 }} tickFormatter={(v: number) => `${Math.abs(v)}K`} />
+                  <Bar dataKey="sales" fill="#0e9384" radius={[4, 4, 0, 0]} maxBarSize={12} />
+                  <Bar dataKey="purchase" fill="#e04f16" radius={[4, 4, 0, 0]} maxBarSize={12} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

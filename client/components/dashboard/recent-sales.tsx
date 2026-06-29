@@ -1,20 +1,32 @@
 "use client";
 
+import { useEffect, useState, useCallback } from "react";
 import { ShoppingBag } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { api } from "@/lib/api";
 import { formatCurrency, type RecentSale } from "./types";
 
-const PERIOD_LABELS: Record<string, string> = {
-  "1D": "24H", "1W": "7D", "1M": "1M", "3M": "3M", "6M": "6M", "1Y": "1Y",
-};
+const PERIODS = ["1D", "1W", "1M", "3M", "6M", "1Y"] as const;
 
-interface RecentSalesProps {
-  sales: RecentSale[];
-  period: string;
-  loading: boolean;
-}
+export function RecentSales() {
+  const [sales, setSales] = useState<RecentSale[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState("1Y");
 
-export function RecentSales({ sales, period, loading }: RecentSalesProps) {
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await api.get<RecentSale[]>(`/dashboard/recent-sales?period=${period}`);
+      setSales(data || []);
+    } catch {
+      setSales([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [period]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
   return (
     <div className="border border-border rounded-lg h-full">
       <div className="border-b border-border px-5 py-[15px]">
@@ -27,9 +39,19 @@ export function RecentSales({ sales, period, loading }: RecentSalesProps) {
               Recent Sales
             </h3>
           </div>
-          <span className="text-xs text-muted-foreground border border-border rounded px-2.5 py-1">
-            {PERIOD_LABELS[period] || period}
-          </span>
+          <div className="flex items-center bg-muted rounded-[4px] h-[26px]">
+            {PERIODS.map((tab, idx) => (
+              <button
+                key={tab}
+                onClick={() => setPeriod(tab)}
+                className={`px-2 py-0.5 text-[11px] font-medium transition-colors ${
+                  tab === period ? "text-card-foreground font-semibold" : "text-muted-foreground hover:text-card-foreground"
+                } ${idx < PERIODS.length - 1 ? "border-r border-border" : ""}`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       <div className="p-5 space-y-6">

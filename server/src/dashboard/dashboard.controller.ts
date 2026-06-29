@@ -19,4 +19,31 @@ export class DashboardController {
   ) {
     return this.dashboardService.getData(companyId, period || '1Y');
   }
+
+  @Get('top-selling')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
+  async getTopSelling(
+    @CompanyId() companyId: string,
+    @Query('period') period?: string,
+  ) {
+    return this.dashboardService.getTopSellingForPeriod(companyId, period || '1Y');
+  }
+
+  @Get('recent-sales')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
+  async getRecentSales(
+    @CompanyId() companyId: string,
+    @Query('period') period?: string,
+  ) {
+    return this.dashboardService.getRecentSalesForPeriod(companyId, period || '1Y');
+  }
+
+  @Get('sales-stats')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
+  async getSalesStats(
+    @CompanyId() companyId: string,
+    @Query('period') period?: string,
+  ) {
+    return this.dashboardService.getChartForPeriod(companyId, period || '1Y');
+  }
 }

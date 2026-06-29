@@ -366,9 +366,11 @@ export class DashboardService {
     return { start, end };
   }
 
-  private async getRecentSales(companyId: string): Promise<RecentSaleDto[]> {
+  private async getRecentSales(companyId: string, range?: { start: Date; end: Date }): Promise<RecentSaleDto[]> {
+    const where: any = { companyId, status: { not: 'CANCELLED' } };
+    if (range) where.saleDate = { gte: range.start, lte: range.end };
     const sales = await this.prisma.sale.findMany({
-      where: { companyId, status: { not: 'CANCELLED' } },
+      where,
       orderBy: { saleDate: 'desc' },
       take: 5,
       include: {
@@ -389,6 +391,56 @@ export class DashboardService {
       status: s.status,
       saleDate: s.saleDate.toISOString(),
     }));
+  }
+
+  async getTopSellingForPeriod(companyId: string, period: string = '1Y') {
+    const now = new Date();
+    const range = this.getDateRange(period, now);
+    return this.getTopSellingProducts(companyId, range);
+  }
+
+  async getRecentSalesForPeriod(companyId: string, period: string = '1Y'): Promise<RecentSaleDto[]> {
+    const now = new Date();
+    const range = this.getDateRange(period, now);
+    return this.getRecentSales(companyId, range);
+  }
+
+  async getChartForPeriod(companyId: string, period: string = '1Y') {
+    const now = new Date();
+    const range = this.getDateRange(period, now);
+    const chart = await this.getSalesPurchaseChart(companyId, range.start, range.end);
+
+    const [salesAgg, prevSalesAgg, expensesAgg, prevExpensesAgg] = await Promise.all([
+      this.prisma.sale.aggregate({
+        where: { companyId, saleDate: { gte: range.start, lte: range.end }, status: { not: 'CANCELLED' } },
+        _sum: { totalAmount: true },
+      }),
+      this.prisma.sale.aggregate({
+        where: { companyId, saleDate: { gte: this.getPreviousPeriodRange(period, now).start, lte: this.getPreviousPeriodRange(period, now).end }, status: { not: 'CANCELLED' } },
+        _sum: { totalAmount: true },
+      }),
+      this.prisma.expense.aggregate({
+        where: { companyId, expenseDate: { gte: range.start, lte: range.end }, status: { not: 'REJECTED' } },
+        _sum: { amount: true },
+      }),
+      this.prisma.expense.aggregate({
+        where: { companyId, expenseDate: { gte: this.getPreviousPeriodRange(period, now).start, lte: this.getPreviousPeriodRange(period, now).end }, status: { not: 'REJECTED' } },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    const totalRevenue = Number(salesAgg._sum.totalAmount || 0);
+    const prevRevenue = Number(prevSalesAgg._sum.totalAmount || 0);
+    const totalExpenses = Number(expensesAgg._sum.amount || 0);
+    const prevExpenses = Number(prevExpensesAgg._sum.amount || 0);
+
+    return {
+      chart,
+      totalRevenue,
+      totalExpenses,
+      revenueChange: this.pctChange(totalRevenue, prevRevenue),
+      expenseChange: this.pctChange(totalExpenses, prevExpenses),
+    };
   }
 
   private pctChange(current: number, previous: number): number {

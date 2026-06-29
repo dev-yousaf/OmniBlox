@@ -81,13 +81,7 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-8">
-            <SalesPurchaseChart
-              data={data?.salesPurchaseChart ?? []}
-              period={period}
-              totalPurchaseAmount={data?.totalPurchaseAmount ?? 0}
-              totalSalesAmount={data?.totalSalesAmount ?? 0}
-              loading={loading}
-            />
+            <SalesPurchaseChart />
           </div>
           <div className="col-span-4">
             <OverallInfo
@@ -105,27 +99,19 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-4">
-            <TopSellingProducts products={data?.topSellingProducts ?? []} period={period} loading={loading} />
+            <TopSellingProducts />
           </div>
           <div className="col-span-4">
             <LowStockProducts products={data?.lowStockProducts ?? []} loading={loading} />
           </div>
           <div className="col-span-4">
-            <RecentSales sales={data?.recentSales ?? []} period={period} loading={loading} />
+            <RecentSales />
           </div>
         </div>
 
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-7">
-            <SalesStatistics
-              data={data?.salesPurchaseChart}
-              period={period}
-              totalRevenue={data?.totalSales}
-              totalExpenses={data?.totalExpenses}
-              revenueChange={data?.salesChange}
-              expenseChange={data?.expensesChange}
-              loading={loading}
-            />
+            <SalesStatistics />
           </div>
           <div className="col-span-5">
             <RecentTransactions sales={data?.recentSales} loading={loading} />
