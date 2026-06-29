@@ -139,7 +139,7 @@ export default function EditBillerPage() {
       </div>
 
       {/* Form */}
-      <form id="edit-biller-form" onSubmit={handleSubmit} className="max-w-2xl">
+      <form id="edit-biller-form" onSubmit={handleSubmit}>
         <div className="border rounded-[5px] bg-card shadow-sm">
           <div className="px-5 py-[15px] border-b">
             <h2 className="text-sm font-semibold text-foreground">Biller Details</h2>

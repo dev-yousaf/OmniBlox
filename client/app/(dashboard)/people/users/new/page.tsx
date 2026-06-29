@@ -98,7 +98,7 @@ export default function CreateUserPage() {
       </div>
 
       {/* Form */}
-      <form id="create-user-form" onSubmit={handleSubmit} className="max-w-2xl">
+      <form id="create-user-form" onSubmit={handleSubmit}>
         <div className="border rounded-[5px] bg-card shadow-sm">
           <div className="px-5 py-[15px] border-b">
             <h2 className="text-sm font-semibold text-foreground">User Details</h2>

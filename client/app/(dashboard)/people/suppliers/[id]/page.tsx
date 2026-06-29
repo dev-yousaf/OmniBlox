@@ -4,21 +4,15 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
-import {
-  ArrowLeft,
-  Mail,
-  Phone,
-  MapPin,
-  Edit,
-  Trash2,
-  Factory,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import {
+  ArrowLeft, ChevronRight, Building2, Mail, MapPin, Phone,
+  Pencil, Trash2, DollarSign, CalendarDays, CreditCard,
+} from "lucide-react";
 import { useSuppliersApi, type Supplier } from "@/hooks/use-suppliers-api";
 import { useToast } from "@/hooks/use-toast";
-
+import { format } from "date-fns";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,16 +23,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
 export default function SupplierDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [supplier, setSupplier] = useState<Supplier | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const { getSupplier, deleteSupplier } = useSuppliersApi();
   const { toast } = useToast();
 
-  const [deleteOpen, setDeleteOpen] = useState(false);
   useEffect(() => {
     const load = async () => {
       if (!params.id) return;
@@ -47,12 +42,7 @@ export default function SupplierDetailPage() {
         const data = await getSupplier(params.id as string);
         setSupplier(data);
       } catch (error) {
-        console.error("Error loading supplier:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load supplier.",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Failed to load supplier.", variant: "destructive" });
         router.push("/people/suppliers");
       } finally {
         setLoading(false);
@@ -66,154 +56,161 @@ export default function SupplierDetailPage() {
     try {
       setDeleting(true);
       await deleteSupplier(supplier.id);
-      toast({
-        title: "Deleted",
-        description: "Supplier deleted successfully.",
-      });
+      toast({ title: "Deleted", description: "Supplier deleted successfully." });
       router.push("/people/suppliers");
     } catch (error: any) {
-      console.error("Error deleting supplier:", error);
-      toast({
-        title: "Error",
-        description: error?.message || "Failed to delete supplier.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error?.message || "Failed to delete supplier.", variant: "destructive" });
     } finally {
       setDeleting(false);
       setDeleteOpen(false);
     }
   };
 
-  if (loading) {
-    return <PageLoadingSkeleton />;
-  }
+  if (loading || !supplier) return <PageLoadingSkeleton />;
 
-  if (!supplier) {
-    return (
-      <div className="space-y-6 p-6">
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <p className="text-muted-foreground">Supplier not found</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const formatCurrency = new Intl.NumberFormat("en-US", {
+    style: "currency", currency: "USD", minimumFractionDigits: 2,
+  });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+        <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <Link href="/people/suppliers" className="hover:text-foreground transition-colors">Suppliers</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-foreground">{supplier.name}</span>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+        <div className="flex items-center gap-3">
+          <Link href="/people/suppliers" className="flex items-center justify-center h-8 w-8 rounded-[5px] border hover:bg-accent transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Factory className="h-6 w-6 text-primary" /> {supplier.name}
-            </h1>
-            <p className="text-sm text-muted-foreground">Supplier</p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-[18px] font-bold text-foreground">{supplier.name}</h1>
+              <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-200 font-medium text-xs">Active</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">Supplier &middot; Created {format(new Date(supplier.createdAt), "MMM dd, yyyy")}</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px] text-destructive" onClick={() => setDeleteOpen(true)}>
+            <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete
+          </Button>
           <Link href={`/people/suppliers/${supplier.id}/edit`}>
-            <Button variant="outline">
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
+            <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">
+              <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
             </Button>
           </Link>
-          <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
-            <Trash2 className="mr-2 h-4 w-4" /> Delete
-          </Button>
         </div>
       </div>
 
-      <Separator />
-
-      {/* Details */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Contact Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {supplier.email && (
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>{supplier.email}</span>
-              </div>
-            )}
-            {supplier.phone && (
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{supplier.phone}</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Address</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {supplier.address ? (
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>{supplier.address}</span>
-              </div>
-            ) : (
-              <p className="text-muted-foreground">No address provided</p>
-            )}
-          </CardContent>
-        </Card>
+      {/* Info Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Created</p>
+          </div>
+          <p className="text-lg font-bold">{format(new Date(supplier.createdAt), "MMM dd, yyyy")}</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Credit Limit</p>
+          </div>
+          <p className="text-lg font-bold">{supplier.creditLimit ? formatCurrency.format(supplier.creditLimit) : "—"}</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Balance</p>
+          </div>
+          <p className="text-lg font-bold">{supplier.balance != null ? formatCurrency.format(supplier.balance) : "—"}</p>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Meta</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Created</p>
-            <p className="font-medium">
-              {new Date(supplier.createdAt).toLocaleString()}
-            </p>
+      {/* Details grid */}
+      <div className="grid gap-5 md:grid-cols-2">
+        {/* Contact Information */}
+        <div className="border rounded-[5px] bg-card shadow-sm">
+          <div className="px-5 py-[15px] border-b">
+            <h2 className="text-sm font-semibold text-foreground">Contact Information</h2>
           </div>
-          <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete this supplier?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. The supplier {supplier?.name}{" "}
-                  will be permanently removed.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={deleting}>
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive text-white hover:bg-destructive/90"
-                  onClick={() => handleDelete()}
-                  disabled={deleting}
-                >
-                  {deleting ? "Deleting..." : "Delete Supplier"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          <div>
-            <p className="text-sm text-muted-foreground">Last Updated</p>
-            <p className="font-medium">
-              {new Date(supplier.updatedAt).toLocaleString()}
-            </p>
+          <div className="p-5 space-y-3">
+            <div>
+              <p className="text-xs text-muted-foreground">Email</p>
+              <p className="text-sm mt-0.5 flex items-center gap-1.5">
+                <Mail className="h-3.5 w-3.5 text-muted-foreground" />{supplier.email || "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Phone</p>
+              <p className="text-sm mt-0.5 flex items-center gap-1.5">
+                <Phone className="h-3.5 w-3.5 text-muted-foreground" />{supplier.phone || "—"}
+              </p>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Address */}
+        <div className="border rounded-[5px] bg-card shadow-sm">
+          <div className="px-5 py-[15px] border-b">
+            <h2 className="text-sm font-semibold text-foreground">Address</h2>
+          </div>
+          <div className="p-5 space-y-3">
+            <div>
+              <p className="text-xs text-muted-foreground">Location</p>
+              <p className="text-sm mt-0.5 flex items-start gap-1.5">
+                <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />{supplier.address || "No address provided"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Meta */}
+      <div className="border rounded-[5px] bg-card shadow-sm">
+        <div className="px-5 py-[15px] border-b">
+          <h2 className="text-sm font-semibold text-foreground">Meta</h2>
+        </div>
+        <div className="p-5 grid gap-4 md:grid-cols-3">
+          <div>
+            <p className="text-xs text-muted-foreground">Created</p>
+            <p className="text-sm font-semibold mt-0.5">{format(new Date(supplier.createdAt), "MMM dd, yyyy h:mm a")}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Last Updated</p>
+            <p className="text-sm font-semibold mt-0.5">{format(new Date(supplier.updatedAt), "MMM dd, yyyy h:mm a")}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Credit Limit</p>
+            <p className="text-sm font-semibold mt-0.5">{supplier.creditLimit ? formatCurrency.format(supplier.creditLimit) : "N/A"}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Delete Dialog */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this supplier?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The supplier {supplier.name} will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-white hover:bg-destructive/90" onClick={handleDelete} disabled={deleting}>
+              {deleting ? "Deleting..." : "Delete Supplier"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
-
-
-

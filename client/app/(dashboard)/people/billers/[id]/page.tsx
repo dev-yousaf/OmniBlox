@@ -4,25 +4,15 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
-import {
-  ArrowLeft,
-  Building2,
-  Mail,
-  MapPin,
-  Phone,
-  Edit,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  IdCard,
-  Hash,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import {
+  ArrowLeft, ChevronRight, Building2, Mail, MapPin, Phone,
+  Pencil, Trash2, CheckCircle, XCircle, IdCard, Hash, CalendarDays,
+} from "lucide-react";
 import { useBillersApi, type Biller } from "@/hooks/use-billers-api";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,17 +24,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const statusConfig = {
-  ACTIVE: {
-    label: "Active",
-    className: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    icon: CheckCircle,
-  },
-  INACTIVE: {
-    label: "Inactive",
-    className: "bg-gray-100 text-gray-700 border-gray-200",
-    icon: XCircle,
-  },
+const statusConfig: Record<string, { label: string; className: string }> = {
+  ACTIVE: { label: "Active", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  INACTIVE: { label: "Inactive", className: "bg-gray-100 text-gray-700 border-gray-200" },
 };
 
 export default function BillerDetailPage() {
@@ -65,12 +47,7 @@ export default function BillerDetailPage() {
         const data = await getBiller(params.id as string);
         setBiller(data);
       } catch (error) {
-        console.error("Error loading biller:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load biller.",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Failed to load biller.", variant: "destructive" });
         router.push("/people/billers");
       } finally {
         setLoading(false);
@@ -87,171 +64,176 @@ export default function BillerDetailPage() {
       toast({ title: "Deleted", description: "Biller deleted successfully." });
       router.push("/people/billers");
     } catch (error: any) {
-      console.error("Error deleting biller:", error);
-      toast({
-        title: "Error",
-        description: error?.message || "Failed to delete biller.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error?.message || "Failed to delete biller.", variant: "destructive" });
     } finally {
       setDeleting(false);
       setDeleteOpen(false);
     }
   };
 
-  if (loading) {
-    return <PageLoadingSkeleton />;
-  }
+  if (loading || !biller) return <PageLoadingSkeleton />;
 
-  if (!biller) {
-    return (
-      <div className="space-y-6 p-6">
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <p className="text-muted-foreground">Biller not found</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const statusInfo = statusConfig[biller.status];
-  const StatusIcon = statusInfo.icon;
+  const statusInfo = statusConfig[biller.status] || statusConfig.INACTIVE;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+        <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <Link href="/people/billers" className="hover:text-foreground transition-colors">Billers</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-foreground">{biller.name}</span>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+        <div className="flex items-center gap-3">
+          <Link href="/people/billers" className="flex items-center justify-center h-8 w-8 rounded-[5px] border hover:bg-accent transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Building2 className="h-6 w-6 text-primary" /> {biller.name}
-            </h1>
-            <p className="text-sm text-muted-foreground">Code: {biller.code}</p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-[18px] font-bold text-foreground">{biller.name}</h1>
+              <Badge variant="outline" className={`font-medium text-xs ${statusInfo.className}`}>
+                {statusInfo.label}
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">Code: {biller.code} &middot; Created {format(new Date(biller.createdAt), "MMM dd, yyyy")}</p>
           </div>
-          <Badge variant="outline" className={statusInfo.className}>
-            <StatusIcon className="h-3 w-3 mr-1" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px] text-destructive" onClick={() => setDeleteOpen(true)}>
+            <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete
+          </Button>
+          <Link href={`/people/billers/${biller.id}/edit`}>
+            <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">
+              <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Info Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Created</p>
+          </div>
+          <p className="text-lg font-bold">{format(new Date(biller.createdAt), "MMM dd, yyyy")}</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Hash className="h-4 w-4 text-muted-foreground" />
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Biller Code</p>
+          </div>
+          <p className="text-lg font-bold font-mono">{biller.code}</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</p>
+          </div>
+          <Badge variant="outline" className={`font-medium text-xs mt-1 ${statusInfo.className}`}>
             {statusInfo.label}
           </Badge>
         </div>
-        <div className="flex gap-2">
-          <Link href={`/people/billers/${biller.id}/edit`}>
-            <Button variant="outline">
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
-          </Link>
-          <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
-            <Trash2 className="mr-2 h-4 w-4" /> Delete
-          </Button>
+      </div>
+
+      {/* Details grid */}
+      <div className="grid gap-5 md:grid-cols-2">
+        {/* Contact Information */}
+        <div className="border rounded-[5px] bg-card shadow-sm">
+          <div className="px-5 py-[15px] border-b">
+            <h2 className="text-sm font-semibold text-foreground">Contact Information</h2>
+          </div>
+          <div className="p-5 space-y-3">
+            {biller.contactPerson && (
+              <div>
+                <p className="text-xs text-muted-foreground">Contact Person</p>
+                <p className="text-sm font-semibold mt-0.5 flex items-center gap-1.5">
+                  <IdCard className="h-3.5 w-3.5 text-muted-foreground" />{biller.contactPerson}
+                </p>
+              </div>
+            )}
+            <div>
+              <p className="text-xs text-muted-foreground">Email</p>
+              <p className="text-sm mt-0.5 flex items-center gap-1.5">
+                <Mail className="h-3.5 w-3.5 text-muted-foreground" />{biller.email || "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Phone</p>
+              <p className="text-sm mt-0.5 flex items-center gap-1.5">
+                <Phone className="h-3.5 w-3.5 text-muted-foreground" />{biller.phone || "—"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Business Information */}
+        <div className="border rounded-[5px] bg-card shadow-sm">
+          <div className="px-5 py-[15px] border-b">
+            <h2 className="text-sm font-semibold text-foreground">Business Information</h2>
+          </div>
+          <div className="p-5 space-y-3">
+            <div>
+              <p className="text-xs text-muted-foreground">GST Number</p>
+              <p className="text-sm font-semibold mt-0.5">{biller.gstNumber || "N/A"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Address</p>
+              <p className="text-sm mt-0.5 flex items-start gap-1.5">
+                <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />{biller.address || "—"}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <Separator />
-
-      {/* Details */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Contact Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {biller.contactPerson && (
-              <div className="flex items-center gap-2">
-                <IdCard className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{biller.contactPerson}</span>
-              </div>
-            )}
-            {biller.email && (
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>{biller.email}</span>
-              </div>
-            )}
-            {biller.phone && (
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{biller.phone}</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Business Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Hash className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">GST Number</span>
+      {/* Meta */}
+      <div className="border rounded-[5px] bg-card shadow-sm">
+        <div className="px-5 py-[15px] border-b">
+          <h2 className="text-sm font-semibold text-foreground">Meta</h2>
+        </div>
+        <div className="p-5 grid gap-4 md:grid-cols-3">
+          <div>
+            <p className="text-xs text-muted-foreground">Created</p>
+            <p className="text-sm font-semibold mt-0.5">{format(new Date(biller.createdAt), "MMM dd, yyyy h:mm a")}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Last Updated</p>
+            <p className="text-sm font-semibold mt-0.5">{format(new Date(biller.updatedAt), "MMM dd, yyyy h:mm a")}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Status</p>
+            <div className="mt-0.5">
+              <Badge variant="outline" className={`font-medium text-xs ${statusInfo.className}`}>
+                {statusInfo.label}
+              </Badge>
             </div>
-            <div className="font-medium">{biller.gstNumber || "N/A"}</div>
-            {biller.address && (
-              <div className="flex items-center gap-2 mt-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>{biller.address}</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Meta</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Created</p>
-            <p className="font-medium">
-              {new Date(biller.createdAt).toLocaleString()}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Last Updated</p>
-            <p className="font-medium">
-              {new Date(biller.updatedAt).toLocaleString()}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Status</p>
-            <Badge variant="outline" className={statusInfo.className}>
-              <StatusIcon className="h-3 w-3 mr-1" />
-              {statusInfo.label}
-            </Badge>
-          </div>
-          <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete this biller?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. The biller {biller?.name} will
-                  be permanently removed.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={deleting}>
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive text-white hover:bg-destructive/90"
-                  onClick={() => handleDelete()}
-                  disabled={deleting}
-                >
-                  {deleting ? "Deleting..." : "Delete Biller"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </CardContent>
-      </Card>
+      {/* Delete Dialog */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this biller?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The biller {biller.name} will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-white hover:bg-destructive/90" onClick={handleDelete} disabled={deleting}>
+              {deleting ? "Deleting..." : "Delete Biller"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
-
-
-
