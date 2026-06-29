@@ -6,7 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 @Injectable()
 export class PurchasesService {
@@ -432,6 +432,37 @@ export class PurchasesService {
     }
 
     return result;
+  }
+
+  async markAsPaid(id: string, companyId: string) {
+    const existing = await this.prisma.purchaseOrder.findFirst({
+      where: { id, companyId },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Purchase order not found');
+    }
+
+    if (existing.paymentStatus === PaymentStatus.PAID) {
+      throw new BadRequestException('This bill is already marked as paid');
+    }
+
+    const po = await this.prisma.purchaseOrder.update({
+      where: { id },
+      data: { paymentStatus: PaymentStatus.PAID },
+      include: {
+        items: {
+          include: {
+            product: { select: { id: true, name: true, sku: true } },
+          },
+        },
+        supplier: { select: { id: true, name: true, email: true } },
+        warehouse: { select: { id: true, name: true } },
+        user: { select: { id: true, email: true, name: true } },
+      },
+    });
+
+    return this.transformPurchase(po);
   }
 
   async update(

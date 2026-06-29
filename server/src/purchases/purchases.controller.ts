@@ -75,4 +75,10 @@ export class PurchasesController {
   ) {
     return this.purchasesService.receive(id, dto.warehouseId, companyId);
   }
+
+  @Patch(':id/mark-paid')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
+  async markAsPaid(@Param('id') id: string, @CompanyId() companyId: string) {
+    return this.purchasesService.markAsPaid(id, companyId);
+  }
 }

@@ -114,8 +114,15 @@ export function usePurchasesApi() {
     [patch],
   );
 
+  const markAsPaid = useCallback(
+    async (id: string): Promise<PurchaseOrder> => {
+      return (await patch(`/purchases/${id}/mark-paid`)) as PurchaseOrder;
+    },
+    [patch],
+  );
+
   return useMemo(
-    () => ({ list, getById, create, update, receive }),
-    [list, getById, create, update, receive],
+    () => ({ list, getById, create, update, receive, markAsPaid }),
+    [list, getById, create, update, receive, markAsPaid],
   );
 }

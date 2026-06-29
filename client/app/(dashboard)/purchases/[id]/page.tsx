@@ -6,7 +6,7 @@ import Link from "next/link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   ArrowLeft, Edit, Trash2, Loader2, Package, RotateCcw,
-  ChevronRight,
+  ChevronRight, CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +39,7 @@ export default function PurchaseDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const purchaseId = params?.id ?? "";
-  const { getById, receive } = usePurchasesApi();
+  const { getById, receive, markAsPaid } = usePurchasesApi();
 
   const [purchase, setPurchase] = useState<PurchaseOrder | null>(null);
   const [loading, setLoading] = useState(true);
@@ -79,6 +79,20 @@ export default function PurchaseDetailPage() {
         variant: "destructive" as any,
       });
       throw e;
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleMarkAsPaid = async () => {
+    if (!purchase) return;
+    setUpdating(true);
+    try {
+      const updated = await markAsPaid(purchase.id);
+      setPurchase(updated);
+      toast({ title: "Bill marked as paid" });
+    } catch (e: any) {
+      toast({ title: "Failed to mark as paid", description: e?.message || "Try again", variant: "destructive" as any });
     } finally {
       setUpdating(false);
     }
@@ -205,6 +219,16 @@ export default function PurchaseDetailPage() {
                     <Edit className="mr-1.5 h-3.5 w-3.5" /> Edit
                   </Button>
                 </Link>
+              )}
+              {purchase.paymentStatus !== "PAID" && (
+                <Button
+                  size="sm"
+                  className="h-[34px] rounded-[5px] text-[13px]"
+                  disabled={updating}
+                  onClick={handleMarkAsPaid}
+                >
+                  {updating ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Marking...</> : <><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Mark Paid</>}
+                </Button>
               )}
               {!allReturned && (
                 <Link href={`/purchase-returns/new?purchaseId=${purchase.id}`}>

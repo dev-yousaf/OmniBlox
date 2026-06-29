@@ -10,10 +10,11 @@ import {
 } from "@/components/ui/select";
 import {
   Search, Loader2, ChevronLeft, ChevronRight, RefreshCw, Plus,
-  FileText, Eye, Printer, DollarSign, ShoppingBag,
+  FileText, Eye, CheckCircle2, DollarSign, ShoppingBag,
 } from "lucide-react";
 import { usePurchasesApi, type PurchaseOrder } from "@/hooks/use-purchases-api";
 import { useAuth } from "@/contexts/auth-context";
+import { useToast } from "@/hooks/use-toast";
 
 const ROWS_PER_PAGE = 20;
 
@@ -30,7 +31,8 @@ const paymentStatusLabels: Record<string, string> = {
 export default function BillsPage() {
   const { user } = useAuth();
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
-  const { list } = usePurchasesApi();
+  const { toast } = useToast();
+  const { list, markAsPaid } = usePurchasesApi();
 
   const [bills, setBills] = useState<PurchaseOrder[]>([]);
   const [filtered, setFiltered] = useState<PurchaseOrder[]>([]);
@@ -38,6 +40,7 @@ export default function BillsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [page, setPage] = useState(1);
+  const [markingId, setMarkingId] = useState<string | null>(null);
 
   const formatCurrency = useMemo(
     () => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }),
@@ -71,6 +74,19 @@ export default function BillsPage() {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE));
   const paginated = filtered.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
+
+  const handleMarkAsPaid = async (id: string) => {
+    setMarkingId(id);
+    try {
+      await markAsPaid(id);
+      setBills((prev) => prev.map((b) => (b.id === id ? { ...b, paymentStatus: "PAID" } : b)));
+      toast({ title: "Bill marked as paid" });
+    } catch (e: any) {
+      toast({ title: "Failed to mark as paid", description: e?.message || "Try again", variant: "destructive" as any });
+    } finally {
+      setMarkingId(null);
+    }
+  };
 
   const totalBills = filtered.length;
   const totalAmount = filtered.reduce((s, b) => s + b.totalAmount, 0);
@@ -202,6 +218,11 @@ export default function BillsPage() {
                         <Link href={`/purchases/${bill.id}`}>
                           <Button variant="ghost" size="icon" className="h-7 w-7"><Eye className="h-3.5 w-3.5" /></Button>
                         </Link>
+                        {bill.paymentStatus !== "PAID" && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-600" disabled={markingId === bill.id} onClick={() => handleMarkAsPaid(bill.id)}>
+                            {markingId === bill.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
