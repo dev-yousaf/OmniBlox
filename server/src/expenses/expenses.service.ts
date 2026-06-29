@@ -39,6 +39,7 @@ export class ExpensesService {
         status: 'PENDING',
         categoryId: dto.categoryId,
         purchaseOrderId: dto.purchaseOrderId,
+        saleId: dto.saleId,
         userId,
         companyId,
       },

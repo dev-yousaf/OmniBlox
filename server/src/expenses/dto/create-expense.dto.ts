@@ -34,4 +34,8 @@ export class CreateExpenseDto {
   @IsOptional()
   @IsString()
   readonly purchaseOrderId?: string;
+
+  @IsOptional()
+  @IsString()
+  readonly saleId?: string;
 }

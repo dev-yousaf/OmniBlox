@@ -43,6 +43,8 @@ export interface Expense {
     lastName?: string;
     email?: string;
   };
+  purchaseOrderId?: string;
+  saleId?: string;
   attachments?: ExpenseAttachment[];
   companyId: string;
   createdAt: string;
@@ -65,6 +67,9 @@ export interface CreateExpenseDto {
   description?: string;
   vendor: string;
   categoryId: string;
+  paymentMethod?: PaymentMethod;
+  saleId?: string;
+  purchaseOrderId?: string;
 }
 
 export interface UpdateExpenseDto {

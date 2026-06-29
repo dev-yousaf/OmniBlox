@@ -2,95 +2,49 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   useExpensesApi,
   type Expense,
-  type UpdateExpenseDto,
   ExpenseStatus,
-  PaymentMethod,
 } from "@/hooks/use-expenses-api";
-import {
-  useExpenseCategoriesApi,
-  type ExpenseCategory,
-} from "@/hooks/use-expense-categories-api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Loader2, ArrowLeft, Save, CheckCircle, XCircle } from "lucide-react";
+import {
+  ArrowLeft, ChevronRight, Loader2, Pencil, CheckCircle, XCircle,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
-const statusColors = {
-  [ExpenseStatus.PENDING]:
-    "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-  [ExpenseStatus.APPROVED]: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  [ExpenseStatus.PAID]: "bg-green-500/10 text-green-500 border-green-500/20",
-  [ExpenseStatus.REJECTED]: "bg-red-500/10 text-red-500 border-red-500/20",
+const statusConfig: Record<string, { label: string; className: string }> = {
+  [ExpenseStatus.PENDING]: { label: "Pending", className: "bg-yellow-100 text-yellow-700 border-yellow-200" },
+  [ExpenseStatus.APPROVED]: { label: "Approved", className: "bg-blue-100 text-blue-700 border-blue-200" },
+  [ExpenseStatus.PAID]: { label: "Paid", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  [ExpenseStatus.REJECTED]: { label: "Rejected", className: "bg-red-100 text-red-700 border-red-200" },
 };
 
-export default function EditExpensePage() {
+export default function ExpenseDetailPage() {
   const params = useParams();
   const expenseId = params?.id as string;
-
   const [expense, setExpense] = useState<Expense | null>(null);
-  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [formData, setFormData] = useState<UpdateExpenseDto>({});
-
-  const expensesApi = useExpensesApi();
-  const categoriesApi = useExpenseCategoriesApi();
+  const api = useExpensesApi();
   const { toast } = useToast();
   const router = useRouter();
 
   useEffect(() => {
+    if (!expenseId) return;
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expenseId]);
 
   const fetchData = async () => {
-    if (!expenseId) return;
-
-    let mounted = true;
     try {
       setLoading(true);
-      const [expenseData, categoriesData] = await Promise.all([
-        expensesApi.getExpense(expenseId),
-        categoriesApi.getExpenseCategories(),
-      ]);
-      if (!mounted) return;
-      setExpense(expenseData);
-      setCategories(categoriesData);
-      setFormData({
-        reference: expenseData.reference,
-        amount: expenseData.amount,
-        expenseDate: expenseData.expenseDate.split("T")[0],
-        description: expenseData.description || "",
-        vendor: expenseData.vendor || "",
-        status: expenseData.status,
-        paymentMethod: expenseData.paymentMethod,
-        categoryId: expenseData.categoryId || "",
-      });
+      const data = await api.getExpense(expenseId);
+      setExpense(data);
     } catch (error: any) {
-      if (!mounted) return;
       toast({
         title: "Error",
         description: error.message || "Failed to fetch expense",
@@ -98,65 +52,16 @@ export default function EditExpensePage() {
       });
       router.push("/expenses");
     } finally {
-      if (mounted) setLoading(false);
-    }
-    return () => {
-      mounted = false;
-    };
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!expense) return;
-
-    if (formData.reference && !formData.reference.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Reference is required",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (formData.amount !== undefined && formData.amount <= 0) {
-      toast({
-        title: "Validation Error",
-        description: "Amount must be greater than 0",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      await expensesApi.updateExpense(expense.id, formData);
-      toast({
-        title: "Success",
-        description: "Expense updated successfully",
-      });
-      router.push("/expenses");
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update expense",
-        variant: "destructive",
-      });
-    } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
   const handleStatusChange = async (newStatus: ExpenseStatus) => {
     if (!expense) return;
-
     try {
       setSubmitting(true);
-      await expensesApi.updateExpenseStatus(expense.id, { status: newStatus });
-      toast({
-        title: "Success",
-        description: `Expense ${newStatus.toLowerCase()} successfully`,
-      });
+      await api.updateExpenseStatus(expense.id, { status: newStatus });
+      toast({ title: "Success", description: `Expense ${newStatus.toLowerCase()} successfully` });
       fetchData();
     } catch (error: any) {
       toast({
@@ -169,83 +74,115 @@ export default function EditExpensePage() {
     }
   };
 
+  const formatCurrency = new Intl.NumberFormat("en-US", {
+    style: "currency", currency: "USD", minimumFractionDigits: 2,
+  });
+
   if (loading || !expense) {
     return <PageLoadingSkeleton />;
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
-
   return (
-    // Center content and use global layout padding; avoid `container` which adds its own padding
-    <div className="w-full max-w-7xl mx-auto space-y-6">
+    <div className="space-y-5">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+        <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <Link href="/expenses" className="hover:text-foreground transition-colors">Expenses</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-foreground">{expense.reference}</span>
+      </div>
+
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Edit Expense</h1>
-            <p className="text-muted-foreground">
-              Update expense details and manage status
+            <div className="flex items-center gap-3">
+              <h1 className="text-[18px] font-bold text-foreground">{expense.reference}</h1>
+              <Badge variant="outline" className={`font-medium text-xs ${statusConfig[expense.status]?.className || ""}`}>
+                {statusConfig[expense.status]?.label || expense.status}
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Created {format(new Date(expense.createdAt), "MMM dd, yyyy")}
+              {expense.createdBy?.firstName && ` by ${expense.createdBy.firstName} ${expense.createdBy.lastName || ""}`}
             </p>
           </div>
         </div>
-        <Badge variant="outline" className={statusColors[expense.status]}>
-          {expense.status}
-        </Badge>
+        <Link href={`/expenses/${expense.id}/edit`}>
+          <Button variant="outline" className="h-[34px] rounded-[5px] text-[13px]">
+            <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
+          </Button>
+        </Link>
       </div>
 
-      {/* Expense Info Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Expense Information</CardTitle>
-          <CardDescription>
-            Created by {expense.createdBy?.firstName}{" "}
-            {expense.createdBy?.lastName} on{" "}
-            {format(new Date(expense.createdAt), "MMM dd, yyyy 'at' h:mm a")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Reference</p>
-              <p className="font-medium">{expense.reference}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Amount</p>
-              <p className="font-semibold text-lg">
-                {formatCurrency(expense.amount)}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Date</p>
-              <p className="font-medium">
-                {format(new Date(expense.expenseDate), "MMM dd, yyyy")}
-              </p>
-            </div>
+      {/* Info Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Amount</p>
+          <p className="text-2xl font-bold">{formatCurrency.format(expense.amount)}</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Vendor</p>
+          <p className="text-lg font-semibold">{expense.vendor || "—"}</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Category</p>
+          <p className="text-lg font-semibold">{expense.category?.name || "—"}</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Date</p>
+          <p className="text-lg font-semibold">{format(new Date(expense.expenseDate), "MMM dd, yyyy")}</p>
+        </div>
+      </div>
+
+      {/* Description */}
+      {expense.description && (
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Description</p>
+          <p className="text-sm text-foreground">{expense.description}</p>
+        </div>
+      )}
+
+      {/* Links */}
+      {(expense.purchaseOrderId || expense.saleId) && (
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Linked To</p>
+          <div className="flex gap-3">
+            {expense.purchaseOrderId && (
+              <Link href={`/purchases/${expense.purchaseOrderId}`}>
+                <Button variant="outline" size="sm" className="h-[30px] rounded-[5px] text-xs">
+                  View Purchase Order
+                </Button>
+              </Link>
+            )}
+            {expense.saleId && (
+              <Link href={`/sales/${expense.saleId}`}>
+                <Button variant="outline" size="sm" className="h-[30px] rounded-[5px] text-xs">
+                  View Sale
+                </Button>
+              </Link>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
       {/* Status Management */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Status Management</CardTitle>
-          <CardDescription>Approve, reject, or mark as paid</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="border rounded-[5px] bg-card shadow-sm">
+        <div className="px-5 py-[15px] border-b">
+          <h2 className="text-sm font-semibold text-foreground">Status Management</h2>
+        </div>
+        <div className="p-5">
           <div className="flex flex-wrap gap-3">
             {expense.status === ExpenseStatus.PENDING && (
               <>
                 <Button
                   onClick={() => handleStatusChange(ExpenseStatus.APPROVED)}
                   disabled={submitting}
-                  variant="default"
+                  className="h-[34px] rounded-[5px] text-[13px]"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
                   Approve
@@ -254,6 +191,7 @@ export default function EditExpensePage() {
                   onClick={() => handleStatusChange(ExpenseStatus.REJECTED)}
                   disabled={submitting}
                   variant="destructive"
+                  className="h-[34px] rounded-[5px] text-[13px]"
                 >
                   <XCircle className="h-4 w-4 mr-2" />
                   Reject
@@ -264,183 +202,29 @@ export default function EditExpensePage() {
               <Button
                 onClick={() => handleStatusChange(ExpenseStatus.PAID)}
                 disabled={submitting}
-                variant="default"
+                className="h-[34px] rounded-[5px] text-[13px]"
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Mark as Paid
               </Button>
             )}
             {expense.status === ExpenseStatus.REJECTED && (
-              <p className="text-sm text-muted-foreground">
-                This expense has been rejected
-              </p>
+              <Button
+                onClick={() => handleStatusChange(ExpenseStatus.PENDING)}
+                disabled={submitting}
+                variant="outline"
+                className="h-[34px] rounded-[5px] text-[13px]"
+              >
+                Reset to Pending
+              </Button>
             )}
             {expense.status === ExpenseStatus.PAID && (
-              <p className="text-sm text-muted-foreground">
-                This expense has been paid
-              </p>
+              <p className="text-sm text-muted-foreground py-2">This expense has been paid</p>
             )}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Edit Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Edit Details</CardTitle>
-          <CardDescription>Update expense information</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="reference">
-                  Reference <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="reference"
-                  value={formData.reference}
-                  onChange={(e) =>
-                    setFormData({ ...formData, reference: e.target.value })
-                  }
-                  placeholder="e.g., EXP-1001"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="amount">
-                  Amount <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.amount}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      amount: parseFloat(e.target.value),
-                    })
-                  }
-                  placeholder="0.00"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="expenseDate">
-                  Date <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="expenseDate"
-                  type="date"
-                  value={formData.expenseDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, expenseDate: e.target.value })
-                  }
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="vendor">Vendor</Label>
-                <Input
-                  id="vendor"
-                  value={formData.vendor}
-                  onChange={(e) =>
-                    setFormData({ ...formData, vendor: e.target.value })
-                  }
-                  placeholder="e.g., Office Depot"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select
-                  value={formData.categoryId}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, categoryId: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="paymentMethod">Payment Method</Label>
-                <Select
-                  value={formData.paymentMethod}
-                  onValueChange={(value) =>
-                    setFormData({
-                      ...formData,
-                      paymentMethod: value as PaymentMethod,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select payment method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={PaymentMethod.CASH}>Cash</SelectItem>
-                    <SelectItem value={PaymentMethod.CREDIT_CARD}>
-                      Credit Card
-                    </SelectItem>
-                    <SelectItem value={PaymentMethod.BANK_TRANSFER}>
-                      Bank Transfer
-                    </SelectItem>
-                    <SelectItem value={PaymentMethod.CHECK}>Check</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                placeholder="Brief description of the expense"
-                rows={4}
-              />
-            </div>
-
-            <div className="flex justify-end gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.back()}
-                disabled={submitting}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting && (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                )}
-                <Save className="h-4 w-4 mr-2" />
-                Save Changes
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+          {submitting && <Loader2 className="h-4 w-4 mt-3 animate-spin" />}
+        </div>
+      </div>
     </div>
   );
 }
-
-
-

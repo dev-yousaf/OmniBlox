@@ -571,11 +571,13 @@ model Expense {
   categoryId String
   userId     String
   purchaseOrderId String?  // Link expense to a purchase order
+  saleId          String?  // Link expense to a sale
 
   // Relations
   category      ExpenseCategory     @relation(fields: [categoryId], references: [id])
   user          User                @relation(fields: [userId], references: [id])
   purchaseOrder PurchaseOrder?      @relation(fields: [purchaseOrderId], references: [id])
+  sale          Sale?               @relation(fields: [saleId], references: [id])
   attachments   ExpenseAttachment[] // Relation to new attachments model
 
   @@map("expenses")

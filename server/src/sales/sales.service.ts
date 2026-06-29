@@ -146,7 +146,14 @@ export class SalesService {
       throw new BadRequestException('A sale must include at least one item');
     }
 
-    return this.prisma.$transaction(
+    let saleCompleted = false;
+    let saleId = '';
+    let saleInvoiceNumber = '';
+    let saleTotalAmount = 0;
+    let saleDateObj = new Date();
+    let customerName = '';
+
+    const result = await this.prisma.$transaction(
       async (tx) => {
         // Verify warehouse belongs to company
         const warehouse = await tx.warehouse.findUnique({
@@ -264,6 +271,13 @@ export class SalesService {
           );
         }
 
+        saleCompleted = saleStatus === OrderStatus.COMPLETED;
+        saleId = sale.id;
+        saleInvoiceNumber = sale.invoiceNumber;
+        saleTotalAmount = totals.total;
+        saleDateObj = sale.saleDate;
+        customerName = dto.customer.name.trim();
+
         // Create delivery record for the sale
         await tx.delivery.create({
           data: {
@@ -281,6 +295,40 @@ export class SalesService {
       },
       { timeout: 20000 },
     );
+
+    // Auto-create expense for this sale if completed
+    if (saleCompleted) {
+      try {
+        const expenseCategory = await this.prisma.expenseCategory.upsert({
+          where: {
+            companyId_name: { companyId, name: 'Sales' },
+          },
+          update: {},
+          create: {
+            name: 'Sales',
+            companyId,
+          },
+        });
+
+        await this.prisma.expense.create({
+          data: {
+            reference: saleInvoiceNumber,
+            amount: saleTotalAmount,
+            expenseDate: saleDateObj,
+            vendor: customerName,
+            categoryId: expenseCategory.id,
+            saleId,
+            description: dto.notes || `Sale #${saleInvoiceNumber}`,
+            userId,
+            companyId,
+          },
+        });
+      } catch {
+        // Expense creation is non-critical; sale creation succeeded
+      }
+    }
+
+    return result;
   }
 
   async findAll(
