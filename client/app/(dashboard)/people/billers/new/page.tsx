@@ -2,14 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,8 +16,7 @@ import {
 } from "@/components/ui/select";
 import { useBillersApi, type CreateBillerData } from "@/hooks/use-billers-api";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Building2 } from "lucide-react";
-import Link from "next/link";
+import { ArrowLeft, ChevronRight, Loader2, Plus } from "lucide-react";
 
 export default function CreateBillerPage() {
   const [formData, setFormData] = useState<CreateBillerData>({
@@ -46,7 +39,6 @@ export default function CreateBillerPage() {
 
   const handleCodeChange = async (code: string) => {
     setFormData({ ...formData, code });
-
     if (code.length >= 3) {
       setCheckingCode(true);
       try {
@@ -64,20 +56,13 @@ export default function CreateBillerPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (codeAvailable === false) {
-      toast({
-        title: "Error",
-        description: "Please use an available biller code.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please use an available biller code.", variant: "destructive" });
       return;
     }
-
     try {
       setLoading(true);
-      // Normalize optional fields: send undefined for empty strings to satisfy server validators
-      const payload: CreateBillerData = {
+      await createBiller({
         code: formData.code.trim(),
         name: formData.name.trim(),
         address: formData.address?.trim() || undefined,
@@ -86,184 +71,105 @@ export default function CreateBillerPage() {
         contactPerson: formData.contactPerson?.trim() || undefined,
         gstNumber: formData.gstNumber?.trim() || undefined,
         status: formData.status,
-      };
-
-      await createBiller(payload);
-
-      toast({
-        title: "Success",
-        description: "Biller created successfully.",
       });
-
+      toast({ title: "Success", description: "Biller created successfully." });
       router.push("/people/billers");
     } catch (error: any) {
-      console.error("Error creating biller:", error);
-      toast({
-        title: "Error",
-        description:
-          error.message || "Failed to create biller. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error?.message || "Failed to create biller.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4 mb-6">
-        <Link href="/people/billers">
-          <Button variant="outline" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Billers
+    <div className="space-y-5">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+        <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <Link href="/people/billers" className="hover:text-foreground transition-colors">Billers</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-foreground">New Biller</span>
+      </div>
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/people/billers" className="flex items-center justify-center h-8 w-8 rounded-[5px] border hover:bg-accent transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <div>
+            <h1 className="text-[18px] font-bold text-foreground">New Biller</h1>
+            <p className="text-sm text-muted-foreground">Create a new billing entity or location</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/people/billers">
+            <Button type="button" variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">Cancel</Button>
+          </Link>
+          <Button type="submit" form="create-biller-form" disabled={loading || codeAvailable === false} size="sm" className="h-[34px] rounded-[5px] bg-[#ff9025] hover:bg-[#ff9025]/90 text-white text-[13px] font-medium px-3 gap-1.5">
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+            {loading ? "Creating..." : "Create Biller"}
           </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">
-            Add New Biller
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Create a new billing entity or location
-          </p>
         </div>
       </div>
 
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Biller Details
-          </CardTitle>
-          <CardDescription>
-            Enter the details for the new billing entity. This could be a
-            branch, location, or separate billing unit.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+      {/* Form */}
+      <form id="create-biller-form" onSubmit={handleSubmit} className="max-w-2xl">
+        <div className="border rounded-[5px] bg-card shadow-sm">
+          <div className="px-5 py-[15px] border-b">
+            <h2 className="text-sm font-semibold text-foreground">Biller Details</h2>
+          </div>
+          <div className="p-5 space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="code">Biller Code *</Label>
+                <Label htmlFor="code" className="text-xs font-medium">Biller Code *</Label>
                 <div className="relative">
-                  <Input
-                    id="code"
-                    value={formData.code}
-                    onChange={(e) =>
-                      handleCodeChange(e.target.value.toUpperCase())
-                    }
-                    placeholder="BR-001"
-                    required
-                    className={
-                      codeAvailable === false
-                        ? "border-destructive"
-                        : codeAvailable === true
-                        ? "border-green-500"
-                        : ""
-                    }
+                  <Input id="code" value={formData.code} onChange={(e) => handleCodeChange(e.target.value.toUpperCase())} placeholder="BR-001" required
+                    className={`h-[34px] rounded-[5px] text-sm ${codeAvailable === false ? "border-destructive" : codeAvailable === true ? "border-green-500" : ""}`}
                   />
-                  {checkingCode && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    </div>
-                  )}
+                  {checkingCode && <div className="absolute right-3 top-1/2 -translate-y-1/2"><div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>}
                 </div>
-                {codeAvailable === false && (
-                  <p className="text-sm text-destructive">
-                    This code is already in use
-                  </p>
-                )}
-                {codeAvailable === true && (
-                  <p className="text-sm text-green-600">Code is available</p>
-                )}
+                {codeAvailable === false && <p className="text-sm text-destructive">This code is already in use</p>}
+                {codeAvailable === true && <p className="text-sm text-green-600">Code is available</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="name">Biller Name *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  placeholder="Main Branch"
-                  required
-                />
+                <Label htmlFor="name" className="text-xs font-medium">Biller Name *</Label>
+                <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Main Branch" required className="h-[34px] rounded-[5px] text-sm" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Textarea
-                id="address"
-                value={formData.address}
-                onChange={(e) =>
-                  setFormData({ ...formData, address: e.target.value })
-                }
-                placeholder="123 Business Street, City, State, ZIP"
-                rows={3}
-              />
+              <Label htmlFor="address" className="text-xs font-medium">Address</Label>
+              <Textarea id="address" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="123 Business Street, City, State, ZIP" rows={3} className="rounded-[5px] text-sm" />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
-                  placeholder="+1 234 567 8900"
-                />
+                <Label htmlFor="phone" className="text-xs font-medium">Phone</Label>
+                <Input id="phone" type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+1 234 567 8900" className="h-[34px] rounded-[5px] text-sm" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  placeholder="branch@company.com"
-                />
+                <Label htmlFor="email" className="text-xs font-medium">Email</Label>
+                <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="branch@company.com" className="h-[34px] rounded-[5px] text-sm" />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="contactPerson">Contact Person</Label>
-                <Input
-                  id="contactPerson"
-                  value={formData.contactPerson}
-                  onChange={(e) =>
-                    setFormData({ ...formData, contactPerson: e.target.value })
-                  }
-                  placeholder="Manager Name"
-                />
+                <Label htmlFor="contactPerson" className="text-xs font-medium">Contact Person</Label>
+                <Input id="contactPerson" value={formData.contactPerson} onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })} placeholder="Manager Name" className="h-[34px] rounded-[5px] text-sm" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="gstNumber">GST Number</Label>
-                <Input
-                  id="gstNumber"
-                  value={formData.gstNumber}
-                  onChange={(e) =>
-                    setFormData({ ...formData, gstNumber: e.target.value })
-                  }
-                  placeholder="22AAAAA0000A1Z5"
-                />
+                <Label htmlFor="gstNumber" className="text-xs font-medium">GST Number</Label>
+                <Input id="gstNumber" value={formData.gstNumber} onChange={(e) => setFormData({ ...formData, gstNumber: e.target.value })} placeholder="22AAAAA0000A1Z5" className="h-[34px] rounded-[5px] text-sm" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="status">Status *</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value: "ACTIVE" | "INACTIVE") =>
-                  setFormData({ ...formData, status: value })
-                }
-              >
-                <SelectTrigger>
+              <Label htmlFor="status" className="text-xs font-medium">Status *</Label>
+              <Select value={formData.status} onValueChange={(value: "ACTIVE" | "INACTIVE") => setFormData({ ...formData, status: value })}>
+                <SelectTrigger className="h-[34px] rounded-[5px] text-sm">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -272,23 +178,9 @@ export default function CreateBillerPage() {
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="flex justify-end gap-4 pt-4">
-              <Link href="/people/billers">
-                <Button type="button" variant="outline">
-                  Cancel
-                </Button>
-              </Link>
-              <Button
-                type="submit"
-                disabled={loading || codeAvailable === false}
-              >
-                {loading ? "Creating..." : "Create Biller"}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }

@@ -1,29 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
-import {
-  ArrowLeft,
-  Edit,
-  MapPin,
-  Package,
-  Trash2,
-  TrendingUp,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+  ArrowLeft, ChevronRight, Package, MapPin, Pencil, Trash2,
+  DollarSign, CalendarDays, Building2,
+} from "lucide-react";
+import { useInventoryApi } from "@/hooks/use-inventory-api";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
+import { format } from "date-fns";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,9 +24,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useInventoryApi } from "@/hooks/use-inventory-api";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/auth-context";
 
 interface Warehouse {
   id: string;
@@ -44,9 +31,7 @@ interface Warehouse {
   location?: string;
   createdAt: string;
   updatedAt: string;
-  _count?: {
-    inventory: number;
-  };
+  _count?: { inventory: number };
   inventory?: Array<{
     quantity: number;
     product: {
@@ -54,12 +39,8 @@ interface Warehouse {
       name: string;
       sku: string;
       salePrice: number;
-      category?: {
-        name: string;
-      };
-      brand?: {
-        name: string;
-      };
+      category?: { name: string };
+      brand?: { name: string };
     };
   }>;
 }
@@ -70,8 +51,7 @@ export default function WarehouseDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const { getWarehouse, getWarehouseInventory, deleteWarehouse } =
-    useInventoryApi();
+  const { getWarehouse, deleteWarehouse } = useInventoryApi();
 
   const [loading, setLoading] = useState(true);
   const [warehouse, setWarehouse] = useState<Warehouse | null>(null);
@@ -88,12 +68,8 @@ export default function WarehouseDetailPage() {
       const data = await getWarehouse(params.id as string);
       setWarehouse(data);
     } catch (error) {
-      console.error("Failed to load warehouse:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load warehouse details",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to load warehouse details", variant: "destructive" });
+      router.push("/inventory/warehouses");
     } finally {
       setLoading(false);
     }
@@ -101,22 +77,13 @@ export default function WarehouseDetailPage() {
 
   async function handleDeleteConfirm() {
     if (!warehouse) return;
-
     try {
       setDeleting(true);
       await deleteWarehouse(warehouse.id);
-      toast({
-        title: "Success",
-        description: "Warehouse deleted successfully",
-      });
+      toast({ title: "Success", description: "Warehouse deleted successfully" });
       router.push("/inventory/warehouses");
     } catch (error) {
-      console.error("Failed to delete warehouse:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete warehouse",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to delete warehouse", variant: "destructive" });
     } finally {
       setDeleting(false);
       setDeleteOpen(false);
@@ -124,276 +91,188 @@ export default function WarehouseDetailPage() {
   }
 
   const totalInventoryItems = warehouse?.inventory?.length || 0;
-  const totalValue =
-    warehouse?.inventory?.reduce(
-      (sum, item) => sum + item.quantity * Number(item.product.salePrice),
-      0
-    ) || 0;
+  const totalQuantity = warehouse?.inventory?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+  const totalValue = warehouse?.inventory?.reduce(
+    (sum, item) => sum + item.quantity * Number(item.product.salePrice), 0
+  ) || 0;
 
-  if (loading) {
-    return <PageLoadingSkeleton />;
-  }
+  const formatCurrency = new Intl.NumberFormat("en-US", {
+    style: "currency", currency: "USD", minimumFractionDigits: 2,
+  });
 
-  if (!warehouse) {
-    return (
-      <div className="space-y-6 p-6">
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <p className="text-muted-foreground">Warehouse not found</p>
-            <Button
-              onClick={() => router.push("/inventory/warehouses")}
-              className="mt-4"
-            >
-              Back to Warehouses
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (loading || !warehouse) return <PageLoadingSkeleton />;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-5">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+        <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <Link href="/inventory/warehouses" className="hover:text-foreground transition-colors">Warehouses</Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-foreground">{warehouse.name}</span>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-              <MapPin className="h-6 w-6 text-blue-600" />
+        <div className="flex items-center gap-3">
+          <Link href="/inventory/warehouses" className="flex items-center justify-center h-8 w-8 rounded-[5px] border hover:bg-accent transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-[18px] font-bold text-foreground">{warehouse.name}</h1>
+              <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-200 font-medium text-xs">Active</Badge>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold">{warehouse.name}</h1>
-              <p className="text-muted-foreground">
-                {warehouse.location || "No location"}
-              </p>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              {warehouse.location || "No location specified"} &middot; Created {format(new Date(warehouse.createdAt), "MMM dd, yyyy")}
+            </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           {canManage && (
             <>
-              <Button
-                variant="outline"
-                onClick={() =>
-                  router.push(`/inventory/warehouses/${warehouse.id}/edit`)
-                }
-              >
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
+              <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px] text-destructive" onClick={() => setDeleteOpen(true)}>
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete
               </Button>
-              <Button
-                variant="outline"
-                className="text-destructive hover:bg-destructive hover:text-white"
-                onClick={() => setDeleteOpen(true)}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </Button>
+              <Link href={`/inventory/warehouses/${warehouse.id}/edit`}>
+                <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">
+                  <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
+                </Button>
+              </Link>
             </>
           )}
         </div>
       </div>
 
-      <Separator />
-
-      {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Products
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Package className="h-4 w-4 text-purple-500" />
-              <span className="text-2xl font-bold">{totalInventoryItems}</span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              unique products
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Quantity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Package className="h-4 w-4 text-blue-500" />
-              <span className="text-2xl font-bold">
-                {warehouse.inventory?.reduce(
-                  (sum, item) => sum + item.quantity,
-                  0
-                ) || 0}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">total items</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Inventory Value
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <span className="text-2xl font-bold">
-              ${totalValue.toLocaleString()}
-            </span>
-            <p className="text-xs text-muted-foreground mt-1">
-              estimated value
-            </p>
-          </CardContent>
-        </Card>
+      {/* Info Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Package className="h-4 w-4 text-muted-foreground" />
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Products</p>
+          </div>
+          <p className="text-2xl font-bold">{totalInventoryItems}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">unique products</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Quantity</p>
+          </div>
+          <p className="text-2xl font-bold">{totalQuantity}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">total items</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Inventory Value</p>
+          </div>
+          <p className="text-2xl font-bold">{formatCurrency.format(totalValue)}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">estimated value</p>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="info" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="info">Information</TabsTrigger>
-          <TabsTrigger value="inventory">
-            Inventory ({totalInventoryItems})
-          </TabsTrigger>
-        </TabsList>
+      {/* Details + Inventory sections */}
+      <div className="grid gap-5 md:grid-cols-3">
+        {/* Warehouse Details */}
+        <div className="md:col-span-1 border rounded-[5px] bg-card shadow-sm">
+          <div className="px-5 py-[15px] border-b">
+            <h2 className="text-sm font-semibold text-foreground">Warehouse Details</h2>
+          </div>
+          <div className="p-5 space-y-3">
+            <div>
+              <p className="text-xs text-muted-foreground">Warehouse ID</p>
+              <p className="font-mono text-xs font-semibold mt-0.5 break-all">{warehouse.id}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Name</p>
+              <p className="text-sm font-semibold mt-0.5">{warehouse.name}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Location</p>
+              <p className="text-sm font-semibold mt-0.5">{warehouse.location || "Not specified"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Status</p>
+              <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-200 font-medium text-xs mt-0.5">Active</Badge>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Created</p>
+              <p className="text-sm mt-0.5">{format(new Date(warehouse.createdAt), "MMM dd, yyyy")}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Last Updated</p>
+              <p className="text-sm mt-0.5">{format(new Date(warehouse.updatedAt), "MMM dd, yyyy")}</p>
+            </div>
+          </div>
+        </div>
 
-        {/* Information Tab */}
-        <TabsContent value="info" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Warehouse Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Warehouse ID</p>
-                  <p className="font-mono text-sm">{warehouse.id}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Name</p>
-                  <p className="font-semibold">{warehouse.name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Location</p>
-                  <p className="font-semibold">
-                    {warehouse.location || "Not specified"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Products</p>
-                  <p className="font-semibold">{totalInventoryItems} items</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Created</p>
-                  <p className="font-semibold">
-                    {new Date(warehouse.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Last Updated</p>
-                  <p className="font-semibold">
-                    {new Date(warehouse.updatedAt).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Inventory Tab */}
-        <TabsContent value="inventory" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Current Inventory</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {warehouse.inventory && warehouse.inventory.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>SKU</TableHead>
-                      <TableHead>Product Name</TableHead>
-                      <TableHead className="text-right">Quantity</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead className="text-right">Price</TableHead>
-                      <TableHead className="text-right">Total Value</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {warehouse.inventory.map((item) => (
-                      <TableRow key={item.product.id}>
-                        <TableCell className="font-mono text-sm">
-                          {item.product.sku}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {item.product.name}
-                        </TableCell>
-                        <TableCell className="text-right font-semibold">
-                          {item.quantity}
-                        </TableCell>
-                        <TableCell>
-                          {item.product.category?.name || "N/A"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          ${Number(item.product.salePrice).toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right font-semibold">
-                          $
-                          {(
-                            item.quantity * Number(item.product.salePrice)
-                          ).toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-12">
-                  <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">
-                    No inventory in this warehouse
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        {/* Inventory */}
+        <div className="md:col-span-2 border rounded-[5px] bg-card shadow-sm overflow-hidden">
+          <div className="px-5 py-[15px] border-b">
+            <h2 className="text-sm font-semibold text-foreground">Current Inventory</h2>
+          </div>
+          {warehouse.inventory && warehouse.inventory.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted h-[33px]">
+                    <th className="px-5 py-2 text-left font-semibold text-foreground min-w-[100px]">SKU</th>
+                    <th className="px-5 py-2 text-left font-semibold text-foreground min-w-[140px]">Product Name</th>
+                    <th className="w-[80px] px-5 py-2 text-right font-semibold text-foreground">Qty</th>
+                    <th className="w-[120px] px-5 py-2 text-left font-semibold text-foreground">Category</th>
+                    <th className="w-[100px] px-5 py-2 text-right font-semibold text-foreground">Price</th>
+                    <th className="w-[120px] px-5 py-2 text-right font-semibold text-foreground">Total Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {warehouse.inventory.map((item) => (
+                    <tr key={item.product.id} className="h-[52px] border-b hover:bg-muted/30 transition-colors">
+                      <td className="px-5 font-mono text-xs text-foreground">{item.product.sku}</td>
+                      <td className="px-5 font-medium text-foreground">{item.product.name}</td>
+                      <td className="px-5 text-right font-semibold tabular-nums">{item.quantity}</td>
+                      <td className="px-5 text-muted-foreground">{item.product.category?.name || "N/A"}</td>
+                      <td className="px-5 text-right tabular-nums">{formatCurrency.format(Number(item.product.salePrice))}</td>
+                      <td className="px-5 text-right font-semibold tabular-nums">
+                        {formatCurrency.format(item.quantity * Number(item.product.salePrice))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center py-12 text-muted-foreground">
+              <Package className="h-12 w-12 mb-3 text-muted-foreground/50" />
+              <p className="font-medium">No inventory in this warehouse</p>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Warehouse</AlertDialogTitle>
+            <AlertDialogTitle>Delete this warehouse?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{warehouse.name}</strong>?
+              This action cannot be undone. The warehouse will be permanently removed.
               {totalInventoryItems > 0 && (
-                <span className="block mt-2 text-yellow-600 font-medium">
-                  ⚠️ Warning: This warehouse has {totalInventoryItems}{" "}
-                  product(s) in inventory.
+                <span className="block mt-2 text-destructive font-medium">
+                  Warning: This warehouse has {totalInventoryItems} product(s) in inventory. They will need to be moved first.
                 </span>
               )}
-              <span className="block mt-2">This action cannot be undone.</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
               onClick={handleDeleteConfirm}
               disabled={deleting}
-              className="bg-destructive text-white hover:bg-destructive/90"
             >
-              {deleting ? "Deleting..." : "Delete"}
+              {deleting ? "Deleting..." : "Delete Warehouse"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -401,6 +280,3 @@ export default function WarehouseDetailPage() {
     </div>
   );
 }
-
-
-
