@@ -117,25 +117,25 @@ export default function SaleDetailPage() {
                 {statusLabel}
               </Badge>
               {sale.returnStatus === "ALL" ? (
-                <Link href={`/returns?search=${sale.invoiceNumber}`}>
+                <Link href={`/sales-returns?search=${sale.invoiceNumber}`}>
                   <Badge variant="outline" className="font-medium text-xs text-purple-600 border-purple-200 bg-purple-50 hover:bg-purple-100 cursor-pointer transition-colors">
                     <RotateCcw className="mr-1 h-3 w-3" /> All Returned
                   </Badge>
                 </Link>
               ) : (sale.processingReturnCount ?? 0) > 0 ? (
-                <Link href={`/returns?search=${sale.invoiceNumber}`}>
+                <Link href={`/sales-returns?search=${sale.invoiceNumber}`}>
                   <Badge variant="outline" className="font-medium text-xs text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100 cursor-pointer transition-colors">
                     <RotateCcw className="mr-1 h-3 w-3" /> Processing
                   </Badge>
                 </Link>
               ) : (sale.pendingReturnCount ?? 0) > 0 ? (
-                <Link href={`/returns?search=${sale.invoiceNumber}`}>
+                <Link href={`/sales-returns?search=${sale.invoiceNumber}`}>
                   <Badge variant="outline" className="font-medium text-xs text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100 cursor-pointer transition-colors">
                     <RotateCcw className="mr-1 h-3 w-3" /> Pending
                   </Badge>
                 </Link>
               ) : sale.hasReturns ? (
-                <Link href={`/returns?search=${sale.invoiceNumber}`}>
+                <Link href={`/sales-returns?search=${sale.invoiceNumber}`}>
                   <Badge variant="outline" className="font-medium text-xs text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 cursor-pointer transition-colors">
                     <RotateCcw className="mr-1 h-3 w-3" /> Returned
                   </Badge>
@@ -171,7 +171,7 @@ export default function SaleDetailPage() {
                 </Button>
               )}
               {!allReturned && (
-                <Link href={`/returns/new?saleId=${sale.id}`}>
+                <Link href={`/sales-returns/new?saleId=${sale.id}`}>
                   <Button
                     variant="outline"
                     size="sm"

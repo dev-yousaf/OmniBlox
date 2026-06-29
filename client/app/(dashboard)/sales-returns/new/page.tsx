@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft, ChevronRight, Loader2, Plus, Save, Trash2,
 } from "lucide-react";
@@ -32,6 +32,8 @@ type ItemRow = {
 export default function NewSalesReturnPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const initialAutoFillDone = useRef(false);
   const { warehouses, loading: whLoading } = useWarehouses();
   const { products, loading: prodLoading } = useAllProducts();
   const { createSalesReturn } = useReturnsApi();
@@ -69,6 +71,33 @@ export default function NewSalesReturnPage() {
       .catch((err) => console.error("Failed to load sales:", err))
       .finally(() => setLoadingSales(false));
   }, []);
+
+  useEffect(() => {
+    const saleIdFromUrl = searchParams.get("saleId");
+    if (saleIdFromUrl && !initialAutoFillDone.current) {
+      initialAutoFillDone.current = true;
+      setSelectedSaleId(saleIdFromUrl);
+      getSale(saleIdFromUrl)
+        .then((sale: any) => {
+          setFormData({
+            warehouseId: sale.warehouseId || sale.warehouse?.id || "",
+            reason: `Return for sale ${sale.invoiceNumber}`,
+            saleId: sale.id,
+            items: sale.items.map((item: any) => ({
+              id: crypto.randomUUID(),
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: Number(item.unitPrice),
+              saleItemId: item.id,
+              maxQuantity: item.quantity,
+            })),
+          });
+        })
+        .catch((err: any) => {
+          toast({ title: "Error", description: "Failed to load sale details", variant: "destructive" });
+        });
+    }
+  }, [searchParams, getSale, toast]);
 
   const handleSaleSelect = async (saleId: string) => {
     if (!saleId || saleId === "__manual__") {

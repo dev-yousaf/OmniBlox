@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft, ChevronRight, Loader2, Plus, Save, Trash2,
 } from "lucide-react";
@@ -33,6 +33,8 @@ type ItemRow = {
 export default function NewPurchaseReturnPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const initialAutoFillDone = useRef(false);
   const { warehouses, loading: whLoading } = useWarehouses();
   const { products, loading: prodLoading } = useAllProducts();
   const { createPurchaseReturn } = useReturnsApi();
@@ -70,6 +72,34 @@ export default function NewPurchaseReturnPage() {
       .catch((err) => console.error("Failed to load purchases:", err))
       .finally(() => setLoadingPurchases(false));
   }, []);
+
+  useEffect(() => {
+    const purchaseIdFromUrl = searchParams.get("purchaseId");
+    if (purchaseIdFromUrl && !initialAutoFillDone.current) {
+      initialAutoFillDone.current = true;
+      setSelectedPurchaseId(purchaseIdFromUrl);
+      getPurchase(purchaseIdFromUrl)
+        .then((purchase: any) => {
+          setFormData({
+            warehouseId: purchase.warehouse?.id || (purchase as any).warehouseId || "",
+            supplierId: purchase.supplier.id,
+            reason: `Return for purchase ${purchase.referenceNumber}`,
+            purchaseOrderId: purchase.id,
+            items: purchase.items?.map((item: any) => ({
+              id: crypto.randomUUID(),
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: Number(item.unitCost),
+              purchaseOrderItemId: item.id,
+              maxQuantity: item.quantity,
+            })) || [],
+          });
+        })
+        .catch((err: any) => {
+          toast({ title: "Error", description: "Failed to load purchase details", variant: "destructive" });
+        });
+    }
+  }, [searchParams, getPurchase, toast]);
 
   const handlePurchaseSelect = async (purchaseId: string) => {
     if (!purchaseId || purchaseId === "__manual__") {

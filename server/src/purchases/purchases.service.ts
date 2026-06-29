@@ -156,36 +156,6 @@ export class PurchasesService {
       },
     });
 
-    // Auto-create expense for this purchase
-    try {
-      const expenseCategory = await this.prisma.expenseCategory.upsert({
-        where: {
-          companyId_name: { companyId, name: 'Purchases' },
-        },
-        update: {},
-        create: {
-          name: 'Purchases',
-          companyId,
-        },
-      });
-
-      await this.prisma.expense.create({
-        data: {
-          reference: referenceNumber,
-          amount: totalAmount,
-          expenseDate: new Date(dto.orderDate),
-          vendor: supplier.name,
-          categoryId: expenseCategory.id,
-          purchaseOrderId: purchaseOrder.id,
-          description: dto.notes || `Purchase order ${referenceNumber}`,
-          userId,
-          companyId,
-        },
-      });
-    } catch {
-      // Expense creation is non-critical; purchase order creation succeeded
-    }
-
     return this.transformPurchase(purchaseOrder);
   }
 
@@ -308,7 +278,7 @@ export class PurchasesService {
   }
 
   async receive(id: string, warehouseId: string, companyId: string) {
-    return this.prisma.$transaction(
+    const result = await this.prisma.$transaction(
       async (tx) => {
         // 1. Verify the warehouse belongs to this company
         const warehouse = await tx.warehouse.findFirst({
@@ -431,6 +401,32 @@ export class PurchasesService {
       },
       { timeout: 20000 },
     );
+
+    // Auto-create expense only when purchase is received (payment completed)
+    try {
+      const expenseCategory = await this.prisma.expenseCategory.upsert({
+        where: { companyId_name: { companyId, name: 'Purchases' } },
+        update: {},
+        create: { name: 'Purchases', companyId },
+      });
+      await this.prisma.expense.create({
+        data: {
+          reference: result.referenceNumber,
+          amount: result.totalAmount,
+          expenseDate: new Date(result.orderDate),
+          vendor: result.supplier.name,
+          categoryId: expenseCategory.id,
+          purchaseOrderId: result.id,
+          description: `Purchase order ${result.referenceNumber} received`,
+          userId: result.userId,
+          companyId,
+        },
+      });
+    } catch {
+      // Expense creation is non-critical
+    }
+
+    return result;
   }
 
   async update(

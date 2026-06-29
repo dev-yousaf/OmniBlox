@@ -158,25 +158,25 @@ export default function PurchaseDetailPage() {
                 {statusLabel}
               </Badge>
               {allReturned ? (
-                <Link href={`/returns?search=${purchase.referenceNumber}`}>
+                <Link href={`/purchase-returns?search=${purchase.referenceNumber}`}>
                   <Badge variant="outline" className="font-medium text-xs text-purple-600 border-purple-200 bg-purple-50 hover:bg-purple-100 cursor-pointer transition-colors">
                     <RotateCcw className="mr-1 h-3 w-3" /> All Returned
                   </Badge>
                 </Link>
               ) : (purchase.processingReturnCount ?? 0) > 0 ? (
-                <Link href={`/returns?search=${purchase.referenceNumber}`}>
+                <Link href={`/purchase-returns?search=${purchase.referenceNumber}`}>
                   <Badge variant="outline" className="font-medium text-xs text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100 cursor-pointer transition-colors">
                     <RotateCcw className="mr-1 h-3 w-3" /> Processing
                   </Badge>
                 </Link>
               ) : (purchase.pendingReturnCount ?? 0) > 0 ? (
-                <Link href={`/returns?search=${purchase.referenceNumber}`}>
+                <Link href={`/purchase-returns?search=${purchase.referenceNumber}`}>
                   <Badge variant="outline" className="font-medium text-xs text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100 cursor-pointer transition-colors">
                     <RotateCcw className="mr-1 h-3 w-3" /> Pending
                   </Badge>
                 </Link>
               ) : purchase.hasReturns ? (
-                <Link href={`/returns?search=${purchase.referenceNumber}`}>
+                <Link href={`/purchase-returns?search=${purchase.referenceNumber}`}>
                   <Badge variant="outline" className="font-medium text-xs text-emerald-600 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 cursor-pointer transition-colors">
                     <RotateCcw className="mr-1 h-3 w-3" /> Returned
                   </Badge>
@@ -207,7 +207,7 @@ export default function PurchaseDetailPage() {
                 </Link>
               )}
               {!allReturned && (
-                <Link href={`/returns/new?purchaseId=${purchase.id}`}>
+                <Link href={`/purchase-returns/new?purchaseId=${purchase.id}`}>
                   <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">
                     <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Return
                   </Button>
