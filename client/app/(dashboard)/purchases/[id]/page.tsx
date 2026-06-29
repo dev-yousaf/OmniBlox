@@ -157,7 +157,13 @@ export default function PurchaseDetailPage() {
               <Badge variant="outline" className={`font-medium text-xs ${statusStyles[status] || ""}`}>
                 {statusLabel}
               </Badge>
-              {purchase.hasReturns && (
+              {purchase.pendingReturnCount != null && purchase.pendingReturnCount > 0 && !purchase.hasReturns ? (
+                <Link href={`/returns?search=${purchase.referenceNumber}`}>
+                  <Badge variant="outline" className="font-medium text-xs text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100 cursor-pointer transition-colors">
+                    <RotateCcw className="mr-1 h-3 w-3" /> Return Pending
+                  </Badge>
+                </Link>
+              ) : purchase.hasReturns ? (
                 <Link href={`/returns?search=${purchase.referenceNumber}`}>
                   <Badge variant="outline" className={`font-medium text-xs cursor-pointer transition-colors ${
                     allReturned
@@ -167,7 +173,7 @@ export default function PurchaseDetailPage() {
                     <RotateCcw className="mr-1 h-3 w-3" /> {allReturned ? "All Returned" : "Returned"}
                   </Badge>
                 </Link>
-              )}
+              ) : null}
             </div>
             <p className="text-sm text-muted-foreground">{purchase.supplier?.name}</p>
           </div>

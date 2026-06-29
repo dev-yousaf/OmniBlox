@@ -107,7 +107,14 @@ export function PurchasesTable({
                 </TableCell>
                 <TableCell>{formatDate(po.orderDate)}</TableCell>
                 <TableCell>
-                  {po.hasReturns ? (
+                  {po.pendingReturnCount != null && po.pendingReturnCount > 0 && !po.hasReturns ? (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-amber-600 border-amber-600">
+                        <RotateCcw className="mr-1 h-3 w-3" />
+                        Return Pending
+                      </Badge>
+                    </div>
+                  ) : po.hasReturns ? (
                     <div className="flex items-center gap-2">
                       <Badge
                         variant="outline"

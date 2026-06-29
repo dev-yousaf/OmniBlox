@@ -29,6 +29,7 @@ export interface PurchaseOrder {
   orderDate: string;
   status: OrderStatus;
   hasReturns: boolean;
+  pendingReturnCount?: number;
   returnStatus?: ReturnStatus;
   returnedValue?: number;
   netTotal?: number;

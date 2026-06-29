@@ -246,7 +246,11 @@ export default function PurchasesPage() {
                       </Badge>
                     </td>
                     <td className="px-5 text-center">
-                      {p.hasReturns && (
+                      {p.pendingReturnCount != null && p.pendingReturnCount > 0 && !p.hasReturns ? (
+                        <Badge variant="outline" className="font-medium text-xs text-amber-600 border-amber-200 bg-amber-50">
+                          <RotateCcw className="mr-1 h-3 w-3" /> Return Pending
+                        </Badge>
+                      ) : p.hasReturns ? (
                         <Badge variant="outline" className={`font-medium text-xs ${
                           p.returnStatus === "ALL"
                             ? "text-purple-600 border-purple-200 bg-purple-50"
@@ -254,7 +258,7 @@ export default function PurchasesPage() {
                         }`}>
                           <RotateCcw className="mr-1 h-3 w-3" /> {p.returnStatus === "ALL" ? "All Returned" : "Returned"}
                         </Badge>
-                      )}
+                      ) : null}
                     </td>
                     <td className="px-5">
                       <div className="flex items-center gap-1">

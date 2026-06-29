@@ -358,8 +358,25 @@ export class SalesService {
       this.prisma.sale.count({ where }),
     ]);
 
+    // Batch query pending returns for all sales
+    const saleIds = sales.map((s) => s.id);
+    const pendingGroups = await this.prisma.salesReturn.groupBy({
+      by: ['saleId'],
+      where: {
+        saleId: { in: saleIds },
+        status: 'PENDING',
+      },
+      _count: { id: true },
+    });
+    const pendingMap = new Map<string, number>();
+    for (const g of pendingGroups) {
+      pendingMap.set(g.saleId, Number(g._count.id));
+    }
+
     return {
-      sales: sales.map((sale) => this.transformSaleSummary(sale)),
+      sales: sales.map((sale) =>
+        this.transformSaleSummary(sale, pendingMap.get(sale.id) ?? 0),
+      ),
       total,
       pages: limit === 0 ? 1 : Math.max(1, Math.ceil(total / limit)),
     };
@@ -379,7 +396,11 @@ export class SalesService {
       throw new NotFoundException('Sale not found');
     }
 
-    return this.transformSale(sale);
+    const pendingCount = await this.prisma.salesReturn.count({
+      where: { saleId: id, status: 'PENDING' },
+    });
+
+    return this.transformSale(sale, pendingCount);
   }
 
   async update(
@@ -1015,7 +1036,7 @@ export class SalesService {
     };
   }
 
-  private transformSaleSummary(sale: any): SaleSummaryDto {
+  private transformSaleSummary(sale: any, pendingReturnCount = 0): SaleSummaryDto {
     const subtotal = this.decimalToNumber(sale.subtotal);
     const tax = this.decimalToNumber(sale.tax);
     const discount = this.decimalToNumber(sale.discount);
@@ -1054,6 +1075,7 @@ export class SalesService {
       warehouseId: sale.warehouseId,
       warehouseName: sale.warehouse?.name ?? '',
       hasReturns: Boolean(sale.hasReturns),
+      pendingReturnCount,
       returnStatus,
       returnedValue: this.roundCurrency(returnedValue),
       netTotal: this.roundCurrency(total - returnedValue),
@@ -1068,9 +1090,9 @@ export class SalesService {
     };
   }
 
-  private transformSale(sale: any): SaleResponseDto {
+  private transformSale(sale: any, pendingReturnCount = 0): SaleResponseDto {
     return {
-      ...this.transformSaleSummary(sale),
+      ...this.transformSaleSummary(sale, pendingReturnCount),
       notes: sale.notes,
       items: sale.items.map((item) => this.transformSaleItem(item)),
     };

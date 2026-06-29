@@ -418,7 +418,12 @@ export default function SalesPage() {
                         </Badge>
                       </td>
                       <td className="w-[60px] px-5 text-center">
-                        {sale.hasReturns && (
+                        {sale.pendingReturnCount > 0 && !sale.hasReturns ? (
+                          <Badge variant="outline" className="font-medium text-xs text-amber-600 border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800">
+                            <RotateCcw className="mr-1 h-3 w-3" />
+                            Return Pending
+                          </Badge>
+                        ) : sale.hasReturns ? (
                           <Badge variant="outline" className={`font-medium text-xs ${
                             sale.returnStatus === "ALL"
                               ? "text-purple-600 border-purple-200 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800"
@@ -427,7 +432,7 @@ export default function SalesPage() {
                             <RotateCcw className="mr-1 h-3 w-3" />
                             {sale.returnStatus === "ALL" ? "All Returned" : "Returned"}
                           </Badge>
-                        )}
+                        ) : null}
                       </td>
                       <td className="w-[80px] px-5" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>

@@ -30,6 +30,7 @@ export interface SaleSummary {
   warehouseId: string;
   warehouseName: string;
   hasReturns: boolean;
+  pendingReturnCount: number;
   returnStatus: 'NONE' | 'PARTIAL' | 'ALL';
   returnedValue: number;
   netTotal: number;

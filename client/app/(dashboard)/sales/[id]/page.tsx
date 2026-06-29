@@ -116,7 +116,13 @@ export default function SaleDetailPage() {
               <Badge variant="outline" className={`font-medium text-xs ${statusStyles[status] || ""}`}>
                 {statusLabel}
               </Badge>
-              {sale.hasReturns && (
+              {sale.pendingReturnCount > 0 && !sale.hasReturns ? (
+                <Link href={`/returns?search=${sale.invoiceNumber}`}>
+                  <Badge variant="outline" className="font-medium text-xs text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100 cursor-pointer transition-colors">
+                    <RotateCcw className="mr-1 h-3 w-3" /> Return Pending
+                  </Badge>
+                </Link>
+              ) : sale.hasReturns ? (
                 <Link href={`/returns?search=${sale.invoiceNumber}`}>
                   <Badge variant="outline" className={`font-medium text-xs cursor-pointer transition-colors ${
                     sale.returnStatus === "ALL"
@@ -126,7 +132,7 @@ export default function SaleDetailPage() {
                     <RotateCcw className="mr-1 h-3 w-3" /> {sale.returnStatus === "ALL" ? "All Returned" : "Returned"}
                   </Badge>
                 </Link>
-              )}
+              ) : null}
             </div>
             <p className="text-sm text-muted-foreground">{sale.customerName}</p>
           </div>

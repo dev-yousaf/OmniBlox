@@ -228,7 +228,24 @@ export class PurchasesService {
       orderBy: { orderDate: 'desc' },
     });
 
-    return purchases.map((p) => this.transformPurchaseSummary(p));
+    // Batch query pending returns for all purchases
+    const poIds = purchases.map((p) => p.id);
+    const pendingGroups = await this.prisma.purchaseReturn.groupBy({
+      by: ['purchaseOrderId'],
+      where: {
+        purchaseOrderId: { in: poIds },
+        status: 'PENDING',
+      },
+      _count: { id: true },
+    });
+    const pendingMap = new Map<string, number>();
+    for (const g of pendingGroups) {
+      pendingMap.set(g.purchaseOrderId, Number(g._count.id));
+    }
+
+    return purchases.map((p) =>
+      this.transformPurchaseSummary(p, pendingMap.get(p.id) ?? 0),
+    );
   }
 
   async findOne(id: string, companyId: string) {
@@ -273,7 +290,11 @@ export class PurchasesService {
       throw new NotFoundException('Purchase order not found');
     }
 
-    return this.transformPurchase(purchaseOrder);
+    const pendingCount = await this.prisma.purchaseReturn.count({
+      where: { purchaseOrderId: id, status: 'PENDING' },
+    });
+
+    return this.transformPurchase(purchaseOrder, pendingCount);
   }
 
   async receive(id: string, warehouseId: string, companyId: string) {
@@ -543,7 +564,7 @@ export class PurchasesService {
     };
   }
 
-  private transformPurchaseSummary(po: any) {
+  private transformPurchaseSummary(po: any, pendingReturnCount = 0) {
     const total = this.decimalToNumber(po.totalAmount);
     const items = po.items?.map((i: any) => this.transformPurchaseItem(i)) ?? [];
 
@@ -568,6 +589,7 @@ export class PurchasesService {
       orderDate: po.orderDate.toISOString(),
       status: po.status,
       hasReturns: Boolean(po.hasReturns),
+      pendingReturnCount,
       returnStatus,
       returnedValue: this.roundCurrency(returnedValue),
       netTotal: this.roundCurrency(total - returnedValue),
@@ -584,9 +606,9 @@ export class PurchasesService {
     };
   }
 
-  private transformPurchase(po: any) {
+  private transformPurchase(po: any, pendingReturnCount = 0) {
     return {
-      ...this.transformPurchaseSummary(po),
+      ...this.transformPurchaseSummary(po, pendingReturnCount),
       notes: po.notes ?? null,
       createdAt: po.createdAt.toISOString(),
       updatedAt: po.updatedAt.toISOString(),

@@ -30,6 +30,7 @@ export interface Sale {
   paymentStatus: string;
   paymentMethod?: string;
   hasReturns: boolean;
+  pendingReturnCount?: number;
   returnStatus?: 'NONE' | 'PARTIAL' | 'ALL';
   returnedValue?: number;
   netTotal?: number;
