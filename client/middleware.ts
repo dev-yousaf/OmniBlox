@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const GUEST_PATHS = ["/", "/login", "/signup", "/forgot-password"];
+const GUEST_PATHS = ["/", "/features", "/pricing", "/about", "/contact", "/login", "/signup", "/forgot-password"];
 
 export function middleware(req: NextRequest) {
   try {
