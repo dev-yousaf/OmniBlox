@@ -8,12 +8,17 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from "recharts";
-import { AlertTriangle, ChevronDown, CalendarDays, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
+import { AlertTriangle, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { SalesPurchaseChartItem } from "./types";
 
+const PERIOD_LABELS: Record<string, string> = {
+  "1D": "24H", "1W": "7D", "1M": "1M", "3M": "3M", "6M": "6M", "1Y": "1Y",
+};
+
 interface SalesStatisticsProps {
   data?: SalesPurchaseChartItem[];
+  period: string;
   totalRevenue?: number;
   totalExpenses?: number;
   revenueChange?: number;
@@ -23,6 +28,7 @@ interface SalesStatisticsProps {
 
 export function SalesStatistics({
   data,
+  period,
   totalRevenue = 0,
   totalExpenses = 0,
   revenueChange = 0,
@@ -40,11 +46,9 @@ export function SalesStatistics({
         <h3 className="text-lg font-bold text-card-foreground flex-1">
           Sales Statics
         </h3>
-        <div className="flex items-center gap-1.5 border border-border rounded px-3 py-1.5">
-          <CalendarDays className="h-3 w-3 text-card-foreground" />
-          <span className="text-xs font-semibold text-card-foreground">2025</span>
-          <ChevronDown className="h-3 w-3 text-card-foreground" />
-        </div>
+        <span className="text-xs text-muted-foreground border border-border rounded px-2.5 py-1">
+          {PERIOD_LABELS[period] || period}
+        </span>
       </div>
       <div className="p-5 space-y-4">
         {loading ? (

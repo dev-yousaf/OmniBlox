@@ -1,17 +1,22 @@
 "use client";
 
-import { Box, ChevronDown } from "lucide-react";
+import { Box } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency, type TopSellingProduct } from "./types";
 
+const PERIOD_LABELS: Record<string, string> = {
+  "1D": "24H", "1W": "7D", "1M": "1M", "3M": "3M", "6M": "6M", "1Y": "1Y",
+};
+
 interface TopSellingProductsProps {
   products: TopSellingProduct[];
+  period: string;
   loading: boolean;
 }
 
-export function TopSellingProducts({ products, loading }: TopSellingProductsProps) {
+export function TopSellingProducts({ products, period, loading }: TopSellingProductsProps) {
   return (
     <div className="border border-border rounded-lg h-full">
       <div className="p-5">
@@ -22,10 +27,9 @@ export function TopSellingProducts({ products, loading }: TopSellingProductsProp
               Top Selling Products
             </h3>
           </div>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground border border-border rounded-md px-2 py-1">
-            <span>Today</span>
-            <ChevronDown className="h-3 w-3" />
-          </div>
+          <span className="text-xs text-muted-foreground border border-border rounded-md px-2 py-1">
+            {PERIOD_LABELS[period] || period}
+          </span>
         </div>
 
         <div className="space-y-0">

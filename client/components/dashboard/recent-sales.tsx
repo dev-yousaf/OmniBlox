@@ -1,15 +1,20 @@
 "use client";
 
-import { ShoppingBag, CircleDot, ChevronDown } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, type RecentSale } from "./types";
 
+const PERIOD_LABELS: Record<string, string> = {
+  "1D": "24H", "1W": "7D", "1M": "1M", "3M": "3M", "6M": "6M", "1Y": "1Y",
+};
+
 interface RecentSalesProps {
   sales: RecentSale[];
+  period: string;
   loading: boolean;
 }
 
-export function RecentSales({ sales, loading }: RecentSalesProps) {
+export function RecentSales({ sales, period, loading }: RecentSalesProps) {
   return (
     <div className="border border-border rounded-lg h-full">
       <div className="border-b border-border px-5 py-[15px]">
@@ -22,11 +27,9 @@ export function RecentSales({ sales, loading }: RecentSalesProps) {
               Recent Sales
             </h3>
           </div>
-          <div className="flex items-center gap-1.5 border border-border rounded px-3 py-1.5">
-            <CircleDot className="h-3 w-3 text-card-foreground" />
-            <span className="text-xs font-semibold text-card-foreground">Today</span>
-            <ChevronDown className="h-3 w-3 text-card-foreground" />
-          </div>
+          <span className="text-xs text-muted-foreground border border-border rounded px-2.5 py-1">
+            {PERIOD_LABELS[period] || period}
+          </span>
         </div>
       </div>
       <div className="p-5 space-y-6">

@@ -74,7 +74,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-[1440px] mx-auto flex flex-col gap-6">
-        <WelcomeHeader user={user} ordersCount={data?.ordersCount} period={period} loading={loading} />
+        <WelcomeHeader user={user} ordersCount={data?.ordersCount} period={period} onPeriodChange={setPeriod} loading={loading} />
         <NotificationBar visible={notificationVisible} onDismiss={() => setNotificationVisible(false)} lowStockProducts={data?.lowStockProducts ?? []} />
         <SummaryCards amounts={summaryAmounts} changes={summaryChanges} loading={loading} />
         <FinancialCards amounts={financialAmounts} changes={financialChanges} loading={loading} />
@@ -84,7 +84,6 @@ export default function DashboardPage() {
             <SalesPurchaseChart
               data={data?.salesPurchaseChart ?? []}
               period={period}
-              onPeriodChange={setPeriod}
               totalPurchaseAmount={data?.totalPurchaseAmount ?? 0}
               totalSalesAmount={data?.totalSalesAmount ?? 0}
               loading={loading}
@@ -106,13 +105,13 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-4">
-            <TopSellingProducts products={data?.topSellingProducts ?? []} loading={loading} />
+            <TopSellingProducts products={data?.topSellingProducts ?? []} period={period} loading={loading} />
           </div>
           <div className="col-span-4">
             <LowStockProducts products={data?.lowStockProducts ?? []} loading={loading} />
           </div>
           <div className="col-span-4">
-            <RecentSales sales={data?.recentSales ?? []} loading={loading} />
+            <RecentSales sales={data?.recentSales ?? []} period={period} loading={loading} />
           </div>
         </div>
 
@@ -120,6 +119,7 @@ export default function DashboardPage() {
           <div className="col-span-7">
             <SalesStatistics
               data={data?.salesPurchaseChart}
+              period={period}
               totalRevenue={data?.totalSales}
               totalExpenses={data?.totalExpenses}
               revenueChange={data?.salesChange}

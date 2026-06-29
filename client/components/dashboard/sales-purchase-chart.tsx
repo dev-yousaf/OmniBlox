@@ -11,21 +11,28 @@ import {
 } from "recharts";
 import { BarChart3, CircleDot } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatCurrency, formatCompactCurrency, PERIODS, type SalesPurchaseChartItem } from "./types";
+import { formatCurrency, formatCompactCurrency, type SalesPurchaseChartItem } from "./types";
 
 interface SalesPurchaseChartProps {
   data: SalesPurchaseChartItem[];
   period: string;
-  onPeriodChange: (period: string) => void;
   totalPurchaseAmount: number;
   totalSalesAmount: number;
   loading: boolean;
 }
 
+const PERIOD_LABELS: Record<string, string> = {
+  "1D": "24H",
+  "1W": "7D",
+  "1M": "1M",
+  "3M": "3M",
+  "6M": "6M",
+  "1Y": "1Y",
+};
+
 export function SalesPurchaseChart({
   data,
   period,
-  onPeriodChange,
   totalPurchaseAmount,
   totalSalesAmount,
   loading,
@@ -42,21 +49,9 @@ export function SalesPurchaseChart({
               Sales & Purchase
             </h3>
           </div>
-          <div className="flex items-center bg-muted rounded-[4px] h-[30px]">
-            {PERIODS.map((tab, idx) => (
-              <button
-                key={tab}
-                onClick={() => onPeriodChange(tab)}
-                className={`px-3 py-1 text-xs font-medium leading-[18px] transition-colors ${
-                  tab === period
-                    ? "text-card-foreground"
-                    : "text-card-foreground"
-                } ${idx < PERIODS.length - 1 ? "border-r border-border" : ""}`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
+          <span className="text-xs font-medium text-muted-foreground border border-border rounded px-2.5 py-1">
+            {PERIOD_LABELS[period] || period}
+          </span>
         </div>
       </div>
       <div className="p-5">
@@ -87,6 +82,8 @@ export function SalesPurchaseChart({
 
         {loading ? (
           <Skeleton className="h-[300px] w-full" />
+        ) : data.length === 0 ? (
+          <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">No data for this period</div>
         ) : (
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={data} barGap={4} barCategoryGap="20%">
