@@ -8,7 +8,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CacheService } from '../cache/cache.service';
 import { CreateWarehouseDto } from './dto/create-warehouse.dto';
 import { UpdateWarehouseDto } from './dto/update-warehouse.dto';
-import { WarehouseResponseDto, WarehousesListResponseDto } from './dto/warehouse-response.dto';
+import {
+  WarehouseResponseDto,
+  WarehousesListResponseDto,
+} from './dto/warehouse-response.dto';
 
 const CACHE_TTL = 60 * 15;
 const LIST_KEY = (cid: string, page?: number, search?: string) =>
@@ -22,7 +25,10 @@ export class WarehousesService {
     private readonly cache: CacheService,
   ) {}
 
-  async create(dto: CreateWarehouseDto, companyId: string): Promise<WarehouseResponseDto> {
+  async create(
+    dto: CreateWarehouseDto,
+    companyId: string,
+  ): Promise<WarehouseResponseDto> {
     const existingWarehouse = await this.prisma.warehouse.findFirst({
       where: { name: dto.name, companyId },
     });
@@ -39,7 +45,10 @@ export class WarehousesService {
   }
 
   async findAll(
-    companyId: string, page = 1, limit = 10, search?: string,
+    companyId: string,
+    page = 1,
+    limit = 10,
+    search?: string,
   ): Promise<WarehousesListResponseDto> {
     const cacheKey = LIST_KEY(companyId, page, search);
     const cached = await this.cache.get<WarehousesListResponseDto>(cacheKey);
@@ -55,7 +64,12 @@ export class WarehousesService {
     }
 
     const [warehouses, total] = await Promise.all([
-      this.prisma.warehouse.findMany({ where, skip, take: limit, orderBy: { name: 'asc' } }),
+      this.prisma.warehouse.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { name: 'asc' },
+      }),
       this.prisma.warehouse.count({ where }),
     ]);
 
@@ -86,7 +100,11 @@ export class WarehousesService {
     return data;
   }
 
-  async update(id: string, dto: UpdateWarehouseDto, companyId: string): Promise<WarehouseResponseDto> {
+  async update(
+    id: string,
+    dto: UpdateWarehouseDto,
+    companyId: string,
+  ): Promise<WarehouseResponseDto> {
     const existingWarehouse = await this.prisma.warehouse.findUnique({
       where: { id, companyId },
     });
@@ -142,7 +160,9 @@ export class WarehousesService {
 
   private transformWarehouse(warehouse: any): WarehouseResponseDto {
     return {
-      id: warehouse.id, name: warehouse.name, location: warehouse.location,
+      id: warehouse.id,
+      name: warehouse.name,
+      location: warehouse.location,
       companyId: warehouse.companyId,
       createdAt: warehouse.createdAt.toISOString(),
       updatedAt: warehouse.updatedAt.toISOString(),

@@ -22,12 +22,17 @@ const INV_LIST_KEY = (cid: string, page?: number, filter?: string) =>
   `inventory:${cid}:list:${page ?? 1}:${filter ?? ''}`;
 const WAREHOUSE_KEY = (cid: string) => `inventory:${cid}:warehouses`;
 const WH_ITEM_KEY = (cid: string, id: string) => `inventory:${cid}:wh:${id}`;
-const PROD_INV_KEY = (cid: string, pid: string) => `inventory:${cid}:prod:${pid}`;
-const WH_INV_KEY = (cid: string, wid: string) => `inventory:${cid}:whinv:${wid}`;
+const PROD_INV_KEY = (cid: string, pid: string) =>
+  `inventory:${cid}:prod:${pid}`;
+const WH_INV_KEY = (cid: string, wid: string) =>
+  `inventory:${cid}:whinv:${wid}`;
 const STATS_KEY = (cid: string) => `inventory:${cid}:stats`;
-const ADJ_LIST_KEY = (cid: string, page?: number) => `inventory:${cid}:adj:${page ?? 1}`;
-const TRANSFER_LIST_KEY = (cid: string, page?: number) => `inventory:${cid}:transfers:${page ?? 1}`;
-const TRANSFER_KEY = (cid: string, id: string) => `inventory:${cid}:transfer:${id}`;
+const ADJ_LIST_KEY = (cid: string, page?: number) =>
+  `inventory:${cid}:adj:${page ?? 1}`;
+const TRANSFER_LIST_KEY = (cid: string, page?: number) =>
+  `inventory:${cid}:transfers:${page ?? 1}`;
+const TRANSFER_KEY = (cid: string, id: string) =>
+  `inventory:${cid}:transfer:${id}`;
 
 @Injectable()
 export class InventoryService {
@@ -885,7 +890,9 @@ export class InventoryService {
       this.cache.del(WH_INV_KEY(companyId, toWarehouseId)),
       this.cache.del(WH_ITEM_KEY(companyId, fromWarehouseId)),
       this.cache.del(WH_ITEM_KEY(companyId, toWarehouseId)),
-      ...items.map((item) => PROD_INV_KEY(companyId, item.productId)),
+      ...items.map((item) =>
+        this.cache.del(PROD_INV_KEY(companyId, item.productId)),
+      ),
     ]);
     await this.invalidateTransferCache(companyId);
 
@@ -1203,7 +1210,10 @@ export class InventoryService {
     return statsResult;
   }
 
-  private async invalidateWarehouseCache(companyId: string, warehouseId?: string) {
+  private async invalidateWarehouseCache(
+    companyId: string,
+    warehouseId?: string,
+  ) {
     const keys = [WAREHOUSE_KEY(companyId), STATS_KEY(companyId)];
     if (warehouseId) {
       keys.push(WH_ITEM_KEY(companyId, warehouseId));

@@ -202,9 +202,14 @@ export default function PricingPage() {
                   <Button size="lg" variant="secondary" className="h-12 px-8 text-base shadow-lg" asChild>
                     <Link href="/contact">Contact Sales</Link>
                   </Button>
-                  <Button size="lg" variant="outline" className="h-12 px-8 text-base border-white/20 text-white hover:text-white hover:bg-white/10" asChild>
-                    <Link href="/signup">Start Free Trial</Link>
-                  </Button>
+                  <Button
+  size="lg"
+  variant="outline"
+  className="h-12 px-8 text-base bg-white text-primary border-white hover:bg-primary hover:text-white"
+  asChild
+>
+  <Link href="/signup">Start Free Trial</Link>
+</Button>
                 </div>
               </div>
             </div>

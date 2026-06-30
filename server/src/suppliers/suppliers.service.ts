@@ -25,7 +25,10 @@ export class SuppliersService {
     private readonly cache: CacheService,
   ) {}
 
-  async create(dto: CreateSupplierDto, companyId: string): Promise<SupplierResponseDto> {
+  async create(
+    dto: CreateSupplierDto,
+    companyId: string,
+  ): Promise<SupplierResponseDto> {
     if (dto.email) {
       const existingSupplier = await this.prisma.supplier.findFirst({
         where: { email: dto.email, companyId },
@@ -37,9 +40,13 @@ export class SuppliersService {
 
     const supplier = await this.prisma.supplier.create({
       data: {
-        name: dto.name, email: dto.email, phone: dto.phone,
-        address: dto.address, creditLimit: dto.creditLimit,
-        balance: dto.balance, companyId,
+        name: dto.name,
+        email: dto.email,
+        phone: dto.phone,
+        address: dto.address,
+        creditLimit: dto.creditLimit,
+        balance: dto.balance,
+        companyId,
       },
     });
 
@@ -48,7 +55,10 @@ export class SuppliersService {
   }
 
   async findAll(
-    companyId: string, page = 1, limit = 10, search?: string,
+    companyId: string,
+    page = 1,
+    limit = 10,
+    search?: string,
   ): Promise<SuppliersListResponseDto> {
     const cacheKey = LIST_KEY(companyId, page, search);
     const cached = await this.cache.get<SuppliersListResponseDto>(cacheKey);
@@ -65,7 +75,12 @@ export class SuppliersService {
     }
 
     const [suppliers, total] = await Promise.all([
-      this.prisma.supplier.findMany({ where, skip, take: limit, orderBy: { name: 'asc' } }),
+      this.prisma.supplier.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { name: 'asc' },
+      }),
       this.prisma.supplier.count({ where }),
     ]);
 
@@ -96,7 +111,11 @@ export class SuppliersService {
     return data;
   }
 
-  async update(id: string, dto: UpdateSupplierDto, companyId: string): Promise<SupplierResponseDto> {
+  async update(
+    id: string,
+    dto: UpdateSupplierDto,
+    companyId: string,
+  ): Promise<SupplierResponseDto> {
     const existingSupplier = await this.prisma.supplier.findUnique({
       where: { id, companyId },
     });
@@ -116,8 +135,12 @@ export class SuppliersService {
     const updatedSupplier = await this.prisma.supplier.update({
       where: { id },
       data: {
-        name: dto.name, email: dto.email, phone: dto.phone,
-        address: dto.address, creditLimit: dto.creditLimit, balance: dto.balance,
+        name: dto.name,
+        email: dto.email,
+        phone: dto.phone,
+        address: dto.address,
+        creditLimit: dto.creditLimit,
+        balance: dto.balance,
       },
     });
 
@@ -155,9 +178,14 @@ export class SuppliersService {
 
   private transformSupplier(supplier: any): SupplierResponseDto {
     return {
-      id: supplier.id, name: supplier.name, email: supplier.email,
-      phone: supplier.phone, address: supplier.address,
-      creditLimit: supplier.creditLimit ? Number(supplier.creditLimit) : undefined,
+      id: supplier.id,
+      name: supplier.name,
+      email: supplier.email,
+      phone: supplier.phone,
+      address: supplier.address,
+      creditLimit: supplier.creditLimit
+        ? Number(supplier.creditLimit)
+        : undefined,
       balance: supplier.balance ? Number(supplier.balance) : undefined,
       companyId: supplier.companyId,
       createdAt: supplier.createdAt.toISOString(),

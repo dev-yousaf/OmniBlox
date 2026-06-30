@@ -6,14 +6,19 @@ import { CreateStockAdjustmentDto } from './dto/create-stock-adjustment.dto';
 @Injectable()
 export class StockAdjustmentsService {
   private readonly LIST_KEY = (cid: string) => `stock-adjustments:list:${cid}`;
-  private readonly ITEM_KEY = (cid: string, id: string) => `stock-adjustments:item:${cid}:${id}`;
+  private readonly ITEM_KEY = (cid: string, id: string) =>
+    `stock-adjustments:item:${cid}:${id}`;
 
   constructor(
     private readonly prisma: PrismaService,
     private cache: CacheService,
   ) {}
 
-  async create(dto: CreateStockAdjustmentDto, userId: string, companyId: string) {
+  async create(
+    dto: CreateStockAdjustmentDto,
+    userId: string,
+    companyId: string,
+  ) {
     if (!dto.items?.length) {
       throw new BadRequestException(
         'A stock adjustment must include at least one item',

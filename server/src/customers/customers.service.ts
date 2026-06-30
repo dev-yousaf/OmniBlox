@@ -26,7 +26,10 @@ export class CustomersService {
     private readonly cache: CacheService,
   ) {}
 
-  async create(dto: CreateCustomerDto, companyId: string): Promise<CustomerResponseDto> {
+  async create(
+    dto: CreateCustomerDto,
+    companyId: string,
+  ): Promise<CustomerResponseDto> {
     if (dto.email) {
       const existingCustomer = await this.prisma.customer.findFirst({
         where: { email: dto.email, companyId },
@@ -95,7 +98,12 @@ export class CustomersService {
     }
 
     const [customers, total] = await Promise.all([
-      this.prisma.customer.findMany({ where, skip, take: limit, orderBy: { name: 'asc' } }),
+      this.prisma.customer.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { name: 'asc' },
+      }),
       this.prisma.customer.count({ where }),
     ]);
 
@@ -126,7 +134,11 @@ export class CustomersService {
     return data;
   }
 
-  async update(id: string, dto: UpdateCustomerDto, companyId: string): Promise<CustomerResponseDto> {
+  async update(
+    id: string,
+    dto: UpdateCustomerDto,
+    companyId: string,
+  ): Promise<CustomerResponseDto> {
     const existingCustomer = await this.prisma.customer.findUnique({
       where: { id, companyId },
     });
@@ -146,8 +158,12 @@ export class CustomersService {
     const updatedCustomer = await this.prisma.customer.update({
       where: { id },
       data: {
-        name: dto.name, email: dto.email, phone: dto.phone,
-        address: dto.address, creditLimit: dto.creditLimit, balance: dto.balance,
+        name: dto.name,
+        email: dto.email,
+        phone: dto.phone,
+        address: dto.address,
+        creditLimit: dto.creditLimit,
+        balance: dto.balance,
       },
     });
 
@@ -187,9 +203,14 @@ export class CustomersService {
 
   private transformCustomer(customer: any): CustomerResponseDto {
     return {
-      id: customer.id, name: customer.name, email: customer.email,
-      phone: customer.phone, address: customer.address,
-      creditLimit: customer.creditLimit ? Number(customer.creditLimit) : undefined,
+      id: customer.id,
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+      address: customer.address,
+      creditLimit: customer.creditLimit
+        ? Number(customer.creditLimit)
+        : undefined,
       balance: customer.balance ? Number(customer.balance) : undefined,
       companyId: customer.companyId,
       createdAt: customer.createdAt.toISOString(),

@@ -11,7 +11,8 @@ import { UpdatePurchaseReturnDto } from './dto/update-purchase-return.dto';
 @Injectable()
 export class PurchaseReturnsService {
   private readonly LIST_KEY = (cid: string) => `purchase-returns:list:${cid}`;
-  private readonly ITEM_KEY = (cid: string, id: string) => `purchase-returns:item:${cid}:${id}`;
+  private readonly ITEM_KEY = (cid: string, id: string) =>
+    `purchase-returns:item:${cid}:${id}`;
 
   constructor(
     private readonly prisma: PrismaService,

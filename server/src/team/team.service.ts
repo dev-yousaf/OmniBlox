@@ -21,8 +21,13 @@ import {
 } from './dto/team.dto';
 
 const LIST_KEY = (cid: string) => `team:${cid}:list`;
-const PAGED_KEY = (cid: string, page: number, limit: number, search?: string, role?: string) =>
-  `team:${cid}:page:${page}:${limit}:${search ?? ''}:${role ?? ''}`;
+const PAGED_KEY = (
+  cid: string,
+  page: number,
+  limit: number,
+  search?: string,
+  role?: string,
+) => `team:${cid}:page:${page}:${limit}:${search ?? ''}:${role ?? ''}`;
 const ITEM_KEY = (cid: string, id: string) => `team:${cid}:${id}`;
 const STATS_KEY = (cid: string) => `team:${cid}:stats`;
 
@@ -35,18 +40,26 @@ export class TeamService {
   ) {}
 
   async createUser(
-    dto: CreateUserDto, companyId: string, currentUserRole: UserRole, currentUserId: string,
+    dto: CreateUserDto,
+    companyId: string,
+    currentUserRole: UserRole,
+    currentUserId: string,
   ): Promise<UserResponseDto> {
     if (!['OWNER', 'ADMIN'].includes(currentUserRole)) {
       throw new ForbiddenException('Insufficient permissions to create users');
     }
 
-    const existingUser = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
     }
 
-    if (dto.role === UserRole.ADMIN && currentUserRole !== ('OWNER' as UserRole)) {
+    if (
+      dto.role === UserRole.ADMIN &&
+      currentUserRole !== ('OWNER' as UserRole)
+    ) {
       throw new ForbiddenException('Only company owner can create admin users');
     }
 
@@ -61,12 +74,21 @@ export class TeamService {
     const user = await this.prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
-          email: dto.email, name: dto.name, role: dto.role ?? UserRole.OBSERVER,
-          status: 'INVITED', password: hashedPassword, companyId,
+          email: dto.email,
+          name: dto.name,
+          role: dto.role ?? UserRole.OBSERVER,
+          status: 'INVITED',
+          password: hashedPassword,
+          companyId,
         },
       });
       await tx.account.create({
-        data: { userId: newUser.id, accountId: newUser.id, providerId: 'credential', password: hashedPassword },
+        data: {
+          userId: newUser.id,
+          accountId: newUser.id,
+          providerId: 'credential',
+          password: hashedPassword,
+        },
       });
       return newUser;
     });
@@ -107,8 +129,11 @@ export class TeamService {
   }
 
   async findAllPaginated(
-    companyId: string, page: number = 1, limit: number = 10,
-    search?: string, role?: UserRole,
+    companyId: string,
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+    role?: UserRole,
   ): Promise<UserListResponseDto> {
     const cacheKey = PAGED_KEY(companyId, page, limit, search, role);
     const cached = await this.cache.get<UserListResponseDto>(cacheKey);
@@ -125,7 +150,12 @@ export class TeamService {
     if (role) where.role = role;
 
     const [users, total] = await Promise.all([
-      this.prisma.user.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' } }),
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
       this.prisma.user.count({ where }),
     ]);
 
@@ -153,27 +183,47 @@ export class TeamService {
   }
 
   async updateUser(
-    id: string, dto: UpdateUserDto, companyId: string,
-    currentUserRole: UserRole, currentUserId: string,
+    id: string,
+    dto: UpdateUserDto,
+    companyId: string,
+    currentUserRole: UserRole,
+    currentUserId: string,
   ): Promise<UserResponseDto> {
-    const existingUser = await this.prisma.user.findFirst({ where: { id, companyId } });
+    const existingUser = await this.prisma.user.findFirst({
+      where: { id, companyId },
+    });
     if (!existingUser) throw new NotFoundException('User not found');
 
     if (id !== currentUserId && !['OWNER', 'ADMIN'].includes(currentUserRole)) {
       throw new ForbiddenException('Insufficient permissions to update user');
     }
-    if (dto.role === UserRole.ADMIN && currentUserRole !== ('OWNER' as UserRole)) {
+    if (
+      dto.role === UserRole.ADMIN &&
+      currentUserRole !== ('OWNER' as UserRole)
+    ) {
       throw new ForbiddenException('Only company owner can assign admin role');
     }
-    if (dto.role && id !== currentUserId && !['OWNER', 'ADMIN'].includes(currentUserRole)) {
-      throw new ForbiddenException('Insufficient permissions to change user role');
+    if (
+      dto.role &&
+      id !== currentUserId &&
+      !['OWNER', 'ADMIN'].includes(currentUserRole)
+    ) {
+      throw new ForbiddenException(
+        'Insufficient permissions to change user role',
+      );
     }
     if (dto.email && dto.email !== existingUser.email) {
-      const emailExists = await this.prisma.user.findUnique({ where: { email: dto.email } });
-      if (emailExists) throw new ConflictException('User with this email already exists');
+      const emailExists = await this.prisma.user.findUnique({
+        where: { email: dto.email },
+      });
+      if (emailExists)
+        throw new ConflictException('User with this email already exists');
     }
 
-    const updatedUser = await this.prisma.user.update({ where: { id }, data: dto });
+    const updatedUser = await this.prisma.user.update({
+      where: { id },
+      data: dto,
+    });
 
     await Promise.all([
       this.cache.del(LIST_KEY(companyId)),
@@ -184,16 +234,29 @@ export class TeamService {
     return this.mapToUserResponse(updatedUser);
   }
 
-  async changePassword(userId: string, dto: ChangePasswordDto, companyId: string): Promise<{ message: string }> {
-    const user = await this.prisma.user.findFirst({ where: { id: userId, companyId } });
+  async changePassword(
+    userId: string,
+    dto: ChangePasswordDto,
+    companyId: string,
+  ): Promise<{ message: string }> {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, companyId },
+    });
     if (!user) throw new NotFoundException('User not found');
 
-    const isPasswordValid = await verifyPassword({ password: dto.currentPassword, hash: user.password });
-    if (!isPasswordValid) throw new BadRequestException('Current password is incorrect');
+    const isPasswordValid = await verifyPassword({
+      password: dto.currentPassword,
+      hash: user.password,
+    });
+    if (!isPasswordValid)
+      throw new BadRequestException('Current password is incorrect');
 
     const hashedPassword = await hashPassword(dto.newPassword);
     await this.prisma.$transaction(async (tx) => {
-      await tx.user.update({ where: { id: userId }, data: { password: hashedPassword } });
+      await tx.user.update({
+        where: { id: userId },
+        data: { password: hashedPassword },
+      });
       await tx.account.updateMany({
         where: { userId: userId, providerId: 'credential' },
         data: { password: hashedPassword },
@@ -204,17 +267,24 @@ export class TeamService {
   }
 
   async removeUser(
-    id: string, companyId: string, currentUserRole: UserRole, currentUserId: string,
+    id: string,
+    companyId: string,
+    currentUserRole: UserRole,
+    currentUserId: string,
   ): Promise<{ message: string }> {
     if (!['OWNER', 'ADMIN'].includes(currentUserRole)) {
       throw new ForbiddenException('Insufficient permissions to remove users');
     }
-    if (id === currentUserId) throw new BadRequestException('Cannot remove your own account');
+    if (id === currentUserId)
+      throw new BadRequestException('Cannot remove your own account');
 
     const user = await this.prisma.user.findFirst({ where: { id, companyId } });
     if (!user) throw new NotFoundException('User not found');
 
-    if (user.role === UserRole.ADMIN && currentUserRole !== ('OWNER' as UserRole)) {
+    if (
+      user.role === UserRole.ADMIN &&
+      currentUserRole !== ('OWNER' as UserRole)
+    ) {
       throw new ForbiddenException('Only company owner can remove admin users');
     }
 
@@ -253,7 +323,10 @@ export class TeamService {
 
   private mapToUserResponse(user: any): UserResponseDto {
     return {
-      id: user.id, email: user.email, name: user.name, role: user.role,
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
       createdAt: user.createdAt,
       lastLogin: undefined,
       status: (user.status || 'ACTIVE').toLowerCase() as 'active' | 'inactive',

@@ -18,13 +18,23 @@ export class AuditLogService {
   ) {}
 
   async create(
-    dto: CreateAuditLogDto, companyId: string, userId: string,
-    userName: string, userRole: string, ipAddress?: string,
+    dto: CreateAuditLogDto,
+    companyId: string,
+    userId: string,
+    userName: string,
+    userRole: string,
+    ipAddress?: string,
   ): Promise<AuditLogEntryDto> {
     const log = await this.prisma.auditLog.create({
       data: {
-        action: dto.action, entity: dto.entity, entityId: dto.entityId ?? null,
-        details: dto.details ?? null, companyId, userId, userName, userRole,
+        action: dto.action,
+        entity: dto.entity,
+        entityId: dto.entityId ?? null,
+        details: dto.details ?? null,
+        companyId,
+        userId,
+        userName,
+        userRole,
         ipAddress: ipAddress ?? null,
       },
     });
@@ -33,7 +43,9 @@ export class AuditLogService {
   }
 
   async findAll(
-    companyId: string, page: number = 1, limit: number = 50,
+    companyId: string,
+    page: number = 1,
+    limit: number = 50,
   ): Promise<AuditLogListResponseDto> {
     const cacheKey = LIST_KEY(companyId, page, limit);
     const cached = await this.cache.get<AuditLogListResponseDto>(cacheKey);
@@ -42,13 +54,19 @@ export class AuditLogService {
     const skip = (page - 1) * limit;
     const [logs, total] = await Promise.all([
       this.prisma.auditLog.findMany({
-        where: { companyId }, orderBy: { createdAt: 'desc' }, skip, take: limit,
+        where: { companyId },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
       }),
       this.prisma.auditLog.count({ where: { companyId } }),
     ]);
 
     const data: AuditLogListResponseDto = {
-      logs: logs.map((l) => this.toDto(l)), total, page, limit,
+      logs: logs.map((l) => this.toDto(l)),
+      total,
+      page,
+      limit,
     };
 
     await this.cache.set(cacheKey, data, 60 * 2);
@@ -57,9 +75,15 @@ export class AuditLogService {
 
   private toDto(l: any): AuditLogEntryDto {
     return {
-      id: l.id, userId: l.userId, userName: l.userName, userRole: l.userRole,
-      action: l.action, entity: l.entity, entityId: l.entityId || undefined,
-      details: l.details || undefined, createdAt: l.createdAt.toISOString(),
+      id: l.id,
+      userId: l.userId,
+      userName: l.userName,
+      userRole: l.userRole,
+      action: l.action,
+      entity: l.entity,
+      entityId: l.entityId || undefined,
+      details: l.details || undefined,
+      createdAt: l.createdAt.toISOString(),
     };
   }
 }

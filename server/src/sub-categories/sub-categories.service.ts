@@ -186,7 +186,7 @@ export class SubCategoriesService {
   }
 
   async remove(id: string, companyId: string) {
-    const sub = await this.findOne(id, companyId);
+    await this.findOne(id, companyId);
 
     await Promise.all([
       this.prisma.product.updateMany({

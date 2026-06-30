@@ -284,25 +284,36 @@ export class DashboardService {
     start: Date,
     end: Date,
   ): Promise<SalesPurchaseChartItem[]> {
-    const rows = await Promise.all([
+    const rows = (await Promise.all([
       this.prisma.$queryRawUnsafe(
         `SELECT date_trunc('month', "saleDate") as month, SUM("totalAmount") as total
          FROM sales
          WHERE "companyId" = $1 AND "saleDate" >= $2 AND "saleDate" <= $3 AND status != 'CANCELLED'
          GROUP BY date_trunc('month', "saleDate") ORDER BY month`,
-        companyId, start, end,
+        companyId,
+        start,
+        end,
       ),
       this.prisma.$queryRawUnsafe(
         `SELECT date_trunc('month', "orderDate") as month, SUM("totalAmount") as total
          FROM purchase_orders
          WHERE "companyId" = $1 AND "orderDate" >= $2 AND "orderDate" <= $3 AND status != 'CANCELLED'
          GROUP BY date_trunc('month', "orderDate") ORDER BY month`,
-        companyId, start, end,
+        companyId,
+        start,
+        end,
       ),
-    ]) as [Array<{ month: Date; total: string | null }>, Array<{ month: Date; total: string | null }>];
+    ])) as [
+      Array<{ month: Date; total: string | null }>,
+      Array<{ month: Date; total: string | null }>,
+    ];
 
-    const saleMap = new Map<number, number>(rows[0].map((r) => [r.month.getTime(), Number(r.total || 0)]));
-    const purchaseMap = new Map<number, number>(rows[1].map((r) => [r.month.getTime(), Number(r.total || 0)]));
+    const saleMap = new Map<number, number>(
+      rows[0].map((r) => [r.month.getTime(), Number(r.total || 0)]),
+    );
+    const purchaseMap = new Map<number, number>(
+      rows[1].map((r) => [r.month.getTime(), Number(r.total || 0)]),
+    );
 
     const months: SalesPurchaseChartItem[] = [];
     const iter = new Date(start.getFullYear(), start.getMonth(), 1);
@@ -600,11 +611,7 @@ export class DashboardService {
     const now = new Date();
     const range = this.getDateRange(period, now);
     const result = await this.getRecentSales(companyId, range);
-    await this.cache.set(
-      this.RECENT_SALES_KEY(companyId, period),
-      result,
-      120,
-    );
+    await this.cache.set(this.RECENT_SALES_KEY(companyId, period), result, 120);
     return result;
   }
 

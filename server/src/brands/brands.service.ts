@@ -150,7 +150,10 @@ export class BrandsService {
     return {
       message: `Successfully deleted ${foundIds.length} out of ${ids.length} brands`,
       deleted: foundIds,
-      failed: notFound.map((id) => ({ id, error: 'Brand not found or access denied' })),
+      failed: notFound.map((id) => ({
+        id,
+        error: 'Brand not found or access denied',
+      })),
       totalAffectedProducts: 0,
       affectedProductsList: [],
     };

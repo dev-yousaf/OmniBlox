@@ -11,7 +11,8 @@ import { UpdateSalesReturnDto } from './dto/update-sales-return.dto';
 @Injectable()
 export class SalesReturnsService {
   private readonly LIST_KEY = (cid: string) => `sales-returns:list:${cid}`;
-  private readonly ITEM_KEY = (cid: string, id: string) => `sales-returns:item:${cid}:${id}`;
+  private readonly ITEM_KEY = (cid: string, id: string) =>
+    `sales-returns:item:${cid}:${id}`;
 
   constructor(
     private readonly prisma: PrismaService,

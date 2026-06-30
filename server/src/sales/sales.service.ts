@@ -18,7 +18,17 @@ import {
   SalesStatsDto,
 } from './dto/sale-response.dto';
 
-const LIST_KEY = (cid: string, page?: number, search?: string, status?: string, paymentStatus?: string, wid?: string, dateFrom?: string, dateTo?: string, productId?: string) =>
+const LIST_KEY = (
+  cid: string,
+  page?: number,
+  search?: string,
+  status?: string,
+  paymentStatus?: string,
+  wid?: string,
+  dateFrom?: string,
+  dateTo?: string,
+  productId?: string,
+) =>
   `sales:${cid}:list:${page ?? 1}:${search ?? ''}:${status ?? ''}:${paymentStatus ?? ''}:${wid ?? ''}:${dateFrom ?? ''}:${dateTo ?? ''}:${productId ?? ''}`;
 const ITEM_KEY = (cid: string, id: string) => `sales:${cid}:${id}`;
 const STATS_KEY = (cid: string) => `sales:${cid}:stats`;
@@ -101,19 +111,23 @@ export class SalesService {
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
     sixMonthsAgo.setDate(1);
 
-    const rows = await this.prisma.$queryRawUnsafe(
+    const rows = (await this.prisma.$queryRawUnsafe(
       `SELECT date_trunc('month', "saleDate") as month,
               COUNT(id)::bigint as invoices,
               SUM("totalAmount")::text as revenue
        FROM sales
        WHERE "companyId" = $1 AND "saleDate" >= $2 AND status != 'CANCELLED'
        GROUP BY date_trunc('month', "saleDate") ORDER BY month`,
-      companyId, sixMonthsAgo,
-    ) as Array<{ month: Date; invoices: bigint; revenue: string | null }>;
+      companyId,
+      sixMonthsAgo,
+    )) as Array<{ month: Date; invoices: bigint; revenue: string | null }>;
 
     const rowMap = new Map<number, { invoices: number; revenue: number }>();
     for (const r of rows) {
-      rowMap.set(r.month.getTime(), { invoices: Number(r.invoices), revenue: Number(r.revenue) });
+      rowMap.set(r.month.getTime(), {
+        invoices: Number(r.invoices),
+        revenue: Number(r.revenue),
+      });
     }
 
     const months = Array.from({ length: 6 }).map((_, i) => {
@@ -389,7 +403,17 @@ export class SalesService {
     dateTo?: string,
     productId?: string,
   ): Promise<SalesListResponseDto> {
-    const cacheKey = LIST_KEY(companyId, page, search, status, paymentStatus, warehouseId, dateFrom, dateTo, productId);
+    const cacheKey = LIST_KEY(
+      companyId,
+      page,
+      search,
+      status,
+      paymentStatus,
+      warehouseId,
+      dateFrom,
+      dateTo,
+      productId,
+    );
     const cached = await this.cache.get<SalesListResponseDto>(cacheKey);
     if (cached) return cached;
     const skip = (page - 1) * limit;

@@ -63,15 +63,18 @@ export class PurchasesService {
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
     sixMonthsAgo.setDate(1);
 
-    const rows = await this.prisma.$queryRawUnsafe(
+    const rows = (await this.prisma.$queryRawUnsafe(
       `SELECT date_trunc('month', "orderDate") as month, SUM("totalAmount")::text as total
        FROM purchase_orders
        WHERE "companyId" = $1 AND "orderDate" >= $2 AND status != 'CANCELLED'
        GROUP BY date_trunc('month', "orderDate") ORDER BY month`,
-      companyId, sixMonthsAgo,
-    ) as Array<{ month: Date; total: string | null }>;
+      companyId,
+      sixMonthsAgo,
+    )) as Array<{ month: Date; total: string | null }>;
 
-    const rowMap = new Map<number, number>(rows.map((r) => [r.month.getTime(), Number(r.total || 0)]));
+    const rowMap = new Map<number, number>(
+      rows.map((r) => [r.month.getTime(), Number(r.total || 0)]),
+    );
 
     const months = Array.from({ length: 6 }).map((_, i) => {
       const d = new Date();

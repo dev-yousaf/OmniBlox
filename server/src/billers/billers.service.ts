@@ -16,8 +16,13 @@ import {
 
 const CACHE_TTL = 60 * 15;
 const LIST_KEY = (cid: string) => `billers:${cid}:list`;
-const PAGED_KEY = (cid: string, page: number, limit: number, search?: string, status?: string) =>
-  `billers:${cid}:page:${page}:${limit}:${search ?? ''}:${status ?? ''}`;
+const PAGED_KEY = (
+  cid: string,
+  page: number,
+  limit: number,
+  search?: string,
+  status?: string,
+) => `billers:${cid}:page:${page}:${limit}:${search ?? ''}:${status ?? ''}`;
 const ITEM_KEY = (cid: string, id: string) => `billers:${cid}:${id}`;
 const STATS_KEY = (cid: string) => `billers:${cid}:stats`;
 
@@ -28,7 +33,10 @@ export class BillersService {
     private cache: CacheService,
   ) {}
 
-  async create(dto: CreateBillerDto, companyId: string): Promise<BillerResponseDto> {
+  async create(
+    dto: CreateBillerDto,
+    companyId: string,
+  ): Promise<BillerResponseDto> {
     const existingBiller = await this.prisma.biller.findFirst({
       where: { code: dto.code, companyId },
     });
@@ -58,7 +66,9 @@ export class BillersService {
       orderBy: { createdAt: 'desc' },
     });
 
-    const data = billers.map((b) => this.mapToBillerResponse(b, b._count.sales));
+    const data = billers.map((b) =>
+      this.mapToBillerResponse(b, b._count.sales),
+    );
     await this.cache.set(cacheKey, data, CACHE_TTL);
     return data;
   }
@@ -124,7 +134,11 @@ export class BillersService {
     return data;
   }
 
-  async update(id: string, dto: UpdateBillerDto, companyId: string): Promise<BillerResponseDto> {
+  async update(
+    id: string,
+    dto: UpdateBillerDto,
+    companyId: string,
+  ): Promise<BillerResponseDto> {
     const existingBiller = await this.prisma.biller.findFirst({
       where: { id, companyId },
     });
@@ -218,7 +232,10 @@ export class BillersService {
     return { available: !existingBiller };
   }
 
-  private mapToBillerResponse(biller: any, salesCount?: number): BillerResponseDto {
+  private mapToBillerResponse(
+    biller: any,
+    salesCount?: number,
+  ): BillerResponseDto {
     return {
       id: biller.id,
       name: biller.name,

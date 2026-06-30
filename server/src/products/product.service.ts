@@ -12,13 +12,18 @@ import { ProductResponseDto } from './dto/product-response.dto';
 import { CreateStockAdjustmentDto } from './dto/create-stock-adjustment.dto';
 import { StockAdjustmentResponseDto } from './dto/stock-adjustment-response.dto';
 
-const LIST_KEY = (cid: string, page = 1, search?: string, category?: string, status?: string, wid?: string) =>
+const LIST_KEY = (
+  cid: string,
+  page = 1,
+  search?: string,
+  category?: string,
+  status?: string,
+  wid?: string,
+) =>
   `products:${cid}:list:${page}:${search ?? ''}:${category ?? ''}:${status ?? ''}:${wid ?? ''}`;
 const ITEM_KEY = (cid: string, id: string) => `products:${cid}:${id}`;
 const SKU_KEY = (cid: string, sku: string) => `products:${cid}:sku:${sku}`;
 const STATS_KEY = (cid: string) => `products:${cid}:stats`;
-const LOW_STOCK_KEY = (cid: string) => `products:${cid}:lowstock`;
-const ADJ_LIST_KEY = (cid: string) => `products:${cid}:adjustments`;
 
 export interface LowStockDetailItem {
   productId: string;
@@ -257,8 +262,19 @@ export class ProductService {
     status?: string,
     warehouseId?: string,
   ): Promise<{ products: ProductResponseDto[]; total: number; pages: number }> {
-    const cacheKey = LIST_KEY(companyId, page, search, category, status, warehouseId);
-    const cached = await this.cache.get<{ products: ProductResponseDto[]; total: number; pages: number }>(cacheKey);
+    const cacheKey = LIST_KEY(
+      companyId,
+      page,
+      search,
+      category,
+      status,
+      warehouseId,
+    );
+    const cached = await this.cache.get<{
+      products: ProductResponseDto[];
+      total: number;
+      pages: number;
+    }>(cacheKey);
     if (cached) return cached;
 
     const skip = (page - 1) * limit;
@@ -365,7 +381,8 @@ export class ProductService {
         inventory: { include: { warehouse: true } },
         variants: {
           include: {
-            category: true, brand: true,
+            category: true,
+            brand: true,
             inventory: { include: { warehouse: true } },
           },
         },
@@ -377,7 +394,8 @@ export class ProductService {
     }
 
     const totalStock = product.inventory.reduce(
-      (sum, inv) => sum + inv.quantity, 0,
+      (sum, inv) => sum + inv.quantity,
+      0,
     );
     const data = this.transformToDto(product, totalStock);
     await this.cache.set(cacheKey, data, 60 * 2);
@@ -392,7 +410,8 @@ export class ProductService {
     const product = await this.prisma.product.findFirst({
       where: { sku, companyId },
       include: {
-        category: true, brand: true,
+        category: true,
+        brand: true,
         inventory: { include: { warehouse: true } },
       },
     });
@@ -402,7 +421,8 @@ export class ProductService {
     }
 
     const totalStock = product.inventory.reduce(
-      (sum, inv) => sum + inv.quantity, 0,
+      (sum, inv) => sum + inv.quantity,
+      0,
     );
     const data = this.transformToDto(product, totalStock);
     await this.cache.set(cacheKey, data, 60 * 2);
@@ -741,7 +761,12 @@ export class ProductService {
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
 
-    const result = { totalProducts, lowStockCount, stockOverviewByCategory, bestSellers };
+    const result = {
+      totalProducts,
+      lowStockCount,
+      stockOverviewByCategory,
+      bestSellers,
+    };
     await this.cache.set(cacheKey, result, 60 * 2);
     return result;
   }
@@ -1612,7 +1637,7 @@ export class ProductService {
     });
 
     const transferItems = items.filter((i) =>
-      i.stockAdjustment.referenceNumber.startsWith('TRF-')
+      i.stockAdjustment.referenceNumber.startsWith('TRF-'),
     );
 
     return transferItems.map((item) => ({
@@ -1648,7 +1673,7 @@ export class ProductService {
     const adjustmentItems = items.filter(
       (i) =>
         !i.stockAdjustment.referenceNumber.startsWith('TRF-') &&
-        i.stockAdjustment.type !== 'TRANSFER'
+        i.stockAdjustment.type !== 'TRANSFER',
     );
 
     return adjustmentItems.map((item) => ({

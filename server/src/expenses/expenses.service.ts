@@ -38,12 +38,17 @@ export class ExpensesService {
 
     const expense = await this.prisma.expense.create({
       data: {
-        reference: dto.reference, amount: dto.amount,
+        reference: dto.reference,
+        amount: dto.amount,
         expenseDate: new Date(dto.expenseDate),
-        description: dto.description, vendor: dto.vendor,
-        status: 'PENDING', categoryId: dto.categoryId,
-        purchaseOrderId: dto.purchaseOrderId, saleId: dto.saleId,
-        userId, companyId,
+        description: dto.description,
+        vendor: dto.vendor,
+        status: 'PENDING',
+        categoryId: dto.categoryId,
+        purchaseOrderId: dto.purchaseOrderId,
+        saleId: dto.saleId,
+        userId,
+        companyId,
       },
       include: {
         category: true,
@@ -132,13 +137,19 @@ export class ExpensesService {
       data: {
         ...(dto.reference !== undefined && { reference: dto.reference }),
         ...(dto.amount !== undefined && { amount: dto.amount }),
-        ...(dto.expenseDate !== undefined && { expenseDate: new Date(dto.expenseDate) }),
+        ...(dto.expenseDate !== undefined && {
+          expenseDate: new Date(dto.expenseDate),
+        }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.vendor !== undefined && { vendor: dto.vendor }),
         ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
         ...(dto.status !== undefined && { status: dto.status }),
-        ...(dto.paymentMethod !== undefined && { paymentMethod: dto.paymentMethod }),
-        ...(dto.purchaseOrderId !== undefined && { purchaseOrderId: dto.purchaseOrderId }),
+        ...(dto.paymentMethod !== undefined && {
+          paymentMethod: dto.paymentMethod,
+        }),
+        ...(dto.purchaseOrderId !== undefined && {
+          purchaseOrderId: dto.purchaseOrderId,
+        }),
       },
       include: {
         category: true,
@@ -155,7 +166,11 @@ export class ExpensesService {
     return { ...updated, amount: parseFloat(updated.amount.toString()) };
   }
 
-  async updateStatus(id: string, companyId: string, dto: UpdateExpenseStatusDto) {
+  async updateStatus(
+    id: string,
+    companyId: string,
+    dto: UpdateExpenseStatusDto,
+  ) {
     await this.findOne(id, companyId);
 
     const updated = await this.prisma.expense.update({
@@ -209,25 +224,43 @@ export class ExpensesService {
     const data = {
       totalExpenses: aggResult._count,
       totalAmount: Number(aggResult._sum.amount ?? 0),
-      pendingExpenses: 0, pendingAmount: 0,
-      approvedExpenses: 0, approvedAmount: 0,
-      paidExpenses: 0, paidAmount: 0,
+      pendingExpenses: 0,
+      pendingAmount: 0,
+      approvedExpenses: 0,
+      approvedAmount: 0,
+      paidExpenses: 0,
+      paidAmount: 0,
       rejectedExpenses: 0,
     };
 
     for (const s of statusCounts) {
       const amount = Number(s._sum.amount ?? 0);
-      if (s.status === 'PENDING') { data.pendingExpenses = s._count; data.pendingAmount = amount; }
-      if (s.status === 'APPROVED') { data.approvedExpenses = s._count; data.approvedAmount = amount; }
-      if (s.status === 'PAID') { data.paidExpenses = s._count; data.paidAmount = amount; }
-      if (s.status === 'REJECTED') { data.rejectedExpenses = s._count; }
+      if (s.status === 'PENDING') {
+        data.pendingExpenses = s._count;
+        data.pendingAmount = amount;
+      }
+      if (s.status === 'APPROVED') {
+        data.approvedExpenses = s._count;
+        data.approvedAmount = amount;
+      }
+      if (s.status === 'PAID') {
+        data.paidExpenses = s._count;
+        data.paidAmount = amount;
+      }
+      if (s.status === 'REJECTED') {
+        data.rejectedExpenses = s._count;
+      }
     }
 
     await this.cache.set(cacheKey, data, 60 * 5);
     return data;
   }
 
-  async uploadAttachment(expenseId: string, companyId: string, file: Express.Multer.File) {
+  async uploadAttachment(
+    expenseId: string,
+    companyId: string,
+    file: Express.Multer.File,
+  ) {
     if (!file) throw new BadRequestException('No file provided');
     await this.findOne(expenseId, companyId);
 
@@ -252,7 +285,11 @@ export class ExpensesService {
     return attachment;
   }
 
-  async deleteAttachment(expenseId: string, attachmentId: string, companyId: string) {
+  async deleteAttachment(
+    expenseId: string,
+    attachmentId: string,
+    companyId: string,
+  ) {
     await this.findOne(expenseId, companyId);
 
     const attachment = await this.prisma.expenseAttachment.findFirst({
@@ -263,7 +300,9 @@ export class ExpensesService {
     const filePath = path.join(process.cwd(), attachment.url);
     await unlink(filePath).catch(() => {});
 
-    await this.prisma.expenseAttachment.delete({ where: { id: attachment.id } });
+    await this.prisma.expenseAttachment.delete({
+      where: { id: attachment.id },
+    });
 
     await this.cache.del(ITEM_KEY(companyId, expenseId));
     return { message: 'Attachment deleted successfully' };

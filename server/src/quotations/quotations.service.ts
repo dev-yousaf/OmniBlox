@@ -17,7 +17,8 @@ import { CreateSaleDto } from '../sales/dto/create-sale.dto';
 @Injectable()
 export class QuotationsService {
   private readonly LIST_KEY = (cid: string) => `quotations:list:${cid}`;
-  private readonly ITEM_KEY = (cid: string, id: string) => `quotations:item:${cid}:${id}`;
+  private readonly ITEM_KEY = (cid: string, id: string) =>
+    `quotations:item:${cid}:${id}`;
 
   constructor(
     private prisma: PrismaService,

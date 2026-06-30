@@ -8,7 +8,8 @@ import { UpdateDeliveryDto } from './dto/update-delivery.dto';
 @Injectable()
 export class DeliveriesService {
   private readonly LIST_KEY = (cid: string) => `deliveries:list:${cid}`;
-  private readonly ITEM_KEY = (cid: string, id: string) => `deliveries:item:${cid}:${id}`;
+  private readonly ITEM_KEY = (cid: string, id: string) =>
+    `deliveries:item:${cid}:${id}`;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -56,7 +57,9 @@ export class DeliveriesService {
       orderBy: { createdAt: 'desc' },
     });
 
-    const result = deliveries.map((delivery) => this.transformDelivery(delivery));
+    const result = deliveries.map((delivery) =>
+      this.transformDelivery(delivery),
+    );
 
     await this.cache.set(cacheKey, result, 120);
     return result;

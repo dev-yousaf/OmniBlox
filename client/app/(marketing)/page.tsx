@@ -251,9 +251,14 @@ export default function LandingPage() {
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
-                  <Button size="lg" variant="outline" className="h-12 px-8 text-base border-white/20 text-white hover:text-white hover:bg-white/10" asChild>
-                    <Link href="/login">Sign In</Link>
-                  </Button>
+                  <Button
+  size="lg"
+  variant="outline"
+  className="h-12 px-8 text-base bg-white text-orange-500 border-white hover:bg-orange-500 hover:text-white"
+  asChild
+>
+  <Link href="/login">Sign In</Link>
+</Button>
                 </div>
               </div>
             </div>
