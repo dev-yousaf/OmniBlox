@@ -18,10 +18,26 @@ export class BetterAuthService {
     this.auth = betterAuth({
       secret: secret || 'development-secret-change-me',
       database: {
-        // We'll configure this later to use Prisma
         provider: 'postgresql',
         url: process.env.DATABASE_URL_POOLED || process.env.DATABASE_URL || '',
       },
+      emailAndPassword: {
+        enabled: true,
+      },
+      session: {
+        cookieCache: {
+          enabled: true,
+          maxAge: 5 * 60,
+        },
+        cookie: {
+          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+          secure: process.env.NODE_ENV === 'production',
+        },
+      },
+      trustedOrigins: [
+        process.env.CORS_ORIGIN || 'http://localhost:3000',
+        process.env.BACKEND_URL || 'http://localhost:5005',
+      ].filter(Boolean),
     });
   }
 }
