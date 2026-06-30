@@ -41,6 +41,7 @@ import {
 	type ProductQuotation,
 	type ProductPurchase,
 	type ProductTransfer,
+	type ProductAdjustment,
 } from "@/components/products/detail/types";
 import { DetailsTab } from "@/components/products/detail/details-tab";
 import { ChartsTab } from "@/components/products/detail/charts-tab";
@@ -84,6 +85,8 @@ export default function ProductDetailPage({
 		getProductSales,
 		getProductQuotations,
 		getProductPurchases,
+		getProductTransfers,
+		getProductAdjustments,
 		adjustStock,
 	} = useProductApi();
 	const { getProductInventory } = useInventoryApi();
@@ -107,17 +110,22 @@ export default function ProductDetailPage({
 	const [sales, setSales] = useState<ProductSale[]>([]);
 	const [salesLoading, setSalesLoading] = useState(false);
 	const [salesError, setSalesError] = useState<string | null>(null);
-	const salesLoadedRef = useRef(false);
 
 	const [quotations, setQuotations] = useState<ProductQuotation[]>([]);
 	const [quotationsLoading, setQuotationsLoading] = useState(false);
 	const [quotationsError, setQuotationsError] = useState<string | null>(null);
-	const quotationsLoadedRef = useRef(false);
 
 	const [purchases, setPurchases] = useState<ProductPurchase[]>([]);
 	const [purchasesLoading, setPurchasesLoading] = useState(false);
 	const [purchasesError, setPurchasesError] = useState<string | null>(null);
-	const purchasesLoadedRef = useRef(false);
+
+	const [transfers, setTransfers] = useState<ProductTransfer[]>([]);
+	const [transfersLoading, setTransfersLoading] = useState(false);
+	const [transfersError, setTransfersError] = useState<string | null>(null);
+
+	const [adjustments, setAdjustments] = useState<ProductAdjustment[]>([]);
+	const [adjustmentsLoading, setAdjustmentsLoading] = useState(false);
+	const [adjustmentsError, setAdjustmentsError] = useState<string | null>(null);
 
 	const [adjDate, setAdjDate] = useState(
 		new Date().toISOString().split("T")[0]
@@ -136,25 +144,24 @@ export default function ProductDetailPage({
 	}, [productId]);
 
 	useEffect(() => {
-		if (activeTab === "sales" && !salesLoadedRef.current) {
-			salesLoadedRef.current = true;
-			loadSales();
-		}
-	}, [activeTab]);
+		if (activeTab === "sales" && product) loadSales();
+	}, [activeTab, product]);
 
 	useEffect(() => {
-		if (activeTab === "quotations" && !quotationsLoadedRef.current) {
-			quotationsLoadedRef.current = true;
-			loadQuotations();
-		}
-	}, [activeTab]);
+		if (activeTab === "quotations" && product) loadQuotations();
+	}, [activeTab, product]);
 
 	useEffect(() => {
-		if (activeTab === "purchase" && !purchasesLoadedRef.current) {
-			purchasesLoadedRef.current = true;
-			loadPurchases();
-		}
-	}, [activeTab]);
+		if (activeTab === "purchase" && product) loadPurchases();
+	}, [activeTab, product]);
+
+	useEffect(() => {
+		if (activeTab === "transfer" && product) loadTransfers();
+	}, [activeTab, product]);
+
+	useEffect(() => {
+		if (activeTab === "adjustment" && product) loadAdjustments();
+	}, [activeTab, product]);
 
 	useEffect(() => {
 		if (warehouses.length > 0 && !adjWarehouseId) {
@@ -235,6 +242,40 @@ export default function ProductDetailPage({
 			setPurchases([]);
 		} finally {
 			setPurchasesLoading(false);
+		}
+	};
+
+	const loadTransfers = async () => {
+		if (!productId) return;
+		try {
+			setTransfersLoading(true);
+			setTransfersError(null);
+			const data = (await getProductTransfers(
+				productId
+			)) as ProductTransfer[];
+			setTransfers(data);
+		} catch (error) {
+			setTransfersError("Failed to load transfer data");
+			setTransfers([]);
+		} finally {
+			setTransfersLoading(false);
+		}
+	};
+
+	const loadAdjustments = async () => {
+		if (!productId) return;
+		try {
+			setAdjustmentsLoading(true);
+			setAdjustmentsError(null);
+			const data = (await getProductAdjustments(
+				productId
+			)) as ProductAdjustment[];
+			setAdjustments(data);
+		} catch (error) {
+			setAdjustmentsError("Failed to load adjustment data");
+			setAdjustments([]);
+		} finally {
+			setAdjustmentsLoading(false);
 		}
 	};
 
@@ -369,45 +410,8 @@ export default function ProductDetailPage({
 		}
 	};
 
-	const last30Days = Array.from({ length: 30 }, (_, i) => {
-		const d = new Date();
-		d.setDate(d.getDate() - (29 - i));
-		d.setHours(0, 0, 0, 0);
-		return d;
-	});
-
-	const stockMovementData = last30Days.map((day) => {
-		const dateStr = day.toISOString().split("T")[0];
-		const dayEntries = ledger.filter(
-			(e) => new Date(e.createdAt).toISOString().split("T")[0] === dateStr
-		);
-		return {
-			date: dateStr.slice(5),
-			additions: dayEntries
-				.filter((e) => e.quantity > 0)
-				.reduce((sum, e) => sum + e.quantity, 0),
-			removals: dayEntries
-				.filter((e) => e.quantity < 0)
-				.reduce((sum, e) => sum + Math.abs(e.quantity), 0),
-		};
-	});
-
-	const totalSalesAmount = sales.reduce((sum, s) => sum + s.total, 0);
-	const totalPurchasesAmount = purchases.reduce((sum, p) => sum + p.total, 0);
-
-	const transfers: ProductTransfer[] = ledger
-		.filter((e) => e.type === "TRANSFER")
-		.map((e) => ({
-			date: e.createdAt,
-			reference: e.reference || "-",
-			from: e.warehouse?.name || "-",
-			to: e.warehouse?.name || "-",
-			quantity: e.quantity,
-		}));
-
-	const recentAdjustments = ledger
-		.filter((e) => e.type === "ADJUSTMENT")
-		.slice(0, 10);
+	const totalSalesAmount = sales.reduce((sum, s) => sum + s.totalPrice, 0);
+	const totalPurchasesAmount = purchases.reduce((sum, p) => sum + p.totalCost, 0);
 
 	if (loading) return <PageLoadingSkeleton />;
 
@@ -568,7 +572,7 @@ export default function ProductDetailPage({
 			{activeTab === "charts" && (
 				<ChartsTab
 					product={product}
-					stockMovementData={stockMovementData}
+					ledger={ledger}
 					totalSalesAmount={totalSalesAmount}
 					totalPurchasesAmount={totalPurchasesAmount}
 				/>
@@ -599,7 +603,11 @@ export default function ProductDetailPage({
 			)}
 
 			{activeTab === "transfer" && (
-				<TransferTab transfers={transfers} />
+				<TransferTab
+					transfers={transfers}
+					transfersLoading={transfersLoading}
+					transfersError={transfersError}
+				/>
 			)}
 
 			{activeTab === "adjustment" && (
@@ -626,7 +634,9 @@ export default function ProductDetailPage({
 					user={user}
 					handleSaveAdjustment={handleSaveAdjustment}
 					productId={productId}
-					recentAdjustments={recentAdjustments}
+					adjustments={adjustments}
+					adjustmentsLoading={adjustmentsLoading}
+					adjustmentsError={adjustmentsError}
 				/>
 			)}
 		</div>

@@ -3,42 +3,61 @@ import type { InventoryItem } from "@/hooks/use-inventory-api";
 
 export interface ProductSale {
 	id: string;
-	date: string;
-	reference: string;
-	customer: string;
+	saleId: string;
+	invoiceNumber: string;
+	saleDate: string;
+	customerId: string;
+	customerName: string;
 	quantity: number;
 	unitPrice: number;
-	total: number;
+	totalPrice: number;
 }
 
 export interface ProductQuotation {
 	id: string;
-	date: string;
-	reference: string;
-	customer: string;
+	quotationId: string;
+	referenceNumber: string;
+	quoteDate: string;
+	customerId: string;
+	customerName: string;
 	quantity: number;
 	unitPrice: number;
-	total: number;
-	status: string;
+	totalPrice: number;
 }
 
 export interface ProductPurchase {
 	id: string;
-	date: string;
-	reference: string;
-	supplier: string;
+	purchaseOrderId: string;
+	referenceNumber: string;
+	orderDate: string;
+	supplierId: string;
+	supplierName: string;
 	quantity: number;
-	unitPrice: number;
-	total: number;
-	status: string;
+	unitCost: number;
+	totalCost: number;
 }
 
 export interface ProductTransfer {
+	id: string;
 	date: string;
 	reference: string;
-	from: string;
-	to: string;
+	warehouse: string;
 	quantity: number;
+	notes: string | null;
+	createdBy: string | null;
+}
+
+export interface ProductAdjustment {
+	id: string;
+	date: string;
+	reference: string;
+	warehouse: string;
+	type: "ADDITION" | "REMOVAL";
+	previousQuantity: number;
+	newQuantity: number;
+	quantity: number;
+	notes: string | null;
+	createdBy: string | null;
 }
 
 export interface DetailsTabProps {
@@ -67,7 +86,7 @@ export interface DetailsTabProps {
 
 export interface ChartsTabProps {
 	product: Product;
-	stockMovementData: { date: string; additions: number; removals: number }[];
+	ledger: StockLedgerEntry[];
 	totalSalesAmount: number;
 	totalPurchasesAmount: number;
 }
@@ -92,6 +111,8 @@ export interface PurchaseTabProps {
 
 export interface TransferTabProps {
 	transfers: ProductTransfer[];
+	transfersLoading: boolean;
+	transfersError: string | null;
 }
 
 export interface AdjustmentTabProps {
@@ -117,5 +138,7 @@ export interface AdjustmentTabProps {
 	user: { name?: string | null } | null;
 	handleSaveAdjustment: () => void;
 	productId: string;
-	recentAdjustments: StockLedgerEntry[];
+	adjustments: ProductAdjustment[];
+	adjustmentsLoading: boolean;
+	adjustmentsError: string | null;
 }

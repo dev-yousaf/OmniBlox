@@ -1592,6 +1592,79 @@ export class ProductService {
     return [header, ...rows].join('\n');
   }
 
+  async getProductTransfers(productId: string, companyId: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, companyId },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    const items = await this.prisma.stockAdjustmentItem.findMany({
+      where: { productId },
+      include: {
+        stockAdjustment: {
+          include: {
+            user: { select: { name: true } },
+          },
+        },
+        warehouse: { select: { name: true } },
+      },
+      orderBy: { stockAdjustment: { adjustmentDate: 'desc' } },
+    });
+
+    const transferItems = items.filter((i) =>
+      i.stockAdjustment.referenceNumber.startsWith('TRF-')
+    );
+
+    return transferItems.map((item) => ({
+      id: item.id,
+      date: item.stockAdjustment.adjustmentDate,
+      reference: item.stockAdjustment.referenceNumber,
+      warehouse: item.warehouse.name,
+      quantity: item.difference,
+      notes: item.stockAdjustment.notes,
+      createdBy: item.stockAdjustment.user.name,
+    }));
+  }
+
+  async getProductAdjustments(productId: string, companyId: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, companyId },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    const items = await this.prisma.stockAdjustmentItem.findMany({
+      where: { productId },
+      include: {
+        stockAdjustment: {
+          include: {
+            user: { select: { name: true } },
+          },
+        },
+        warehouse: { select: { name: true } },
+      },
+      orderBy: { stockAdjustment: { adjustmentDate: 'desc' } },
+    });
+
+    const adjustmentItems = items.filter(
+      (i) =>
+        !i.stockAdjustment.referenceNumber.startsWith('TRF-') &&
+        i.stockAdjustment.type !== 'TRANSFER'
+    );
+
+    return adjustmentItems.map((item) => ({
+      id: item.id,
+      date: item.stockAdjustment.adjustmentDate,
+      reference: item.stockAdjustment.referenceNumber,
+      warehouse: item.warehouse.name,
+      type: item.difference > 0 ? 'ADDITION' : 'REMOVAL',
+      previousQuantity: item.previousQuantity,
+      newQuantity: item.newQuantity,
+      quantity: item.difference,
+      notes: item.stockAdjustment.notes,
+      createdBy: item.stockAdjustment.user.name,
+    }));
+  }
+
   async getProductSales(productId: string, companyId: string) {
     const product = await this.prisma.product.findFirst({
       where: { id: productId, companyId },

@@ -241,6 +241,20 @@ export function useProductApi() {
     [get]
   );
 
+  const getProductTransfers = useCallback(
+    async (id: string): Promise<any[]> => {
+      return get(`/products/${id}/transfers`) as Promise<any[]>;
+    },
+    [get]
+  );
+
+  const getProductAdjustments = useCallback(
+    async (id: string): Promise<any[]> => {
+      return get(`/products/${id}/adjustments`) as Promise<any[]>;
+    },
+    [get]
+  );
+
   const adjustStock = useCallback(
     async (data: {
       items: { productId: string; warehouseId: string; previousQuantity: number; newQuantity: number }[];
@@ -277,6 +291,8 @@ export function useProductApi() {
     getProductSales,
     getProductQuotations,
     getProductPurchases,
+    getProductTransfers,
+    getProductAdjustments,
     adjustStock,
   };
 }

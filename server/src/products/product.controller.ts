@@ -272,6 +272,24 @@ export class ProductController {
     return this.productService.getProductPurchases(id, companyId);
   }
 
+  @Get(':id/transfers')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
+  async getProductTransfers(
+    @Param('id') id: string,
+    @CompanyId() companyId: string,
+  ) {
+    return this.productService.getProductTransfers(id, companyId);
+  }
+
+  @Get(':id/adjustments')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
+  async getProductAdjustments(
+    @Param('id') id: string,
+    @CompanyId() companyId: string,
+  ) {
+    return this.productService.getProductAdjustments(id, companyId);
+  }
+
   @Get('warehouses')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)
   async getWarehouses(@CompanyId() companyId: string) {

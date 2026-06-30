@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
 	Card,
 	CardContent,
@@ -21,10 +22,33 @@ import type { ChartsTabProps } from "./types";
 
 export function ChartsTab({
 	product,
-	stockMovementData,
+	ledger,
 	totalSalesAmount,
 	totalPurchasesAmount,
 }: ChartsTabProps) {
+	const last30Days = Array.from({ length: 30 }, (_, i) => {
+		const d = new Date();
+		d.setDate(d.getDate() - (29 - i));
+		d.setHours(0, 0, 0, 0);
+		return d;
+	});
+
+	const stockMovementData = useMemo(() => last30Days.map((day) => {
+		const dateStr = day.toISOString().split("T")[0];
+		const dayEntries = ledger.filter(
+			(e) => new Date(e.createdAt).toISOString().split("T")[0] === dateStr
+		);
+		return {
+			date: dateStr.slice(5),
+			additions: dayEntries
+				.filter((e) => e.quantity > 0)
+				.reduce((sum, e) => sum + e.quantity, 0),
+			removals: dayEntries
+				.filter((e) => e.quantity < 0)
+				.reduce((sum, e) => sum + Math.abs(e.quantity), 0),
+		};
+	}), [ledger]);
+
 	const salesVsPurchasesData = [
 		{ name: "Sales", total: totalSalesAmount, fill: "#22c55e" },
 		{ name: "Purchases", total: totalPurchasesAmount, fill: "#3b82f6" },
