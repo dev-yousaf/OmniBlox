@@ -246,7 +246,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
               N
             </div>
             <span className="text-sm font-semibold text-sidebar-section-label">
-              NexHub
+              OmniBlox
             </span>
           </Link>
         )}
@@ -337,7 +337,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
             </div>
             <div className="flex-1 text-sm">
               <div className="font-medium text-sidebar-foreground">{user?.name || "Admin User"}</div>
-              <div className="text-xs text-sidebar-muted">{user?.email || "admin@NexHub.com"}</div>
+              <div className="text-xs text-sidebar-muted">{user?.email || "admin@OmniBlox.com"}</div>
             </div>
           </div>
         ) : (

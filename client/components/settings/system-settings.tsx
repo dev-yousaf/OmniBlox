@@ -20,7 +20,7 @@ export function SystemSettings() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="companyName">Company Name</Label>
-              <Input id="companyName" defaultValue="NexHub Corporation" />
+              <Input id="companyName" defaultValue="OmniBlox Corporation" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="taxId">Tax ID</Label>

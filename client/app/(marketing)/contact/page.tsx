@@ -28,7 +28,7 @@ function FadeIn({ children, delay = 0, className }: { children: React.ReactNode;
 }
 
 const contactInfo = [
-  { icon: Mail, title: "Email", value: "hello@nexhub.com", href: "mailto:hello@nexhub.com" },
+  { icon: Mail, title: "Email", value: "hello@OmniBlox.com", href: "mailto:hello@OmniBlox.com" },
   { icon: Phone, title: "Phone", value: "+1 (555) 123-4567", href: "tel:+15551234567" },
   { icon: MapPin, title: "Office", value: "123 Business Ave, Suite 400\nSan Francisco, CA 94105" },
   { icon: Clock, title: "Hours", value: "Mon-Fri: 9:00 AM - 6:00 PM\nSat-Sun: Closed" },
@@ -190,7 +190,7 @@ export default function ContactPage() {
               <div className="relative">
                 <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Ready to Get Started?</h2>
                 <p className="text-white/80 text-lg max-w-2xl mx-auto mb-8">
-                  Join thousands of businesses already using NexHub. Start your free trial today.
+                  Join thousands of businesses already using OmniBlox. Start your free trial today.
                 </p>
                 <Button size="lg" variant="secondary" className="h-12 px-8 text-base shadow-lg" asChild>
                   <Link href="/signup">

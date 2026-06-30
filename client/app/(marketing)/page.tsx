@@ -54,7 +54,7 @@ const features = [
 ];
 
 const testimonials = [
-  { name: "Sarah Chen", role: "Operations Director", company: "TechFlow Inc.", quote: "NexHub transformed our inventory management. We reduced stockouts by 80% in the first quarter." },
+  { name: "Sarah Chen", role: "Operations Director", company: "TechFlow Inc.", quote: "OmniBlox transformed our inventory management. We reduced stockouts by 80% in the first quarter." },
   { name: "Marcus Rodriguez", role: "CEO", company: "DistribuPro", quote: "The analytics dashboard alone is worth it. We finally have real-time visibility into our entire operation." },
   { name: "Emily Watson", role: "Supply Chain Manager", company: "GlobalTrade Co.", quote: "Multi-warehouse support is flawless. Stock transfers that used to take hours now happen in minutes." },
 ];
@@ -127,7 +127,7 @@ export default function LandingPage() {
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold">Everything You Need to Run Your Business</h2>
               <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-                From inventory to invoicing, NexHub brings all your operations into one seamless platform.
+                From inventory to invoicing, OmniBlox brings all your operations into one seamless platform.
               </p>
             </div>
           </FadeIn>
@@ -157,10 +157,10 @@ export default function LandingPage() {
             <FadeIn direction="left">
               <div>
                 <h2 className="text-3xl md:text-4xl font-bold mb-6">
-                  Why Choose <span className="bg-gradient-to-r from-primary to-chart-4 bg-clip-text text-transparent">NexHub</span>?
+                  Why Choose <span className="bg-gradient-to-r from-primary to-chart-4 bg-clip-text text-transparent">OmniBlox</span>?
                 </h2>
                 <p className="text-muted-foreground mb-8">
-                  We built NexHub for growing businesses that need enterprise-grade features without the complexity.
+                  We built OmniBlox for growing businesses that need enterprise-grade features without the complexity.
                 </p>
                 <ul className="space-y-4">
                   {[
@@ -206,7 +206,7 @@ export default function LandingPage() {
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold">Trusted by Business Leaders</h2>
               <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-                See what our customers have to say about their experience with NexHub.
+                See what our customers have to say about their experience with OmniBlox.
               </p>
             </div>
           </FadeIn>
@@ -242,7 +242,7 @@ export default function LandingPage() {
                   Ready to Transform Your Business?
                 </h2>
                 <p className="text-white/80 text-lg max-w-2xl mx-auto mb-8">
-                  Join thousands of businesses already using NexHub to streamline their operations and drive growth.
+                  Join thousands of businesses already using OmniBlox to streamline their operations and drive growth.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                   <Button size="lg" variant="secondary" className="h-12 px-8 text-base shadow-lg" asChild>

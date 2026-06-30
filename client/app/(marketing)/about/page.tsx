@@ -24,19 +24,19 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 
 const values = [
   { icon: Rocket, title: "Innovation", desc: "We constantly push boundaries to build tools that make business operations effortless." },
-  { icon: Target, title: "Reliability", desc: "Our platform is built for 99.9% uptime. Your business never stops with NexHub." },
+  { icon: Target, title: "Reliability", desc: "Our platform is built for 99.9% uptime. Your business never stops with OmniBlox." },
   { icon: Heart, title: "Customer First", desc: "Every feature we build starts with understanding what our customers truly need." },
   { icon: Users, title: "Community", desc: "We're building more than software — we're building a community of thriving businesses." },
 ];
 
 const timeline = [
-  { year: "2023", event: "NexHub was founded with a mission to simplify business management for small and medium enterprises." },
+  { year: "2023", event: "OmniBlox was founded with a mission to simplify business management for small and medium enterprises." },
   { year: "2023 Q3", event: "Launched beta version with core inventory management and basic sales tracking." },
   { year: "2024 Q1", event: "Released v1.0 with full sales, purchases, and invoicing capabilities." },
   { year: "2024 Q3", event: "Added multi-warehouse support, advanced analytics, and role-based access control." },
   { year: "2025 Q1", event: "Reached 5,000 active businesses. Introduced API access and integrations." },
   { year: "2025 Q3", event: "Launched expense management, audit logging, and enterprise-grade security features." },
-  { year: "2026", event: "10,000+ businesses trust NexHub. Continuous improvements with monthly feature releases." },
+  { year: "2026", event: "10,000+ businesses trust OmniBlox. Continuous improvements with monthly feature releases." },
 ];
 
 const team = [
@@ -63,7 +63,7 @@ export default function AboutPage() {
           </FadeIn>
           <FadeIn delay={0.1}>
             <p className="mt-6 text-lg text-muted-foreground max-w-3xl mx-auto">
-              We believe that every business deserves enterprise-grade tools. NexHub was built to democratize access to powerful business management software — no complex setups, no hidden costs, just simple tools that work.
+              We believe that every business deserves enterprise-grade tools. OmniBlox was built to democratize access to powerful business management software — no complex setups, no hidden costs, just simple tools that work.
             </p>
           </FadeIn>
         </div>
@@ -78,13 +78,13 @@ export default function AboutPage() {
                 <h2 className="text-3xl font-bold mb-6">Our Story</h2>
                 <div className="space-y-4 text-muted-foreground">
                   <p>
-                    NexHub started in 2023 when our founders, Alex and Jordan, realized that most small businesses were still managing operations with spreadsheets, sticky notes, and a dozen different apps that didn&apos;t talk to each other.
+                    OmniBlox started in 2023 when our founders, Alex and Jordan, realized that most small businesses were still managing operations with spreadsheets, sticky notes, and a dozen different apps that didn&apos;t talk to each other.
                   </p>
                   <p>
                     Having built enterprise systems for Fortune 500 companies, they knew what great business software looked like. They also knew that most SMEs couldn&apos;t afford those solutions. So they set out to build something different.
                   </p>
                   <p>
-                    Today, NexHub is used by businesses worldwide who need a better way to manage operations. We&apos;re proud to help companies of all sizes streamline processes, reduce costs, and focus on what matters most — growing their business.
+                    Today, OmniBlox is used by businesses worldwide who need a better way to manage operations. We&apos;re proud to help companies of all sizes streamline processes, reduce costs, and focus on what matters most — growing their business.
                   </p>
                 </div>
               </div>
@@ -153,7 +153,7 @@ export default function AboutPage() {
           <FadeIn>
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold">Our Journey</h2>
-              <p className="mt-4 text-lg text-muted-foreground">Key milestones in the NexHub story.</p>
+              <p className="mt-4 text-lg text-muted-foreground">Key milestones in the OmniBlox story.</p>
             </div>
           </FadeIn>
           <div className="relative">
@@ -215,7 +215,7 @@ export default function AboutPage() {
               <div className="relative">
                 <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Join Us on This Journey</h2>
                 <p className="text-white/80 text-lg max-w-2xl mx-auto mb-8">
-                  Start your free trial today and see why thousands of businesses trust NexHub.
+                  Start your free trial today and see why thousands of businesses trust OmniBlox.
                 </p>
                 <Button size="lg" variant="secondary" className="h-12 px-8 text-base shadow-lg" asChild>
                   <Link href="/signup">

@@ -46,7 +46,7 @@ export function MarketingNavbar() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-chart-4 text-white font-bold text-sm">
             N
           </div>
-          <span className="text-lg font-bold">NexHub</span>
+          <span className="text-lg font-bold">OmniBlox</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">

@@ -32,7 +32,7 @@ export function MarketingFooter() {
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-chart-4 text-white font-bold text-xs">
                 N
               </div>
-              <span className="text-base font-bold">NexHub</span>
+              <span className="text-base font-bold">OmniBlox</span>
             </Link>
             <p className="text-xs text-muted-foreground max-w-xs">
               Complete ERP platform for modern businesses. Streamline inventory, sales, purchases, and team management.
@@ -58,7 +58,7 @@ export function MarketingFooter() {
         </div>
         <div className="mt-8 pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} NexHub. All rights reserved.
+            &copy; {new Date().getFullYear()} OmniBlox. All rights reserved.
           </p>
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" className="text-xs h-7 px-2" asChild>

@@ -70,14 +70,14 @@ export default function SettingsPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="company-name">Company Name</Label>
-                  <Input id="company-name" defaultValue="NexHub Inc" />
+                  <Input id="company-name" defaultValue="OmniBlox Inc" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="company-email">Email</Label>
                   <Input
                     id="company-email"
                     type="email"
-                    defaultValue="info@NexHub.app"
+                    defaultValue="info@OmniBlox.app"
                   />
                 </div>
               </div>
@@ -88,7 +88,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="company-website">Website</Label>
-                  <Input id="company-website" defaultValue="www.NexHub.app" />
+                  <Input id="company-website" defaultValue="www.OmniBlox.app" />
                 </div>
               </div>
               <div className="space-y-2">
@@ -334,7 +334,7 @@ export default function SettingsPage() {
                     <Input
                       id="from-email"
                       type="email"
-                      defaultValue="noreply@NexHub.app"
+                      defaultValue="noreply@OmniBlox.app"
                     />
                   </div>
                 </>

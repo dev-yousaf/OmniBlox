@@ -76,7 +76,7 @@ export default function PrintInvoicePage() {
             <p className="text-sm text-gray-500 mt-1">#{sale.invoiceNumber}</p>
           </div>
           <div className="text-right">
-            <p className="font-bold text-gray-900">NexHub</p>
+            <p className="font-bold text-gray-900">OmniBlox</p>
             <p className="text-sm text-gray-500">{user?.email || ""}</p>
           </div>
         </div>
@@ -161,7 +161,7 @@ export default function PrintInvoicePage() {
 
         {/* Footer */}
         <div className="border-t pt-4 text-center text-xs text-gray-400">
-          <p>NexHub ERP — Thank you for your business!</p>
+          <p>OmniBlox ERP — Thank you for your business!</p>
         </div>
       </div>
 

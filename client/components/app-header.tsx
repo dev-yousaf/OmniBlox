@@ -164,7 +164,7 @@ export function AppHeader(_props: AppHeaderProps) {
   const { setOpen } = useCommandMenu();
   const { logout, user } = useAuth();
 
-  const companyName = user?.company?.name || "NexHub";
+  const companyName = user?.company?.name || "OmniBlox";
   const initials = companyName
     .split(" ")
     .map((w) => w[0])

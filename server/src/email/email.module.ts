@@ -14,8 +14,8 @@ import { EmailService } from './email.service';
         secure: false,
       },
       defaults: {
-        from: `"${process.env.MAIL_FROM_NAME || 'NexHub'}" <${
-          process.env.MAIL_FROM || 'noreply@NexHub.local'
+        from: `"${process.env.MAIL_FROM_NAME || 'OmniBlox'}" <${
+          process.env.MAIL_FROM || 'noreply@OmniBlox.local'
         }>`,
       },
       template: {

@@ -21,7 +21,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NexHub 2.0",
+  title: "OmniBlox 2.0",
   description: "Professional ERP system for modern businesses",
   generator: "v0.app",
 };

@@ -168,7 +168,7 @@ export default function PricingPage() {
           <FadeIn>
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold">Frequently Asked Questions</h2>
-              <p className="mt-4 text-lg text-muted-foreground">Everything you need to know about NexHub pricing.</p>
+              <p className="mt-4 text-lg text-muted-foreground">Everything you need to know about OmniBlox pricing.</p>
             </div>
           </FadeIn>
           <div className="space-y-4">

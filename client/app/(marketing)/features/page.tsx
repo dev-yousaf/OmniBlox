@@ -185,7 +185,7 @@ export default function FeaturesPage() {
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold">And So Much More</h2>
               <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-                NexHub is packed with features to cover every aspect of your business operations.
+                OmniBlox is packed with features to cover every aspect of your business operations.
               </p>
             </div>
           </FadeIn>
