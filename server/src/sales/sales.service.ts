@@ -85,41 +85,40 @@ export class SalesService {
       orders: c._count.id,
     }));
 
-    // Build a 6-month series (including current month) for monthly trends
+    // Single raw SQL query instead of 6 individual month queries
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+
+    const rows = await this.prisma.$queryRawUnsafe(
+      `SELECT date_trunc('month', "saleDate") as month,
+              COUNT(id)::bigint as invoices,
+              SUM("totalAmount")::text as revenue
+       FROM sales
+       WHERE "companyId" = $1 AND "saleDate" >= $2 AND status != 'CANCELLED'
+       GROUP BY date_trunc('month', "saleDate") ORDER BY month`,
+      companyId, sixMonthsAgo,
+    ) as Array<{ month: Date; invoices: bigint; revenue: string | null }>;
+
+    const rowMap = new Map<number, { invoices: number; revenue: number }>();
+    for (const r of rows) {
+      rowMap.set(r.month.getTime(), { invoices: Number(r.invoices), revenue: Number(r.revenue) });
+    }
+
     const months = Array.from({ length: 6 }).map((_, i) => {
       const d = new Date();
       d.setMonth(d.getMonth() - (5 - i));
       return new Date(d.getFullYear(), d.getMonth(), 1);
     });
 
-    const monthlyQueries = months.map((m) => {
-      const start = new Date(m.getFullYear(), m.getMonth(), 1);
-      const end = new Date(
-        m.getFullYear(),
-        m.getMonth() + 1,
-        0,
-        23,
-        59,
-        59,
-        999,
-      );
-      return this.prisma.sale.aggregate({
-        where: {
-          companyId,
-          saleDate: { gte: start, lte: end },
-          status: { not: 'CANCELLED' },
-        },
-        _count: { id: true },
-        _sum: { totalAmount: true },
-      });
+    const monthlySeries = months.map((m) => {
+      const r = rowMap.get(m.getTime());
+      return {
+        month: m.toLocaleString('default', { month: 'short' }),
+        invoices: r ? Number(r.invoices) : 0,
+        revenue: r ? Number(r.revenue) : 0,
+      };
     });
-
-    const monthAggs = await Promise.all(monthlyQueries);
-    const monthlySeries = monthAggs.map((mAgg, idx) => ({
-      month: months[idx].toLocaleString('default', { month: 'short' }),
-      invoices: mAgg._count.id || 0,
-      revenue: Number(mAgg._sum.totalAmount || 0),
-    }));
 
     // previous month metrics for percent change calculations
     const prevMonthIndex = monthlySeries.length - 2;

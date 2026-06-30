@@ -47,38 +47,30 @@ export class PurchasesService {
       count: s._count.id,
     }));
 
-    // Build a 6-month series for purchases
+    // Single raw SQL query instead of 6 individual month queries
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+
+    const rows = await this.prisma.$queryRawUnsafe(
+      `SELECT date_trunc('month', "orderDate") as month, SUM("totalAmount")::text as total
+       FROM purchase_orders
+       WHERE "companyId" = $1 AND "orderDate" >= $2 AND status != 'CANCELLED'
+       GROUP BY date_trunc('month', "orderDate") ORDER BY month`,
+      companyId, sixMonthsAgo,
+    ) as Array<{ month: Date; total: string | null }>;
+
+    const rowMap = new Map<number, number>(rows.map((r) => [r.month.getTime(), Number(r.total || 0)]));
+
     const months = Array.from({ length: 6 }).map((_, i) => {
       const d = new Date();
       d.setMonth(d.getMonth() - (5 - i));
       return new Date(d.getFullYear(), d.getMonth(), 1);
     });
 
-    const monthlyQueries = months.map((m) => {
-      const start = new Date(m.getFullYear(), m.getMonth(), 1);
-      const end = new Date(
-        m.getFullYear(),
-        m.getMonth() + 1,
-        0,
-        23,
-        59,
-        59,
-        999,
-      );
-      return this.prisma.purchaseOrder.aggregate({
-        where: {
-          companyId,
-          orderDate: { gte: start, lte: end },
-          status: { not: 'CANCELLED' },
-        },
-        _sum: { totalAmount: true },
-      });
-    });
-
-    const monthAggs = await Promise.all(monthlyQueries);
-    const monthlySeries = monthAggs.map((mAgg, idx) => ({
-      month: months[idx].toLocaleString('default', { month: 'short' }),
-      total: Number(mAgg._sum.totalAmount || 0),
+    const monthlySeries = months.map((m) => ({
+      month: m.toLocaleString('default', { month: 'short' }),
+      total: rowMap.get(m.getTime()) || 0,
     }));
 
     return { topSuppliers, monthlySeries };

@@ -263,50 +263,37 @@ export class DashboardService {
     start: Date,
     end: Date,
   ): Promise<SalesPurchaseChartItem[]> {
+    const rows = await Promise.all([
+      this.prisma.$queryRawUnsafe(
+        `SELECT date_trunc('month', "saleDate") as month, SUM("totalAmount") as total
+         FROM sales
+         WHERE "companyId" = $1 AND "saleDate" >= $2 AND "saleDate" <= $3 AND status != 'CANCELLED'
+         GROUP BY date_trunc('month', "saleDate") ORDER BY month`,
+        companyId, start, end,
+      ),
+      this.prisma.$queryRawUnsafe(
+        `SELECT date_trunc('month', "orderDate") as month, SUM("totalAmount") as total
+         FROM purchase_orders
+         WHERE "companyId" = $1 AND "orderDate" >= $2 AND "orderDate" <= $3 AND status != 'CANCELLED'
+         GROUP BY date_trunc('month', "orderDate") ORDER BY month`,
+        companyId, start, end,
+      ),
+    ]) as [Array<{ month: Date; total: string | null }>, Array<{ month: Date; total: string | null }>];
+
+    const saleMap = new Map<number, number>(rows[0].map((r) => [r.month.getTime(), Number(r.total || 0)]));
+    const purchaseMap = new Map<number, number>(rows[1].map((r) => [r.month.getTime(), Number(r.total || 0)]));
+
     const months: SalesPurchaseChartItem[] = [];
     const iter = new Date(start.getFullYear(), start.getMonth(), 1);
-
     while (iter <= end) {
-      const monthStart = new Date(iter.getFullYear(), iter.getMonth(), 1);
-      const monthEnd = new Date(
-        iter.getFullYear(),
-        iter.getMonth() + 1,
-        0,
-        23,
-        59,
-        59,
-        999,
-      );
-      const label = monthStart.toLocaleString('default', { month: 'short' });
-
-      const [saleAgg, purchaseAgg] = await Promise.all([
-        this.prisma.sale.aggregate({
-          where: {
-            companyId,
-            saleDate: { gte: monthStart, lte: monthEnd },
-            status: { not: 'CANCELLED' },
-          },
-          _sum: { totalAmount: true },
-        }),
-        this.prisma.purchaseOrder.aggregate({
-          where: {
-            companyId,
-            orderDate: { gte: monthStart, lte: monthEnd },
-            status: { not: 'CANCELLED' },
-          },
-          _sum: { totalAmount: true },
-        }),
-      ]);
-
+      const ts = iter.getTime();
       months.push({
-        month: label,
-        purchase: Number(purchaseAgg._sum.totalAmount || 0),
-        sales: Number(saleAgg._sum.totalAmount || 0),
+        month: iter.toLocaleString('default', { month: 'short' }),
+        purchase: purchaseMap.get(ts) ?? 0,
+        sales: saleMap.get(ts) ?? 0,
       });
-
       iter.setMonth(iter.getMonth() + 1);
     }
-
     return months;
   }
 

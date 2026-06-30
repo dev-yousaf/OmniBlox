@@ -626,6 +626,7 @@ export class ProductService {
     const inventory = await this.prisma.inventory.findMany({
       where: { product: { companyId } },
       include: { product: { include: { category: true } }, warehouse: true },
+      take: 5000,
     });
 
     // Aggregate stock per product
@@ -663,10 +664,13 @@ export class ProductService {
 
     const stockOverviewByCategory = Array.from(stockByCategoryMap.values());
 
-    // Best sellers: compute revenue per product from sale items
+    // Best sellers: compute revenue per product from recent sale items only
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     const saleItems = await this.prisma.saleItem.findMany({
-      where: { sale: { companyId } },
+      where: { sale: { companyId, saleDate: { gte: oneYearAgo } } },
       include: { product: true },
+      take: 5000,
     });
 
     const revenueByProduct = new Map<
@@ -798,7 +802,7 @@ export class ProductService {
     const products = await this.prisma.product.findMany({
       where: {
         status: 'ACTIVE',
-        companyId, // Golden Rule: always filter by companyId
+        companyId,
       },
       include: {
         category: true,
@@ -809,6 +813,7 @@ export class ProductService {
           },
         },
       },
+      take: 200,
     });
 
     // Filter products where total stock is less than or equal to reorder level
@@ -834,24 +839,24 @@ export class ProductService {
     page = 1,
     limit = 10,
   ): Promise<{ items: LowStockDetailItem[]; total: number; pages: number }> {
-    const skip = (page - 1) * limit;
+    const maxLimit = Math.min(limit, 100);
+
+    const skip = (page - 1) * maxLimit;
 
     const allProducts = await this.prisma.product.findMany({
       where: { status: 'ACTIVE', companyId },
       include: {
         category: true,
         brand: true,
-        inventory: {
-          include: { warehouse: true },
-        },
+        inventory: { include: { warehouse: true } },
       },
+      take: 2000,
     });
 
     const items: LowStockDetailItem[] = [];
     for (const product of allProducts) {
       for (const inv of product.inventory) {
-        const reorderLevel = product.reorderLevel;
-        if (inv.quantity <= reorderLevel) {
+        if (inv.quantity <= product.reorderLevel) {
           items.push({
             productId: product.id,
             productName: product.name,
@@ -869,9 +874,9 @@ export class ProductService {
     }
 
     const total = items.length;
-    const paged = items.slice(skip, skip + limit);
+    const paged = items.slice(skip, skip + maxLimit);
 
-    return { items: paged, total, pages: Math.ceil(total / limit) };
+    return { items: paged, total, pages: Math.ceil(total / maxLimit) };
   }
 
   async getExpiredProducts(
@@ -937,19 +942,24 @@ export class ProductService {
   }
 
   async getStats(companyId: string) {
-    const products = await this.prisma.product.findMany({
-      where: { companyId }, // Golden Rule: always filter by companyId
-      include: {
-        inventory: true,
-      },
-    });
+    const [totalProducts, productsWithStock] = await Promise.all([
+      this.prisma.product.count({ where: { companyId } }),
+      this.prisma.product.findMany({
+        where: { companyId },
+        select: {
+          id: true,
+          salePrice: true,
+          reorderLevel: true,
+          inventory: { select: { quantity: true } },
+        },
+        take: 2000,
+      }),
+    ]);
 
-    const totalProducts = products.length;
     let totalValue = 0;
     let lowStockCount = 0;
 
-    for (const product of products) {
-      // Calculate total stock across all warehouses for this product
+    for (const product of productsWithStock) {
       const totalStock = product.inventory.reduce(
         (sum, inv) => sum + inv.quantity,
         0,
