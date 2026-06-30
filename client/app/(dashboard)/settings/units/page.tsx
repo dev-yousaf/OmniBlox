@@ -41,6 +41,7 @@ export default function UnitsPage() {
 
   const [items, setItems] = useState<Unit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -67,8 +68,9 @@ export default function UnitsPage() {
   useEffect(() => { load(); }, []);
 
   const load = async () => {
+    setError(null);
     try { setIsLoading(true); setItems(await api.getUnits()); }
-    catch (err: any) { toast({ title: "Error", description: err.message || "Failed to load", variant: "destructive" }); }
+    catch (err: any) { setError(err?.message || "Failed to load units."); }
     finally { setIsLoading(false); }
   };
 
@@ -218,6 +220,8 @@ export default function UnitsPage() {
         {/* Table Content */}
         {isLoading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+        ) : error ? (
+          <div className="flex items-center justify-center py-16 text-destructive"><p>{error}</p></div>
         ) : paged.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">No units found.</div>
         ) : (

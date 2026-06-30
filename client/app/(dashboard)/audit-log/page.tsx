@@ -44,6 +44,7 @@ export default function AuditLogPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const limit = 50;
   const totalPages = Math.ceil(total / limit);
@@ -51,11 +52,13 @@ export default function AuditLogPage() {
   const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
+      setError(null);
       const data = await get(`/audit-logs?page=${page}&limit=${limit}`) as AuditLogResponse;
       setLogs(data.logs || []);
       setTotal(data.total || 0);
     } catch {
       setLogs([]);
+      setError("Failed to load audit logs.");
     } finally {
       setLoading(false);
     }
@@ -107,6 +110,8 @@ export default function AuditLogPage() {
       <div className="border rounded-[5px] bg-card shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        ) : error ? (
+          <div className="flex items-center justify-center py-16 text-destructive"><p>{error}</p></div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center text-muted-foreground">
             <History className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />

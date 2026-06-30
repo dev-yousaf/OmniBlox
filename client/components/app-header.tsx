@@ -3,7 +3,6 @@
 import {
   Search,
   Command,
-  Globe,
   Maximize2,
   Settings,
   LogOut,
@@ -16,7 +15,6 @@ import {
   Users,
   Building,
   Calculator,
-  Check,
   Loader2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -31,12 +29,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
 
@@ -68,40 +66,70 @@ function ThemeToggleIcon() {
 
 function CalculatorPopover() {
   const [display, setDisplay] = useState("0");
-  const [prev, setPrev] = useState<number | null>(null);
-  const [op, setOp] = useState<string | null>(null);
-  const [reset, setReset] = useState(false);
+  const [prevValue, setPrevValue] = useState<number | null>(null);
+  const [pendingOp, setPendingOp] = useState<string | null>(null);
+  const [waiting, setWaiting] = useState(false);
 
-  const press = (val: string) => {
-    if (reset) { setDisplay(val); setReset(false); return; }
-    setDisplay((d) => (d === "0" ? val : d + val));
-  };
-
-  const operation = (nextOp: string) => {
-    setPrev(parseFloat(display));
-    setOp(nextOp);
-    setReset(true);
-  };
-
-  const calculate = () => {
-    if (prev === null || !op) return;
-    const curr = parseFloat(display);
-    let result = 0;
+  const compute = (a: number, b: number, op: string): number => {
     switch (op) {
-      case "+": result = prev + curr; break;
-      case "-": result = prev - curr; break;
-      case "*": result = prev * curr; break;
-      case "/": result = curr !== 0 ? prev / curr : 0; break;
+      case "+": return a + b;
+      case "-": return a - b;
+      case "*": return a * b;
+      case "/": return b !== 0 ? a / b : 0;
+      case "%": return a % b;
+      default: return b;
     }
-    setDisplay(String(result));
-    setPrev(null);
-    setOp(null);
-    setReset(true);
   };
 
-  const clear = () => { setDisplay("0"); setPrev(null); setOp(null); setReset(false); };
+  const inputDigit = (d: string) => {
+    if (waiting) {
+      setDisplay(d);
+      setWaiting(false);
+    } else {
+      setDisplay((prev) => (prev === "0" ? d : prev + d));
+    }
+  };
 
-  const btnClass = "h-8 w-8 text-xs font-medium rounded-md border border-border bg-card hover:bg-muted cursor-pointer flex items-center justify-center";
+  const inputDecimal = () => {
+    if (waiting) {
+      setDisplay("0.");
+      setWaiting(false);
+    } else {
+      setDisplay((prev) => (prev.includes(".") ? prev : prev + "."));
+    }
+  };
+
+  const handleOperator = (op: string) => {
+    const curr = parseFloat(display);
+    if (prevValue !== null && pendingOp && !waiting) {
+      const result = compute(prevValue, curr, pendingOp);
+      setDisplay(String(result));
+      setPrevValue(result);
+    } else {
+      setPrevValue(curr);
+    }
+    setPendingOp(op);
+    setWaiting(true);
+  };
+
+  const handleEquals = () => {
+    if (prevValue === null || !pendingOp) return;
+    const curr = parseFloat(display);
+    const result = compute(prevValue, curr, pendingOp);
+    setDisplay(String(result));
+    setPrevValue(null);
+    setPendingOp(null);
+    setWaiting(true);
+  };
+
+  const clear = () => {
+    setDisplay("0");
+    setPrevValue(null);
+    setPendingOp(null);
+    setWaiting(false);
+  };
+
+  const btnClass = "h-8 w-8 text-xs font-medium rounded-md border border-border bg-card hover:bg-muted cursor-pointer flex items-center justify-center select-none";
 
   return (
     <Popover>
@@ -110,17 +138,22 @@ function CalculatorPopover() {
           <Calculator className="h-4 w-4" />
         </div>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[180px] p-2">
+      <PopoverContent align="end" className="w-[192px] p-2">
         <div className="bg-muted rounded-md px-2 py-1 text-right text-sm font-mono mb-2 min-h-[28px]">{display}</div>
         <div className="grid grid-cols-4 gap-1">
-          {["7","8","9","/","4","5","6","*","1","2","3","-","0",".","=","+"].map((k) => (
+          {["7","8","9","/","4","5","6","*","1","2","3","-","0",".","C","=","+","%"].map((k) =>
             k === "=" ? (
-              <div key={k} className={`${btnClass} bg-primary text-primary-foreground`} onClick={calculate}>{k}</div>
+              <div key={k} className={`${btnClass} bg-primary text-primary-foreground row-span-2 h-[68px]`} onClick={handleEquals}>{k}</div>
+            ) : k === "C" ? (
+              <div key={k} className={`${btnClass} text-destructive`} onClick={clear}>{k}</div>
+            ) : ["/","*","-","+","%"].includes(k) ? (
+              <div key={k} className={btnClass} onClick={() => handleOperator(k)}>{k}</div>
+            ) : k === "." ? (
+              <div key={k} className={btnClass} onClick={inputDecimal}>{k}</div>
             ) : (
-              <div key={k} className={btnClass} onClick={() => ["/","*","-","+"].includes(k) ? operation(k) : press(k)}>{k}</div>
+              <div key={k} className={btnClass} onClick={() => inputDigit(k)}>{k}</div>
             )
-          ))}
-          <div className={`${btnClass} col-span-4 text-[10px] text-muted-foreground`} onClick={clear}>C</div>
+          )}
         </div>
       </PopoverContent>
     </Popover>
@@ -209,23 +242,6 @@ export function AppHeader(_props: AppHeaderProps) {
 
         {/* Icon Group */}
         <div className="flex items-center gap-2">
-          {/* Language */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-header-icon-bg text-header-icon-color cursor-pointer">
-                <Globe className="h-4 w-4" />
-              </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Language</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem><Check className="h-4 w-4 mr-2" />English</DropdownMenuItem>
-              <DropdownMenuItem><Globe className="h-4 w-4 mr-2" />Spanish</DropdownMenuItem>
-              <DropdownMenuItem><Globe className="h-4 w-4 mr-2" />French</DropdownMenuItem>
-              <DropdownMenuItem><Globe className="h-4 w-4 mr-2" />German</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
           {/* Fullscreen */}
           <div
             className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-header-icon-bg text-header-icon-color cursor-pointer"
@@ -258,10 +274,6 @@ export function AppHeader(_props: AppHeaderProps) {
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/settings" className="cursor-pointer"><Settings className="h-4 w-4 mr-2" />Settings</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Globe className="h-4 w-4 mr-2" />
-                Language
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout}>

@@ -5,11 +5,20 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
 import { CreateStockAdjustmentDto } from './dto/create-stock-adjustment.dto';
 import { StockAdjustmentResponseDto } from './dto/stock-adjustment-response.dto';
+
+const LIST_KEY = (cid: string, page = 1, search?: string, category?: string, status?: string, wid?: string) =>
+  `products:${cid}:list:${page}:${search ?? ''}:${category ?? ''}:${status ?? ''}:${wid ?? ''}`;
+const ITEM_KEY = (cid: string, id: string) => `products:${cid}:${id}`;
+const SKU_KEY = (cid: string, sku: string) => `products:${cid}:sku:${sku}`;
+const STATS_KEY = (cid: string) => `products:${cid}:stats`;
+const LOW_STOCK_KEY = (cid: string) => `products:${cid}:lowstock`;
+const ADJ_LIST_KEY = (cid: string) => `products:${cid}:adjustments`;
 
 export interface LowStockDetailItem {
   productId: string;
@@ -26,7 +35,10 @@ export interface LowStockDetailItem {
 
 @Injectable()
 export class ProductService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cache: CacheService,
+  ) {}
 
   async create(
     createProductDto: CreateProductDto,
@@ -226,6 +238,8 @@ export class ProductService {
         });
       }
 
+      await this.cache.del(LIST_KEY(companyId));
+
       return this.transformToDto(product, stock);
     } catch (error: any) {
       throw new BadRequestException(
@@ -243,6 +257,10 @@ export class ProductService {
     status?: string,
     warehouseId?: string,
   ): Promise<{ products: ProductResponseDto[]; total: number; pages: number }> {
+    const cacheKey = LIST_KEY(companyId, page, search, category, status, warehouseId);
+    const cached = await this.cache.get<{ products: ProductResponseDto[]; total: number; pages: number }>(cacheKey);
+    if (cached) return cached;
+
     const skip = (page - 1) * limit;
 
     const where: any = {
@@ -313,7 +331,7 @@ export class ProductService {
       this.prisma.product.count({ where }),
     ]);
 
-    return {
+    const result = {
       products: products.map((product) => {
         let stock: number;
         if (warehouseId) {
@@ -329,31 +347,26 @@ export class ProductService {
       total,
       pages: Math.ceil(total / limit),
     };
+
+    await this.cache.set(cacheKey, result, 60 * 2);
+    return result;
   }
 
   async findOne(id: string, companyId: string): Promise<ProductResponseDto> {
+    const cacheKey = ITEM_KEY(companyId, id);
+    const cached = await this.cache.get<ProductResponseDto>(cacheKey);
+    if (cached) return cached;
+
     const product = await this.prisma.product.findFirst({
-      where: {
-        id,
-        companyId, // Golden Rule: always filter by companyId
-      },
+      where: { id, companyId },
       include: {
         category: true,
         brand: true,
-        inventory: {
-          include: {
-            warehouse: true,
-          },
-        },
+        inventory: { include: { warehouse: true } },
         variants: {
           include: {
-            category: true,
-            brand: true,
-            inventory: {
-              include: {
-                warehouse: true,
-              },
-            },
+            category: true, brand: true,
+            inventory: { include: { warehouse: true } },
           },
         },
       },
@@ -364,26 +377,23 @@ export class ProductService {
     }
 
     const totalStock = product.inventory.reduce(
-      (sum, inv) => sum + inv.quantity,
-      0,
+      (sum, inv) => sum + inv.quantity, 0,
     );
-    return this.transformToDto(product, totalStock);
+    const data = this.transformToDto(product, totalStock);
+    await this.cache.set(cacheKey, data, 60 * 2);
+    return data;
   }
 
   async findBySku(sku: string, companyId: string): Promise<ProductResponseDto> {
+    const cacheKey = SKU_KEY(companyId, sku);
+    const cached = await this.cache.get<ProductResponseDto>(cacheKey);
+    if (cached) return cached;
+
     const product = await this.prisma.product.findFirst({
-      where: {
-        sku,
-        companyId, // Golden Rule: always filter by companyId
-      },
+      where: { sku, companyId },
       include: {
-        category: true,
-        brand: true,
-        inventory: {
-          include: {
-            warehouse: true,
-          },
-        },
+        category: true, brand: true,
+        inventory: { include: { warehouse: true } },
       },
     });
 
@@ -392,10 +402,11 @@ export class ProductService {
     }
 
     const totalStock = product.inventory.reduce(
-      (sum, inv) => sum + inv.quantity,
-      0,
+      (sum, inv) => sum + inv.quantity, 0,
     );
-    return this.transformToDto(product, totalStock);
+    const data = this.transformToDto(product, totalStock);
+    await this.cache.set(cacheKey, data, 60 * 2);
+    return data;
   }
 
   async update(
@@ -444,6 +455,7 @@ export class ProductService {
         comboItems,
         manufacturedDate,
         expiryDate,
+        subCategory: updateSubCategory,
         ...productData
       } = updateProductDto;
       const updateData: any = { ...productData };
@@ -498,6 +510,18 @@ export class ProductService {
         updateData.warrantyId = warrantyRecord?.id || null;
       }
 
+      if (updateSubCategory !== undefined) {
+        if (updateSubCategory === null || updateSubCategory === '') {
+          updateData.subCategoryId = null;
+        } else {
+          const subCatRecord = await this.prisma.subCategory.findFirst({
+            where: { name: updateSubCategory, companyId },
+          });
+          updateData.subCategoryId = subCatRecord?.id ?? null;
+        }
+      }
+      delete updateData.subCategory;
+
       // Handle combo items update
       if (comboItems !== undefined) {
         const comboProductIds = comboItems.map((i) => i.productId);
@@ -522,6 +546,12 @@ export class ProductService {
           });
         }
       }
+
+      await Promise.all([
+        this.cache.del(LIST_KEY(companyId)),
+        this.cache.del(ITEM_KEY(companyId, id)),
+        this.cache.del(STATS_KEY(companyId)),
+      ]);
 
       const product = await this.prisma.product.update({
         where: { id },
@@ -586,6 +616,12 @@ export class ProductService {
     }
 
     try {
+      await Promise.all([
+        this.cache.del(LIST_KEY(companyId)),
+        this.cache.del(ITEM_KEY(companyId, id)),
+        this.cache.del(STATS_KEY(companyId)),
+      ]);
+
       await this.prisma.$transaction([
         this.prisma.inventory.deleteMany({
           where: { productId: id },
@@ -617,6 +653,10 @@ export class ProductService {
    * Dashboard-specific aggregations for products
    */
   async getDashboardStats(companyId: string) {
+    const cacheKey = STATS_KEY(companyId);
+    const cached = await this.cache.get(cacheKey);
+    if (cached) return cached;
+
     // 1. Total active products
     const totalProducts = await this.prisma.product.count({
       where: { companyId, status: 'ACTIVE' },
@@ -701,12 +741,9 @@ export class ProductService {
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
 
-    return {
-      totalProducts,
-      lowStockCount,
-      stockOverviewByCategory,
-      bestSellers,
-    };
+    const result = { totalProducts, lowStockCount, stockOverviewByCategory, bestSellers };
+    await this.cache.set(cacheKey, result, 60 * 2);
+    return result;
   }
 
   async updateStock(

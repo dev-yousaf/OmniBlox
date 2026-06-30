@@ -33,13 +33,14 @@ export function useCustomerDetail(id: string | null): UseCustomerDetailState {
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [sales, setSales] = useState<SaleSummary[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!id) {
       setCustomer(null);
       setSales([]);
+      setLoading(false);
       return;
     }
 

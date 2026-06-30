@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 import { AuditLogService } from '../audit-logs/audit-logs.service';
 import { CreateSaleDto, CreateSaleItemDto } from './dto/create-sale.dto';
 import { UpdateSaleDto } from './dto/update-sale.dto';
@@ -17,10 +18,17 @@ import {
   SalesStatsDto,
 } from './dto/sale-response.dto';
 
+const LIST_KEY = (cid: string, page?: number, search?: string, status?: string, paymentStatus?: string, wid?: string, dateFrom?: string, dateTo?: string, productId?: string) =>
+  `sales:${cid}:list:${page ?? 1}:${search ?? ''}:${status ?? ''}:${paymentStatus ?? ''}:${wid ?? ''}:${dateFrom ?? ''}:${dateTo ?? ''}:${productId ?? ''}`;
+const ITEM_KEY = (cid: string, id: string) => `sales:${cid}:${id}`;
+const STATS_KEY = (cid: string) => `sales:${cid}:stats`;
+const DASHBOARD_KEY = (cid: string) => `sales:${cid}:dashboard`;
+
 @Injectable()
 export class SalesService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
     private readonly auditLogService: AuditLogService,
   ) {}
 
@@ -28,6 +36,9 @@ export class SalesService {
    * Dashboard-specific sales aggregations
    */
   async getDashboardStats(companyId: string) {
+    const cacheKey = DASHBOARD_KEY(companyId);
+    const cached = await this.cache.get(cacheKey);
+    if (cached) return cached;
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(
@@ -127,7 +138,7 @@ export class SalesService {
       revenue: 0,
     };
 
-    return {
+    const result = {
       invoicesThisMonth,
       totalRevenue,
       topCustomers,
@@ -137,6 +148,8 @@ export class SalesService {
         revenue: prevMonth.revenue,
       },
     };
+    await this.cache.set(cacheKey, result, 60 * 2);
+    return result;
   }
 
   async create(
@@ -355,6 +368,12 @@ export class SalesService {
       /* non-critical */
     }
 
+    await Promise.all([
+      this.cache.del(LIST_KEY(companyId)),
+      this.cache.del(STATS_KEY(companyId)),
+      this.cache.del(DASHBOARD_KEY(companyId)),
+    ]);
+
     return result;
   }
 
@@ -370,6 +389,9 @@ export class SalesService {
     dateTo?: string,
     productId?: string,
   ): Promise<SalesListResponseDto> {
+    const cacheKey = LIST_KEY(companyId, page, search, status, paymentStatus, warehouseId, dateFrom, dateTo, productId);
+    const cached = await this.cache.get<SalesListResponseDto>(cacheKey);
+    if (cached) return cached;
     const skip = (page - 1) * limit;
     const where: Record<string, unknown> = { companyId };
 
@@ -451,7 +473,7 @@ export class SalesService {
         completedMap.set(r.saleId, (completedMap.get(r.saleId) ?? 0) + 1);
     }
 
-    return {
+    const result = {
       sales: sales.map((sale) =>
         this.transformSaleSummary(sale, {
           pendingReturnCount: pendingMap.get(sale.id) ?? 0,
@@ -462,9 +484,14 @@ export class SalesService {
       total,
       pages: limit === 0 ? 1 : Math.max(1, Math.ceil(total / limit)),
     };
+    await this.cache.set(cacheKey, result, 60 * 2);
+    return result;
   }
 
   async findOne(id: string, companyId: string): Promise<SaleResponseDto> {
+    const cacheKey = ITEM_KEY(companyId, id);
+    const cached = await this.cache.get<SaleResponseDto>(cacheKey);
+    if (cached) return cached;
     const sale = await this.prisma.sale.findUnique({
       where: { id, companyId },
       include: {
@@ -490,7 +517,9 @@ export class SalesService {
         .length,
     };
 
-    return this.transformSale(sale, returnCounts);
+    const result = this.transformSale(sale, returnCounts);
+    await this.cache.set(cacheKey, result, 60 * 2);
+    return result;
   }
 
   update(
@@ -708,6 +737,12 @@ export class SalesService {
           }
         }
 
+        await Promise.all([
+          this.cache.del(ITEM_KEY(companyId, id)),
+          this.cache.del(LIST_KEY(companyId)),
+          this.cache.del(STATS_KEY(companyId)),
+          this.cache.del(DASHBOARD_KEY(companyId)),
+        ]);
         return this.transformSale(updated);
       },
       { timeout: 20000 },
@@ -755,6 +790,13 @@ export class SalesService {
       },
       { timeout: 20000 },
     );
+
+    await Promise.all([
+      this.cache.del(ITEM_KEY(companyId, id)),
+      this.cache.del(LIST_KEY(companyId)),
+      this.cache.del(STATS_KEY(companyId)),
+      this.cache.del(DASHBOARD_KEY(companyId)),
+    ]);
   }
 
   async markAsPaid(
@@ -843,10 +885,20 @@ export class SalesService {
       /* non-critical */
     }
 
+    await Promise.all([
+      this.cache.del(ITEM_KEY(companyId, id)),
+      this.cache.del(LIST_KEY(companyId)),
+      this.cache.del(STATS_KEY(companyId)),
+      this.cache.del(DASHBOARD_KEY(companyId)),
+    ]);
+
     return result;
   }
 
   async getStats(companyId: string): Promise<SalesStatsDto> {
+    const cacheKey = STATS_KEY(companyId);
+    const cached = await this.cache.get<SalesStatsDto>(cacheKey);
+    if (cached) return cached;
     const now = new Date();
     const [
       totalSales,
@@ -889,7 +941,7 @@ export class SalesService {
       }),
     ]);
 
-    return {
+    const result = {
       totalSales,
       totalRevenue: this.decimalToNumber(paidAmount._sum.totalAmount),
       pendingAmount: this.decimalToNumber(pendingAmount._sum.totalAmount),
@@ -898,6 +950,8 @@ export class SalesService {
       pendingInvoices,
       overdueInvoices,
     };
+    await this.cache.set(cacheKey, result, 60 * 5);
+    return result;
   }
 
   private async ensureInvoiceNumber(

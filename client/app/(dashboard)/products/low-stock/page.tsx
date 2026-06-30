@@ -75,6 +75,7 @@ export default function LowStockPage() {
 
   const [items, setItems] = useState<LowStockDetailItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -94,16 +95,17 @@ export default function LowStockPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
+      setError(null);
       const data = await getLowStockDetails({ page, limit: pageSize });
       setItems(data.items);
       setTotalPages(data.pages);
       setTotal(data.total);
     } catch {
-      toast({ title: "Error", description: "Failed to load low stock products", variant: "destructive" });
+      setError("Failed to load low stock products.");
     } finally {
       setLoading(false);
     }
-  }, [page, getLowStockDetails, toast]);
+  }, [page, getLowStockDetails]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -255,6 +257,8 @@ export default function LowStockPage() {
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
+        ) : error ? (
+          <div className="flex items-center justify-center py-16 text-destructive"><p>{error}</p></div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
             <Package className="w-12 h-12 mb-3" />

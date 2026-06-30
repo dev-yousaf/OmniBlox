@@ -5,21 +5,32 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-logs/audit-logs.service';
+import { CacheService } from '../cache/cache.service';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
+
+const LIST_KEY = (cid: string) => `purchases:${cid}:list`;
+const ITEM_KEY = (cid: string, id: string) => `purchases:${cid}:${id}`;
+const STATS_KEY = (cid: string) => `purchases:${cid}:stats`;
+const DASHBOARD_KEY = (cid: string) => `purchases:${cid}:dashboard`;
 
 @Injectable()
 export class PurchasesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLogService: AuditLogService,
+    private cache: CacheService,
   ) {}
 
   /**
    * Dashboard-specific purchase aggregations
    */
   async getDashboardStats(companyId: string) {
+    const key = DASHBOARD_KEY(companyId);
+    const cached = await this.cache.get(key);
+    if (cached) return cached;
+
     const topSuppliersData = await this.prisma.purchaseOrder.groupBy({
       by: ['supplierId'],
       where: { companyId },
@@ -73,7 +84,9 @@ export class PurchasesService {
       total: rowMap.get(m.getTime()) || 0,
     }));
 
-    return { topSuppliers, monthlySeries };
+    const result = { topSuppliers, monthlySeries };
+    await this.cache.set(key, result, 120);
+    return result;
   }
 
   async create(dto: CreatePurchaseOrderDto, userId: string, companyId: string) {
@@ -157,6 +170,10 @@ export class PurchasesService {
       },
     });
 
+    this.cache.del(LIST_KEY(companyId));
+    this.cache.del(DASHBOARD_KEY(companyId));
+    this.cache.del(STATS_KEY(companyId));
+
     try {
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
@@ -185,6 +202,10 @@ export class PurchasesService {
   }
 
   async findAll(companyId: string) {
+    const key = LIST_KEY(companyId);
+    const cached = await this.cache.get(key);
+    if (cached) return cached;
+
     const purchases = await this.prisma.purchaseOrder.findMany({
       where: { companyId },
       include: {
@@ -250,16 +271,22 @@ export class PurchasesService {
         );
     }
 
-    return purchases.map((p) =>
+    const result = purchases.map((p) =>
       this.transformPurchaseSummary(p, {
         pendingReturnCount: pendingMap.get(p.id) ?? 0,
         processingReturnCount: processingMap.get(p.id) ?? 0,
         completedReturnCount: completedMap.get(p.id) ?? 0,
       }),
     );
+    await this.cache.set(key, result, 120);
+    return result;
   }
 
   async findOne(id: string, companyId: string) {
+    const key = ITEM_KEY(companyId, id);
+    const cached = await this.cache.get(key);
+    if (cached) return cached;
+
     const purchaseOrder = await this.prisma.purchaseOrder.findFirst({
       where: { id, companyId },
       include: {
@@ -313,7 +340,9 @@ export class PurchasesService {
         .length,
     };
 
-    return this.transformPurchase(purchaseOrder, returnCounts);
+    const result = this.transformPurchase(purchaseOrder, returnCounts);
+    await this.cache.set(key, result, 120);
+    return result;
   }
 
   async receive(
@@ -470,6 +499,11 @@ export class PurchasesService {
       // Expense creation is non-critical
     }
 
+    this.cache.del(ITEM_KEY(companyId, result.id));
+    this.cache.del(LIST_KEY(companyId));
+    this.cache.del(DASHBOARD_KEY(companyId));
+    this.cache.del(STATS_KEY(companyId));
+
     try {
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
@@ -526,6 +560,11 @@ export class PurchasesService {
     });
 
     const result = this.transformPurchase(po);
+
+    this.cache.del(ITEM_KEY(companyId, result.id));
+    this.cache.del(LIST_KEY(companyId));
+    this.cache.del(DASHBOARD_KEY(companyId));
+    this.cache.del(STATS_KEY(companyId));
 
     try {
       const user = await this.prisma.user.findUnique({
@@ -650,6 +689,11 @@ export class PurchasesService {
       },
     });
 
+    this.cache.del(ITEM_KEY(companyId, id));
+    this.cache.del(LIST_KEY(companyId));
+    this.cache.del(DASHBOARD_KEY(companyId));
+    this.cache.del(STATS_KEY(companyId));
+
     return this.transformPurchase(purchaseOrder);
   }
 
@@ -669,6 +713,11 @@ export class PurchasesService {
     await this.prisma.purchaseOrder.delete({
       where: { id },
     });
+
+    this.cache.del(ITEM_KEY(companyId, id));
+    this.cache.del(LIST_KEY(companyId));
+    this.cache.del(DASHBOARD_KEY(companyId));
+    this.cache.del(STATS_KEY(companyId));
 
     return { message: 'Purchase order deleted successfully' };
   }

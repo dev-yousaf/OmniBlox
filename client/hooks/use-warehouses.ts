@@ -32,7 +32,6 @@ export function useWarehouses() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      setLoading(false);
       return;
     }
     loadWarehouses();

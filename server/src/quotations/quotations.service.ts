@@ -6,6 +6,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 import { CreateQuotationDto } from './dto/create-quotation.dto';
 import { UpdateQuotationDto } from './dto/update-quotation.dto';
 import { UpdateQuotationStatusDto } from './dto/update-quotation-status.dto';
@@ -15,8 +16,12 @@ import { CreateSaleDto } from '../sales/dto/create-sale.dto';
 
 @Injectable()
 export class QuotationsService {
+  private readonly LIST_KEY = (cid: string) => `quotations:list:${cid}`;
+  private readonly ITEM_KEY = (cid: string, id: string) => `quotations:item:${cid}:${id}`;
+
   constructor(
     private prisma: PrismaService,
+    private cache: CacheService,
     @Inject(forwardRef(() => SalesService))
     private salesService: SalesService,
   ) {}
@@ -40,6 +45,8 @@ export class QuotationsService {
       (sum, item) => sum + item.quantity * item.unitPrice,
       0,
     );
+
+    await this.cache.del(this.LIST_KEY(companyId));
 
     // Create quotation with items in a transaction
     const quotation = await this.prisma.quotation.create({
@@ -86,6 +93,10 @@ export class QuotationsService {
    * Find all quotations for a company
    */
   async findAll(companyId: string) {
+    const cacheKey = this.LIST_KEY(companyId);
+    const cached = await this.cache.get<any[]>(cacheKey);
+    if (cached) return cached;
+
     const quotations = await this.prisma.quotation.findMany({
       where: { companyId },
       include: {
@@ -108,6 +119,7 @@ export class QuotationsService {
       },
     });
 
+    await this.cache.set(cacheKey, quotations, 120);
     return quotations;
   }
 
@@ -115,6 +127,10 @@ export class QuotationsService {
    * Find a single quotation by ID
    */
   async findOne(id: string, companyId: string) {
+    const cacheKey = this.ITEM_KEY(companyId, id);
+    const cached = await this.cache.get<any>(cacheKey);
+    if (cached) return cached;
+
     const quotation = await this.prisma.quotation.findFirst({
       where: {
         id,
@@ -141,6 +157,7 @@ export class QuotationsService {
       throw new NotFoundException(`Quotation with ID ${id} not found`);
     }
 
+    await this.cache.set(cacheKey, quotation, 300);
     return quotation;
   }
 
@@ -215,6 +232,9 @@ export class QuotationsService {
       });
     });
 
+    await this.cache.del(this.LIST_KEY(companyId));
+    await this.cache.del(this.ITEM_KEY(companyId, id));
+
     return quotation;
   }
 
@@ -251,6 +271,9 @@ export class QuotationsService {
       },
     });
 
+    await this.cache.del(this.LIST_KEY(companyId));
+    await this.cache.del(this.ITEM_KEY(companyId, id));
+
     return quotation;
   }
 
@@ -264,6 +287,9 @@ export class QuotationsService {
     await this.prisma.quotation.delete({
       where: { id },
     });
+
+    await this.cache.del(this.LIST_KEY(companyId));
+    await this.cache.del(this.ITEM_KEY(companyId, id));
 
     return { message: 'Quotation deleted successfully' };
   }
@@ -356,6 +382,9 @@ export class QuotationsService {
       companyId,
       quotation.id,
     );
+
+    await this.cache.del(this.LIST_KEY(companyId));
+    await this.cache.del(this.ITEM_KEY(companyId, id));
 
     return {
       sale,

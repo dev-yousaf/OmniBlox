@@ -4,12 +4,19 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 import { CreateSalesReturnDto } from './dto/create-sales-return.dto';
 import { UpdateSalesReturnDto } from './dto/update-sales-return.dto';
 
 @Injectable()
 export class SalesReturnsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly LIST_KEY = (cid: string) => `sales-returns:list:${cid}`;
+  private readonly ITEM_KEY = (cid: string, id: string) => `sales-returns:item:${cid}:${id}`;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private cache: CacheService,
+  ) {}
 
   /**
    * Create a new sales return and update inventory atomically
@@ -73,7 +80,7 @@ export class SalesReturnsService {
     }
 
     // Use transaction to ensure atomicity
-    return await this.prisma.$transaction(
+    const result = await this.prisma.$transaction(
       async (tx) => {
         // Generate unique reference number
         const referenceNumber = `SR-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
@@ -124,13 +131,20 @@ export class SalesReturnsService {
       },
       { timeout: 20000 },
     );
+
+    await this.cache.del(this.LIST_KEY(companyId));
+    return result;
   }
 
   /**
    * Get all sales returns for a company
    */
-  findAll(companyId: string) {
-    return this.prisma.salesReturn.findMany({
+  async findAll(companyId: string) {
+    const cacheKey = this.LIST_KEY(companyId);
+    const cached = await this.cache.get<any[]>(cacheKey);
+    if (cached) return cached;
+
+    const result = await this.prisma.salesReturn.findMany({
       where: { companyId },
       include: {
         items: {
@@ -151,12 +165,19 @@ export class SalesReturnsService {
         createdAt: 'desc',
       },
     });
+
+    await this.cache.set(cacheKey, result, 120);
+    return result;
   }
 
   /**
    * Get a single sales return by ID
    */
   async findOne(id: string, companyId: string) {
+    const cacheKey = this.ITEM_KEY(companyId, id);
+    const cached = await this.cache.get<any>(cacheKey);
+    if (cached) return cached;
+
     const salesReturn = await this.prisma.salesReturn.findFirst({
       where: { id, companyId },
       include: {
@@ -180,6 +201,7 @@ export class SalesReturnsService {
       throw new NotFoundException(`Sales return with ID ${id} not found`);
     }
 
+    await this.cache.set(cacheKey, salesReturn, 300);
     return salesReturn;
   }
 
@@ -190,7 +212,7 @@ export class SalesReturnsService {
     // Get existing sales return
     const existing = await this.findOne(id, companyId);
 
-    return this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.salesReturn.update({
         where: { id },
         data: {
@@ -441,6 +463,10 @@ export class SalesReturnsService {
 
       return updated;
     });
+
+    await this.cache.del(this.LIST_KEY(companyId));
+    await this.cache.del(this.ITEM_KEY(companyId, id));
+    return updated;
   }
 
   /**
@@ -449,6 +475,9 @@ export class SalesReturnsService {
    */
   async remove(id: string, companyId: string) {
     const salesReturn = await this.findOne(id, companyId);
+
+    await this.cache.del(this.LIST_KEY(companyId));
+    await this.cache.del(this.ITEM_KEY(companyId, id));
 
     return await this.prisma.$transaction(async (tx) => {
       // If completed, reverse inventory changes

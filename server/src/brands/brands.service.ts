@@ -4,12 +4,20 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
 
+const CACHE_TTL = 60 * 30;
+const LIST_KEY = (cid: string) => `brands:${cid}:list`;
+const ITEM_KEY = (cid: string, id: string) => `brands:${cid}:${id}`;
+
 @Injectable()
 export class BrandsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cache: CacheService,
+  ) {}
 
   private generateSlug(name: string): string {
     return name
@@ -24,14 +32,12 @@ export class BrandsService {
     const existing = await this.prisma.brand.findFirst({
       where: { name: dto.name, companyId },
     });
-
     if (existing) {
       throw new ConflictException('A brand with this name already exists');
     }
 
     const slug = dto.slug || this.generateSlug(dto.name);
-
-    return this.prisma.brand.create({
+    const brand = await this.prisma.brand.create({
       data: {
         name: dto.name,
         slug,
@@ -41,24 +47,38 @@ export class BrandsService {
         companyId,
       },
     });
+
+    await this.cache.del(LIST_KEY(companyId));
+    return brand;
   }
 
-  findAll(companyId: string) {
-    return this.prisma.brand.findMany({
+  async findAll(companyId: string) {
+    const cacheKey = LIST_KEY(companyId);
+    const cached = await this.cache.get(cacheKey);
+    if (cached) return cached;
+
+    const data = await this.prisma.brand.findMany({
       where: { companyId },
       orderBy: { name: 'asc' },
     });
+
+    await this.cache.set(cacheKey, data, CACHE_TTL);
+    return data;
   }
 
   async findOne(id: string, companyId: string) {
+    const cacheKey = ITEM_KEY(companyId, id);
+    const cached = await this.cache.get(cacheKey);
+    if (cached) return cached;
+
     const brand = await this.prisma.brand.findFirst({
       where: { id, companyId },
     });
-
     if (!brand) {
       throw new NotFoundException('Brand not found');
     }
 
+    await this.cache.set(cacheKey, brand, CACHE_TTL);
     return brand;
   }
 
@@ -69,7 +89,6 @@ export class BrandsService {
       const existing = await this.prisma.brand.findFirst({
         where: { name: dto.name, companyId, id: { not: id } },
       });
-
       if (existing) {
         throw new ConflictException('A brand with this name already exists');
       }
@@ -82,97 +101,58 @@ export class BrandsService {
     if (dto.status !== undefined) data.status = dto.status;
     if (dto.imageUrl !== undefined) data.imageUrl = dto.imageUrl;
 
-    return this.prisma.brand.update({
-      where: { id },
-      data,
-    });
+    const brand = await this.prisma.brand.update({ where: { id }, data });
+
+    await Promise.all([
+      this.cache.del(LIST_KEY(companyId)),
+      this.cache.del(ITEM_KEY(companyId, id)),
+    ]);
+    return brand;
   }
 
   async remove(id: string, companyId: string) {
     await this.findOne(id, companyId);
 
-    const products = await this.prisma.product.findMany({
+    await this.prisma.product.updateMany({
       where: { brandId: id, companyId },
-      select: { id: true, name: true, sku: true },
+      data: { brandId: null },
     });
-
-    if (products.length > 0) {
-      await this.prisma.product.updateMany({
-        where: { brandId: id, companyId },
-        data: { brandId: null },
-      });
-
-      await this.prisma.brand.delete({ where: { id } });
-
-      return {
-        message: 'Brand deleted successfully',
-        affectedProducts: products.map((p) => ({
-          id: p.id,
-          name: p.name,
-          sku: p.sku,
-        })),
-      };
-    }
-
     await this.prisma.brand.delete({ where: { id } });
+
+    await Promise.all([
+      this.cache.del(LIST_KEY(companyId)),
+      this.cache.del(ITEM_KEY(companyId, id)),
+    ]);
 
     return { message: 'Brand deleted successfully', affectedProducts: [] };
   }
 
   async bulkDelete(ids: string[], companyId: string) {
-    const results = {
-      deleted: [] as string[],
-      failed: [] as { id: string; error: string }[],
-      totalAffectedProducts: 0,
-      affectedProductsList: [] as Array<{
-        id: string;
-        name: string;
-        sku: string;
-      }>,
-    };
+    const brands = await this.prisma.brand.findMany({
+      where: { id: { in: ids }, companyId },
+      select: { id: true },
+    });
+    const foundIds = brands.map((b) => b.id);
+    const notFound = ids.filter((id) => !foundIds.includes(id));
 
-    for (const id of ids) {
-      try {
-        const brand = await this.prisma.brand.findFirst({
-          where: { id, companyId },
-        });
-
-        if (!brand) {
-          results.failed.push({
-            id,
-            error: 'Brand not found or access denied',
-          });
-          continue;
-        }
-
-        const products = await this.prisma.product.findMany({
-          where: { brandId: id, companyId },
-          select: { id: true, name: true, sku: true },
-        });
-
-        if (products.length > 0) {
-          await this.prisma.product.updateMany({
-            where: { brandId: id, companyId },
-            data: { brandId: null },
-          });
-
-          results.totalAffectedProducts += products.length;
-          results.affectedProductsList.push(...products);
-        }
-
-        await this.prisma.brand.delete({ where: { id } });
-        results.deleted.push(id);
-      } catch (error) {
-        results.failed.push({
-          id,
-          error: error.message || 'Failed to delete brand',
-        });
-      }
+    if (foundIds.length > 0) {
+      await this.prisma.product.updateMany({
+        where: { brandId: { in: foundIds }, companyId },
+        data: { brandId: null },
+      });
+      await this.prisma.brand.deleteMany({
+        where: { id: { in: foundIds }, companyId },
+      });
     }
 
+    await this.cache.del(LIST_KEY(companyId));
+
     return {
-      message: `Successfully deleted ${results.deleted.length} out of ${ids.length} brands`,
-      ...results,
+      message: `Successfully deleted ${foundIds.length} out of ${ids.length} brands`,
+      deleted: foundIds,
+      failed: notFound.map((id) => ({ id, error: 'Brand not found or access denied' })),
+      totalAffectedProducts: 0,
+      affectedProductsList: [],
     };
   }
 }

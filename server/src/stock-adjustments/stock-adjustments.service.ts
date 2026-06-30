@@ -1,19 +1,26 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 import { CreateStockAdjustmentDto } from './dto/create-stock-adjustment.dto';
 
 @Injectable()
 export class StockAdjustmentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly LIST_KEY = (cid: string) => `stock-adjustments:list:${cid}`;
+  private readonly ITEM_KEY = (cid: string, id: string) => `stock-adjustments:item:${cid}:${id}`;
 
-  create(dto: CreateStockAdjustmentDto, userId: string, companyId: string) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private cache: CacheService,
+  ) {}
+
+  async create(dto: CreateStockAdjustmentDto, userId: string, companyId: string) {
     if (!dto.items?.length) {
       throw new BadRequestException(
         'A stock adjustment must include at least one item',
       );
     }
 
-    return this.prisma.$transaction(
+    const result = await this.prisma.$transaction(
       async (tx) => {
         // Verify warehouse belongs to company
         const warehouse = await tx.warehouse.findUnique({
@@ -141,10 +148,17 @@ export class StockAdjustmentsService {
       },
       { timeout: 20000 },
     );
+
+    await this.cache.del(this.LIST_KEY(companyId));
+    return result;
   }
 
-  findAll(companyId: string) {
-    return this.prisma.stockAdjustment.findMany({
+  async findAll(companyId: string) {
+    const cacheKey = this.LIST_KEY(companyId);
+    const cached = await this.cache.get<any[]>(cacheKey);
+    if (cached) return cached;
+
+    const result = await this.prisma.stockAdjustment.findMany({
       where: { companyId },
       include: {
         items: {
@@ -175,10 +189,17 @@ export class StockAdjustmentsService {
       },
       orderBy: { adjustmentDate: 'desc' },
     });
+
+    await this.cache.set(cacheKey, result, 120);
+    return result;
   }
 
-  findOne(id: string, companyId: string) {
-    return this.prisma.stockAdjustment.findUnique({
+  async findOne(id: string, companyId: string) {
+    const cacheKey = this.ITEM_KEY(companyId, id);
+    const cached = await this.cache.get<any>(cacheKey);
+    if (cached) return cached;
+
+    const result = await this.prisma.stockAdjustment.findUnique({
       where: { id, companyId },
       include: {
         items: {
@@ -208,5 +229,8 @@ export class StockAdjustmentsService {
         },
       },
     });
+
+    await this.cache.set(cacheKey, result, 300);
+    return result;
   }
 }

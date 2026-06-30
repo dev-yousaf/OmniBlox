@@ -64,6 +64,7 @@ export default function CategoriesPage() {
 
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -86,11 +87,12 @@ export default function CategoriesPage() {
 
   const load = async () => {
     try {
+      setError(null);
       setIsLoading(true);
       const data = await getCategories();
       setCategories(data);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to load", variant: "destructive" });
+      setError(err?.message || "Failed to load categories.");
     } finally {
       setIsLoading(false);
     }
@@ -234,6 +236,8 @@ export default function CategoriesPage() {
             <div className="flex justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
+          ) : error ? (
+            <div className="flex items-center justify-center py-16 text-destructive"><p>{error}</p></div>
           ) : sorted.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">No categories found.</div>
           ) : (

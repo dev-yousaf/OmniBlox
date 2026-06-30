@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 import {
   CreateWarehouseDto,
   UpdateWarehouseDto,
@@ -17,22 +18,41 @@ import {
   WarehouseInventoryDto,
 } from './dto/inventory.dto';
 
+const INV_LIST_KEY = (cid: string, page?: number, filter?: string) =>
+  `inventory:${cid}:list:${page ?? 1}:${filter ?? ''}`;
+const WAREHOUSE_KEY = (cid: string) => `inventory:${cid}:warehouses`;
+const WH_ITEM_KEY = (cid: string, id: string) => `inventory:${cid}:wh:${id}`;
+const PROD_INV_KEY = (cid: string, pid: string) => `inventory:${cid}:prod:${pid}`;
+const WH_INV_KEY = (cid: string, wid: string) => `inventory:${cid}:whinv:${wid}`;
+const STATS_KEY = (cid: string) => `inventory:${cid}:stats`;
+const ADJ_LIST_KEY = (cid: string, page?: number) => `inventory:${cid}:adj:${page ?? 1}`;
+const TRANSFER_LIST_KEY = (cid: string, page?: number) => `inventory:${cid}:transfers:${page ?? 1}`;
+const TRANSFER_KEY = (cid: string, id: string) => `inventory:${cid}:transfer:${id}`;
+
 @Injectable()
 export class InventoryService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cache: CacheService,
+  ) {}
 
   // === WAREHOUSE MANAGEMENT ===
-  createWarehouse(companyId: string, dto: CreateWarehouseDto) {
-    return this.prisma.warehouse.create({
+  async createWarehouse(companyId: string, dto: CreateWarehouseDto) {
+    const result = await this.prisma.warehouse.create({
       data: {
         ...dto,
         companyId,
       },
     });
+    await this.invalidateWarehouseCache(companyId);
+    return result;
   }
 
-  getWarehouses(companyId: string) {
-    return this.prisma.warehouse.findMany({
+  async getWarehouses(companyId: string) {
+    const cached = await this.cache.get<any[]>(WAREHOUSE_KEY(companyId));
+    if (cached) return cached;
+
+    const result = await this.prisma.warehouse.findMany({
       where: { companyId },
       include: {
         _count: {
@@ -43,9 +63,16 @@ export class InventoryService {
       },
       orderBy: { name: 'asc' },
     });
+
+    await this.cache.set(WAREHOUSE_KEY(companyId), result, 300);
+    return result;
   }
 
   async getWarehouse(companyId: string, id: string) {
+    const cacheKey = WH_ITEM_KEY(companyId, id);
+    const cached = await this.cache.get<any>(cacheKey);
+    if (cached) return cached;
+
     const warehouse = await this.prisma.warehouse.findFirst({
       where: { id, companyId },
       include: {
@@ -66,6 +93,7 @@ export class InventoryService {
       throw new NotFoundException('Warehouse not found');
     }
 
+    await this.cache.set(cacheKey, warehouse, 300);
     return warehouse;
   }
 
@@ -82,10 +110,14 @@ export class InventoryService {
       throw new NotFoundException('Warehouse not found');
     }
 
-    return this.prisma.warehouse.update({
+    const result = await this.prisma.warehouse.update({
       where: { id },
       data: dto,
     });
+
+    await this.invalidateWarehouseCache(companyId, id);
+
+    return result;
   }
 
   async deleteWarehouse(companyId: string, id: string) {
@@ -110,6 +142,8 @@ export class InventoryService {
       where: { id },
     });
 
+    await this.invalidateWarehouseCache(companyId, id);
+
     return { message: 'Warehouse deleted successfully' };
   }
 
@@ -117,6 +151,13 @@ export class InventoryService {
   async getInventory(companyId: string, query: InventoryQueryDto) {
     const { page = 1, limit = 10, search, warehouseId, filter } = query;
     const skip = (page - 1) * limit;
+
+    const shouldCache = !search && !warehouseId;
+    const cacheKey = INV_LIST_KEY(companyId, page, filter);
+    if (shouldCache) {
+      const cached = await this.cache.get<any>(cacheKey);
+      if (cached) return cached;
+    }
 
     // Build where clause
     const where: any = {
@@ -219,19 +260,29 @@ export class InventoryService {
       updatedAt: item.updatedAt.toISOString(),
     }));
 
-    return {
+    const result = {
       inventory: items,
       total: filter === 'low_stock' ? filteredInventory.length : total,
       pages: Math.ceil(
         (filter === 'low_stock' ? filteredInventory.length : total) / limit,
       ),
     };
+
+    if (shouldCache) {
+      await this.cache.set(cacheKey, result, 120);
+    }
+
+    return result;
   }
 
   async getProductInventory(
     companyId: string,
     productId: string,
   ): Promise<InventoryItemDto[]> {
+    const cacheKey = PROD_INV_KEY(companyId, productId);
+    const cached = await this.cache.get<any[]>(cacheKey);
+    if (cached) return cached;
+
     // Verify product belongs to company
     const product = await this.prisma.product.findFirst({
       where: { id: productId, companyId },
@@ -260,7 +311,7 @@ export class InventoryService {
       orderBy: { warehouse: { name: 'asc' } },
     });
 
-    return inventory.map((item) => ({
+    const result = inventory.map((item) => ({
       productId: item.productId,
       productName: item.product.name,
       productSku: item.product.sku,
@@ -277,12 +328,19 @@ export class InventoryService {
       brand: item.product.brand?.name,
       updatedAt: item.updatedAt.toISOString(),
     }));
+
+    await this.cache.set(cacheKey, result, 120);
+    return result;
   }
 
   async getWarehouseInventory(
     companyId: string,
     warehouseId: string,
   ): Promise<WarehouseInventoryDto> {
+    const cacheKey = WH_INV_KEY(companyId, warehouseId);
+    const cached = await this.cache.get<any>(cacheKey);
+    if (cached) return cached;
+
     const warehouse = await this.prisma.warehouse.findFirst({
       where: { id: warehouseId, companyId },
       include: {
@@ -332,7 +390,7 @@ export class InventoryService {
       (item) => item.status === 'out_of_stock',
     ).length;
 
-    return {
+    const result = {
       warehouseId: warehouse.id,
       warehouseName: warehouse.name,
       location: warehouse.location,
@@ -342,6 +400,9 @@ export class InventoryService {
       outOfStockCount,
       inventory,
     };
+
+    await this.cache.set(cacheKey, result, 120);
+    return result;
   }
 
   async updateInventory(
@@ -372,7 +433,7 @@ export class InventoryService {
     // Create stock adjustment + update inventory in a transaction
     const referenceNumber = `ADJ-${Date.now()}`;
 
-    return this.prisma.$transaction(async (prisma) => {
+    const invResult = await this.prisma.$transaction(async (prisma) => {
       const currentInventory = await prisma.inventory.findUnique({
         where: {
           productId_warehouseId: {
@@ -451,6 +512,15 @@ export class InventoryService {
 
       return inv;
     });
+
+    await this.invalidateInventoryListCache(companyId);
+    await Promise.all([
+      this.cache.del(PROD_INV_KEY(companyId, productId)),
+      this.cache.del(WH_INV_KEY(companyId, warehouseId)),
+      this.cache.del(WH_ITEM_KEY(companyId, warehouseId)),
+    ]);
+
+    return invResult;
   }
 
   // === STOCK TRANSFERS ===
@@ -499,9 +569,9 @@ export class InventoryService {
     // Create stock adjustment for transfer
     const referenceNumber = `TRF-${Date.now()}`;
 
-    return this.prisma.$transaction(async (prisma) => {
+    const stockAdjustment = await this.prisma.$transaction(async (prisma) => {
       // Create stock adjustment record
-      const stockAdjustment = await prisma.stockAdjustment.create({
+      const sa = await prisma.stockAdjustment.create({
         data: {
           referenceNumber,
           adjustmentDate: new Date(),
@@ -597,7 +667,7 @@ export class InventoryService {
       await prisma.stockAdjustmentItem.createMany({
         data: [
           {
-            stockAdjustmentId: stockAdjustment.id,
+            stockAdjustmentId: sa.id,
             productId,
             warehouseId: fromWarehouseId,
             previousQuantity: sourceInventory.quantity,
@@ -605,7 +675,7 @@ export class InventoryService {
             difference: -quantity,
           },
           {
-            stockAdjustmentId: stockAdjustment.id,
+            stockAdjustmentId: sa.id,
             productId,
             warehouseId: toWarehouseId,
             previousQuantity: 0, // We'll update this if destination inventory exists
@@ -615,8 +685,20 @@ export class InventoryService {
         ],
       });
 
-      return stockAdjustment;
+      return sa;
     });
+
+    await this.invalidateInventoryListCache(companyId);
+    await Promise.all([
+      this.cache.del(PROD_INV_KEY(companyId, productId)),
+      this.cache.del(WH_INV_KEY(companyId, fromWarehouseId)),
+      this.cache.del(WH_INV_KEY(companyId, toWarehouseId)),
+      this.cache.del(WH_ITEM_KEY(companyId, fromWarehouseId)),
+      this.cache.del(WH_ITEM_KEY(companyId, toWarehouseId)),
+    ]);
+    await this.invalidateTransferCache(companyId);
+
+    return stockAdjustment;
   }
 
   // === BULK STOCK TRANSFER ===
@@ -648,9 +730,9 @@ export class InventoryService {
 
     const referenceNumber = `TRF-${Date.now()}`;
 
-    return this.prisma.$transaction(async (prisma) => {
+    const bulkResult = await this.prisma.$transaction(async (prisma) => {
       // Create stock adjustment record
-      const stockAdjustment = await prisma.stockAdjustment.create({
+      const sa = await prisma.stockAdjustment.create({
         data: {
           referenceNumber,
           adjustmentDate: new Date(),
@@ -737,7 +819,7 @@ export class InventoryService {
 
         adjustmentItems.push(
           {
-            stockAdjustmentId: stockAdjustment.id,
+            stockAdjustmentId: sa.id,
             productId: item.productId,
             warehouseId: fromWarehouseId,
             previousQuantity: sourceInventory.quantity,
@@ -745,7 +827,7 @@ export class InventoryService {
             difference: -item.quantity,
           },
           {
-            stockAdjustmentId: stockAdjustment.id,
+            stockAdjustmentId: sa.id,
             productId: item.productId,
             warehouseId: toWarehouseId,
             previousQuantity: 0,
@@ -784,7 +866,7 @@ export class InventoryService {
       await prisma.stockAdjustmentItem.createMany({ data: adjustmentItems });
 
       return prisma.stockAdjustment.findUnique({
-        where: { id: stockAdjustment.id },
+        where: { id: sa.id },
         include: {
           user: { select: { name: true, email: true } },
           items: {
@@ -796,17 +878,29 @@ export class InventoryService {
         },
       });
     });
+
+    await this.invalidateInventoryListCache(companyId);
+    await Promise.all([
+      this.cache.del(WH_INV_KEY(companyId, fromWarehouseId)),
+      this.cache.del(WH_INV_KEY(companyId, toWarehouseId)),
+      this.cache.del(WH_ITEM_KEY(companyId, fromWarehouseId)),
+      this.cache.del(WH_ITEM_KEY(companyId, toWarehouseId)),
+      ...items.map((item) => PROD_INV_KEY(companyId, item.productId)),
+    ]);
+    await this.invalidateTransferCache(companyId);
+
+    return bulkResult;
   }
 
   // === STOCK ADJUSTMENTS ===
-  createStockAdjustment(
+  async createStockAdjustment(
     companyId: string,
     userId: string,
     dto: CreateStockAdjustmentDto,
   ) {
     const referenceNumber = `ADJ-${Date.now()}`;
 
-    return this.prisma.$transaction(async (prisma) => {
+    const result = await this.prisma.$transaction(async (prisma) => {
       let netChange = 0;
 
       // Validate all products and warehouses first
@@ -831,7 +925,7 @@ export class InventoryService {
       }
 
       // Create stock adjustment record
-      const stockAdjustment = await prisma.stockAdjustment.create({
+      const sa = await prisma.stockAdjustment.create({
         data: {
           referenceNumber,
           adjustmentDate: new Date(),
@@ -893,7 +987,7 @@ export class InventoryService {
         // Create adjustment item record
         await prisma.stockAdjustmentItem.create({
           data: {
-            stockAdjustmentId: stockAdjustment.id,
+            stockAdjustmentId: sa.id,
             productId: item.productId,
             warehouseId: item.warehouseId,
             previousQuantity,
@@ -905,15 +999,24 @@ export class InventoryService {
 
       // Update stock adjustment with final totals
       await prisma.stockAdjustment.update({
-        where: { id: stockAdjustment.id },
+        where: { id: sa.id },
         data: { netChange },
       });
 
-      return stockAdjustment;
+      return sa;
     });
+
+    await this.invalidateInventoryListCache(companyId);
+    await this.invalidateAdjustmentCache(companyId);
+
+    return result;
   }
 
   async getStockAdjustments(companyId: string, page = 1, limit = 10) {
+    const cacheKey = ADJ_LIST_KEY(companyId, page);
+    const cached = await this.cache.get<any>(cacheKey);
+    if (cached) return cached;
+
     const skip = (page - 1) * limit;
 
     const [adjustments, total] = await Promise.all([
@@ -949,15 +1052,22 @@ export class InventoryService {
       this.prisma.stockAdjustment.count({ where: { companyId } }),
     ]);
 
-    return {
+    const result = {
       adjustments,
       total,
       pages: Math.ceil(total / limit),
     };
+
+    await this.cache.set(cacheKey, result, 120);
+    return result;
   }
 
   // === TRANSFER HISTORY ===
   async getTransfers(companyId: string, page = 1, limit = 20) {
+    const cacheKey = TRANSFER_LIST_KEY(companyId, page);
+    const cached = await this.cache.get<any>(cacheKey);
+    if (cached) return cached;
+
     const skip = (page - 1) * limit;
 
     const where = {
@@ -984,14 +1094,21 @@ export class InventoryService {
       this.prisma.stockAdjustment.count({ where }),
     ]);
 
-    return {
+    const result = {
       transfers: adjustments,
       total,
       pages: Math.ceil(total / limit),
     };
+
+    await this.cache.set(cacheKey, result, 120);
+    return result;
   }
 
   async getTransfer(companyId: string, id: string) {
+    const cacheKey = TRANSFER_KEY(companyId, id);
+    const cached = await this.cache.get<any>(cacheKey);
+    if (cached) return cached;
+
     const transfer = await this.prisma.stockAdjustment.findFirst({
       where: { id, companyId, referenceNumber: { startsWith: 'TRF-' } },
       include: {
@@ -1013,17 +1130,24 @@ export class InventoryService {
     const fromItems = transfer.items.filter((i) => i.difference < 0);
     const toItems = transfer.items.filter((i) => i.difference > 0);
 
-    return {
+    const result = {
       ...transfer,
       fromWarehouse: fromItems[0]?.warehouse.name || 'Unknown',
       toWarehouse: toItems[0]?.warehouse.name || 'Unknown',
       fromItems,
       toItems,
     };
+
+    await this.cache.set(cacheKey, result, 300);
+    return result;
   }
 
   // === INVENTORY STATISTICS ===
   async getInventoryStats(companyId: string): Promise<InventoryStatsDto> {
+    const cacheKey = STATS_KEY(companyId);
+    const cached = await this.cache.get<InventoryStatsDto>(cacheKey);
+    if (cached) return cached;
+
     const [totalProducts, totalWarehouses, allInventory, recentAdjustments] =
       await Promise.all([
         this.prisma.product.count({ where: { companyId } }),
@@ -1066,7 +1190,7 @@ export class InventoryService {
       }
     });
 
-    return {
+    const statsResult: InventoryStatsDto = {
       totalProducts,
       totalWarehouses,
       lowStockProducts,
@@ -1074,6 +1198,41 @@ export class InventoryService {
       totalStockValue,
       recentAdjustments,
     };
+
+    await this.cache.set(cacheKey, statsResult, 120);
+    return statsResult;
+  }
+
+  private async invalidateWarehouseCache(companyId: string, warehouseId?: string) {
+    const keys = [WAREHOUSE_KEY(companyId), STATS_KEY(companyId)];
+    if (warehouseId) {
+      keys.push(WH_ITEM_KEY(companyId, warehouseId));
+      keys.push(WH_INV_KEY(companyId, warehouseId));
+    }
+    await Promise.all(keys.map((k) => this.cache.del(k)));
+  }
+
+  private async invalidateInventoryListCache(companyId: string) {
+    const filters = ['', 'low_stock', 'out_of_stock'];
+    const keys: string[] = [STATS_KEY(companyId)];
+    for (const p of [1, 2, 3]) {
+      for (const f of filters) {
+        keys.push(INV_LIST_KEY(companyId, p, f));
+      }
+    }
+    await Promise.all(keys.map((k) => this.cache.del(k)));
+  }
+
+  private async invalidateTransferCache(companyId: string) {
+    await Promise.all(
+      [1, 2, 3].map((p) => this.cache.del(TRANSFER_LIST_KEY(companyId, p))),
+    );
+  }
+
+  private async invalidateAdjustmentCache(companyId: string) {
+    await Promise.all(
+      [1, 2, 3].map((p) => this.cache.del(ADJ_LIST_KEY(companyId, p))),
+    );
   }
 
   private getStockStatus(

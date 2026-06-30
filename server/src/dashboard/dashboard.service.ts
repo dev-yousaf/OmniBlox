@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { CacheService } from '../cache/cache.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   DashboardDataDto,
@@ -8,12 +9,29 @@ import {
 
 @Injectable()
 export class DashboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
+
+  private readonly DASH_KEY = (cid: string, period?: string) =>
+    `dashboard:${cid}:data:${period ?? '1Y'}`;
+  private readonly TOP_SELLING_KEY = (cid: string, period?: string) =>
+    `dashboard:${cid}:topselling:${period ?? '1Y'}`;
+  private readonly RECENT_SALES_KEY = (cid: string, period?: string) =>
+    `dashboard:${cid}:recentsales:${period ?? '1Y'}`;
+  private readonly CHART_KEY = (cid: string, period?: string) =>
+    `dashboard:${cid}:chart:${period ?? '1Y'}`;
 
   async getData(
     companyId: string,
     period: string = '1Y',
   ): Promise<DashboardDataDto> {
+    const cached = await this.cache.get<DashboardDataDto>(
+      this.DASH_KEY(companyId, period),
+    );
+    if (cached) return cached;
+
     const now = new Date();
     const range = this.getDateRange(period, now);
     const prevRange = this.getPreviousPeriodRange(period, now);
@@ -211,7 +229,7 @@ export class DashboardService {
     const chartTotalSales = chartData.reduce((s, c) => s + c.sales, 0);
     const chartTotalPurchase = chartData.reduce((s, c) => s + c.purchase, 0);
 
-    return {
+    const result: DashboardDataDto = {
       totalSales: sales,
       salesChange: this.pctChange(sales, prevSales),
       totalSalesReturn: salesReturn,
@@ -256,6 +274,9 @@ export class DashboardService {
       lowStockProducts: lowStock,
       recentSales,
     };
+
+    await this.cache.set(this.DASH_KEY(companyId, period), result, 120);
+    return result;
   }
 
   private async getSalesPurchaseChart(
@@ -555,21 +576,42 @@ export class DashboardService {
   }
 
   async getTopSellingForPeriod(companyId: string, period: string = '1Y') {
+    const cached = await this.cache.get(
+      this.TOP_SELLING_KEY(companyId, period),
+    );
+    if (cached) return cached;
+
     const now = new Date();
     const range = this.getDateRange(period, now);
-    return this.getTopSellingProducts(companyId, range);
+    const result = await this.getTopSellingProducts(companyId, range);
+    await this.cache.set(this.TOP_SELLING_KEY(companyId, period), result, 120);
+    return result;
   }
 
   async getRecentSalesForPeriod(
     companyId: string,
     period: string = '1Y',
   ): Promise<RecentSaleDto[]> {
+    const cached = await this.cache.get<RecentSaleDto[]>(
+      this.RECENT_SALES_KEY(companyId, period),
+    );
+    if (cached) return cached;
+
     const now = new Date();
     const range = this.getDateRange(period, now);
-    return this.getRecentSales(companyId, range);
+    const result = await this.getRecentSales(companyId, range);
+    await this.cache.set(
+      this.RECENT_SALES_KEY(companyId, period),
+      result,
+      120,
+    );
+    return result;
   }
 
   async getChartForPeriod(companyId: string, period: string = '1Y') {
+    const cached = await this.cache.get(this.CHART_KEY(companyId, period));
+    if (cached) return cached;
+
     const now = new Date();
     const range = this.getDateRange(period, now);
     const chart = await this.getSalesPurchaseChart(
@@ -625,13 +667,16 @@ export class DashboardService {
     const totalExpenses = Number(expensesAgg._sum.amount || 0);
     const prevExpenses = Number(prevExpensesAgg._sum.amount || 0);
 
-    return {
+    const result = {
       chart,
       totalRevenue,
       totalExpenses,
       revenueChange: this.pctChange(totalRevenue, prevRevenue),
       expenseChange: this.pctChange(totalExpenses, prevExpenses),
     };
+
+    await this.cache.set(this.CHART_KEY(companyId, period), result, 120);
+    return result;
   }
 
   private pctChange(current: number, previous: number): number {

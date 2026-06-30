@@ -6,6 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 import { UserRole } from '@prisma/client';
 import { hashPassword, verifyPassword } from 'better-auth/crypto';
 import { randomBytes } from 'crypto';
@@ -19,253 +20,180 @@ import {
   UserStatsDto,
 } from './dto/team.dto';
 
+const LIST_KEY = (cid: string) => `team:${cid}:list`;
+const PAGED_KEY = (cid: string, page: number, limit: number, search?: string, role?: string) =>
+  `team:${cid}:page:${page}:${limit}:${search ?? ''}:${role ?? ''}`;
+const ITEM_KEY = (cid: string, id: string) => `team:${cid}:${id}`;
+const STATS_KEY = (cid: string) => `team:${cid}:stats`;
+
 @Injectable()
 export class TeamService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
+    private cache: CacheService,
   ) {}
 
-  // GOLDEN RULE: All methods require companyId and filter by it
-
   async createUser(
-    dto: CreateUserDto,
-    companyId: string,
-    currentUserRole: UserRole,
-    currentUserId: string,
+    dto: CreateUserDto, companyId: string, currentUserRole: UserRole, currentUserId: string,
   ): Promise<UserResponseDto> {
-    // Only OWNER and ADMIN can create users
     if (!['OWNER', 'ADMIN'].includes(currentUserRole)) {
       throw new ForbiddenException('Insufficient permissions to create users');
     }
 
-    // Check if email already exists globally
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
-
+    const existingUser = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
     }
 
-    // Only OWNER can create ADMIN users
-    if (
-      dto.role === UserRole.ADMIN &&
-      currentUserRole !== ('OWNER' as UserRole)
-    ) {
+    if (dto.role === UserRole.ADMIN && currentUserRole !== ('OWNER' as UserRole)) {
       throw new ForbiddenException('Only company owner can create admin users');
     }
 
-    // Get the inviting user's name and company for the email
     const inviter = await this.prisma.user.findUnique({
       where: { id: currentUserId },
       include: { company: true },
     });
 
-    // Generate a random placeholder password (user will set their own via invitation)
     const placeholderPassword = randomBytes(32).toString('hex');
     const hashedPassword = await hashPassword(placeholderPassword);
 
-    // Create user + account + invitation token in transaction
     const user = await this.prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
-          email: dto.email,
-          name: dto.name,
-          role: dto.role ?? UserRole.OBSERVER,
-          status: 'INVITED',
-          password: hashedPassword,
-          companyId,
+          email: dto.email, name: dto.name, role: dto.role ?? UserRole.OBSERVER,
+          status: 'INVITED', password: hashedPassword, companyId,
         },
       });
-
       await tx.account.create({
-        data: {
-          userId: newUser.id,
-          accountId: newUser.id,
-          providerId: 'credential',
-          password: hashedPassword,
-        },
+        data: { userId: newUser.id, accountId: newUser.id, providerId: 'credential', password: hashedPassword },
       });
-
       return newUser;
     });
 
-    // Generate invitation token (48 hour expiry)
     const token = randomBytes(32).toString('hex');
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 48);
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
 
     await this.prisma.authToken.create({
-      data: {
-        token,
-        type: 'INVITATION',
-        expiresAt,
-        userId: user.id,
-      },
+      data: { token, type: 'INVITATION', expiresAt, userId: user.id },
     });
 
-    // Send invitation email (fire and forget)
     const companyName = inviter?.company?.name || 'the company';
     const inviterName = inviter?.name || 'A team member';
     this.emailService
       .sendInvitationEmail(dto.email, dto.name, token, inviterName, companyName)
-      .catch((err) => {
-        console.error('Failed to send invitation email:', err);
-      });
+      .catch((err) => console.error('Failed to send invitation email:', err));
 
+    await Promise.all([
+      this.cache.del(LIST_KEY(companyId)),
+      this.cache.del(STATS_KEY(companyId)),
+    ]);
     return this.mapToUserResponse(user);
   }
 
   async findAll(companyId: string): Promise<UserResponseDto[]> {
+    const cacheKey = LIST_KEY(companyId);
+    const cached = await this.cache.get<UserResponseDto[]>(cacheKey);
+    if (cached) return cached;
+
     const users = await this.prisma.user.findMany({
       where: { companyId },
       orderBy: { createdAt: 'desc' },
     });
 
-    return users.map((u) => this.mapToUserResponse(u));
+    const data = users.map((u) => this.mapToUserResponse(u));
+    await this.cache.set(cacheKey, data, 60 * 5);
+    return data;
   }
 
   async findAllPaginated(
-    companyId: string,
-    page: number = 1,
-    limit: number = 10,
-    search?: string,
-    role?: UserRole,
+    companyId: string, page: number = 1, limit: number = 10,
+    search?: string, role?: UserRole,
   ): Promise<UserListResponseDto> {
-    const skip = (page - 1) * limit;
+    const cacheKey = PAGED_KEY(companyId, page, limit, search, role);
+    const cached = await this.cache.get<UserListResponseDto>(cacheKey);
+    if (cached) return cached;
 
-    const where = {
-      companyId,
-      ...(search && {
-        OR: [
-          { name: { contains: search, mode: 'insensitive' as const } },
-          { email: { contains: search, mode: 'insensitive' as const } },
-        ],
-      }),
-      ...(role && { role }),
-    };
+    const skip = (page - 1) * limit;
+    const where: any = { companyId };
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' as const } },
+        { email: { contains: search, mode: 'insensitive' as const } },
+      ];
+    }
+    if (role) where.role = role;
 
     const [users, total] = await Promise.all([
-      this.prisma.user.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-      }),
+      this.prisma.user.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' } }),
       this.prisma.user.count({ where }),
     ]);
 
-    return {
+    const data: UserListResponseDto = {
       users: users.map((u) => this.mapToUserResponse(u)),
       total,
       pages: Math.ceil(total / limit),
     };
+
+    await this.cache.set(cacheKey, data, 60 * 5);
+    return data;
   }
 
   async findOne(id: string, companyId: string): Promise<UserResponseDto> {
-    const user = await this.prisma.user.findFirst({
-      where: { id, companyId },
-    });
+    const cacheKey = ITEM_KEY(companyId, id);
+    const cached = await this.cache.get<UserResponseDto>(cacheKey);
+    if (cached) return cached;
 
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+    const user = await this.prisma.user.findFirst({ where: { id, companyId } });
+    if (!user) throw new NotFoundException('User not found');
 
-    return this.mapToUserResponse(user);
+    const data = this.mapToUserResponse(user);
+    await this.cache.set(cacheKey, data, 60 * 5);
+    return data;
   }
 
   async updateUser(
-    id: string,
-    dto: UpdateUserDto,
-    companyId: string,
-    currentUserRole: UserRole,
-    currentUserId: string,
+    id: string, dto: UpdateUserDto, companyId: string,
+    currentUserRole: UserRole, currentUserId: string,
   ): Promise<UserResponseDto> {
-    const existingUser = await this.prisma.user.findFirst({
-      where: { id, companyId },
-    });
+    const existingUser = await this.prisma.user.findFirst({ where: { id, companyId } });
+    if (!existingUser) throw new NotFoundException('User not found');
 
-    if (!existingUser) {
-      throw new NotFoundException('User not found');
-    }
-
-    // Users can only update themselves unless they're OWNER/ADMIN
     if (id !== currentUserId && !['OWNER', 'ADMIN'].includes(currentUserRole)) {
       throw new ForbiddenException('Insufficient permissions to update user');
     }
-
-    // Only OWNER can update role to ADMIN
-    if (
-      dto.role === UserRole.ADMIN &&
-      currentUserRole !== ('OWNER' as UserRole)
-    ) {
+    if (dto.role === UserRole.ADMIN && currentUserRole !== ('OWNER' as UserRole)) {
       throw new ForbiddenException('Only company owner can assign admin role');
     }
-
-    // Only OWNER and ADMIN can change roles (except their own)
-    if (
-      dto.role &&
-      id !== currentUserId &&
-      !['OWNER', 'ADMIN'].includes(currentUserRole)
-    ) {
-      throw new ForbiddenException(
-        'Insufficient permissions to change user role',
-      );
+    if (dto.role && id !== currentUserId && !['OWNER', 'ADMIN'].includes(currentUserRole)) {
+      throw new ForbiddenException('Insufficient permissions to change user role');
     }
-
-    // Check for email uniqueness if email is being updated
     if (dto.email && dto.email !== existingUser.email) {
-      const emailExists = await this.prisma.user.findUnique({
-        where: { email: dto.email },
-      });
-
-      if (emailExists) {
-        throw new ConflictException('User with this email already exists');
-      }
+      const emailExists = await this.prisma.user.findUnique({ where: { email: dto.email } });
+      if (emailExists) throw new ConflictException('User with this email already exists');
     }
 
-    const updatedUser = await this.prisma.user.update({
-      where: { id },
-      data: dto,
-    });
+    const updatedUser = await this.prisma.user.update({ where: { id }, data: dto });
 
+    await Promise.all([
+      this.cache.del(LIST_KEY(companyId)),
+      this.cache.del(PAGED_KEY(companyId, 0, 0)),
+      this.cache.del(ITEM_KEY(companyId, id)),
+      this.cache.del(STATS_KEY(companyId)),
+    ]);
     return this.mapToUserResponse(updatedUser);
   }
 
-  async changePassword(
-    userId: string,
-    dto: ChangePasswordDto,
-    companyId: string,
-  ): Promise<{ message: string }> {
-    const user = await this.prisma.user.findFirst({
-      where: { id: userId, companyId },
-    });
+  async changePassword(userId: string, dto: ChangePasswordDto, companyId: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findFirst({ where: { id: userId, companyId } });
+    if (!user) throw new NotFoundException('User not found');
 
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+    const isPasswordValid = await verifyPassword({ password: dto.currentPassword, hash: user.password });
+    if (!isPasswordValid) throw new BadRequestException('Current password is incorrect');
 
-    // Verify current password using Better Auth
-    const isPasswordValid = await verifyPassword({
-      password: dto.currentPassword,
-      hash: user.password,
-    });
-    if (!isPasswordValid) {
-      throw new BadRequestException('Current password is incorrect');
-    }
-
-    // Hash new password using Better Auth
     const hashedPassword = await hashPassword(dto.newPassword);
-
-    // Update both user and account tables
     await this.prisma.$transaction(async (tx) => {
-      await tx.user.update({
-        where: { id: userId },
-        data: { password: hashedPassword },
-      });
-
-      // Update account table to keep passwords in sync
+      await tx.user.update({ where: { id: userId }, data: { password: hashedPassword } });
       await tx.account.updateMany({
         where: { userId: userId, providerId: 'credential' },
         data: { password: hashedPassword },
@@ -276,77 +204,58 @@ export class TeamService {
   }
 
   async removeUser(
-    id: string,
-    companyId: string,
-    currentUserRole: UserRole,
-    currentUserId: string,
+    id: string, companyId: string, currentUserRole: UserRole, currentUserId: string,
   ): Promise<{ message: string }> {
-    // Only OWNER and ADMIN can remove users
     if (!['OWNER', 'ADMIN'].includes(currentUserRole)) {
       throw new ForbiddenException('Insufficient permissions to remove users');
     }
+    if (id === currentUserId) throw new BadRequestException('Cannot remove your own account');
 
-    // Users cannot remove themselves
-    if (id === currentUserId) {
-      throw new BadRequestException('Cannot remove your own account');
-    }
+    const user = await this.prisma.user.findFirst({ where: { id, companyId } });
+    if (!user) throw new NotFoundException('User not found');
 
-    const user = await this.prisma.user.findFirst({
-      where: { id, companyId },
-    });
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    // Only OWNER can remove ADMIN users
-    if (
-      user.role === UserRole.ADMIN &&
-      currentUserRole !== ('OWNER' as UserRole)
-    ) {
+    if (user.role === UserRole.ADMIN && currentUserRole !== ('OWNER' as UserRole)) {
       throw new ForbiddenException('Only company owner can remove admin users');
     }
 
-    await this.prisma.user.delete({
-      where: { id },
-    });
+    await this.prisma.user.delete({ where: { id } });
 
+    await Promise.all([
+      this.cache.del(LIST_KEY(companyId)),
+      this.cache.del(ITEM_KEY(companyId, id)),
+      this.cache.del(STATS_KEY(companyId)),
+    ]);
     return { message: 'User removed successfully' };
   }
 
   async getStats(companyId: string): Promise<UserStatsDto> {
+    const cacheKey = STATS_KEY(companyId);
+    const cached = await this.cache.get<UserStatsDto>(cacheKey);
+    if (cached) return cached;
+
     const users = await this.prisma.user.findMany({
       where: { companyId },
       select: { role: true, status: true },
     });
 
-    const totalUsers = users.length;
-    const adminCount = users.filter((u) => u.role === UserRole.ADMIN).length;
-    const managerCount = users.filter(
-      (u) => u.role === UserRole.MANAGER,
-    ).length;
-    const staffCount = users.filter((u) => u.role === UserRole.OBSERVER).length;
-    const activeUsers = users.filter((u) => u.status === 'ACTIVE').length;
-    const invitedUsers = users.filter((u) => u.status === 'INVITED').length;
-
-    return {
-      totalUsers,
-      adminCount,
-      managerCount,
-      staffCount,
-      activeUsers,
-      inactiveUsers: invitedUsers,
+    const data: UserStatsDto = {
+      totalUsers: users.length,
+      adminCount: users.filter((u) => u.role === UserRole.ADMIN).length,
+      managerCount: users.filter((u) => u.role === UserRole.MANAGER).length,
+      staffCount: users.filter((u) => u.role === UserRole.OBSERVER).length,
+      activeUsers: users.filter((u) => u.status === 'ACTIVE').length,
+      inactiveUsers: users.filter((u) => u.status === 'INVITED').length,
     };
+
+    await this.cache.set(cacheKey, data, 60 * 5);
+    return data;
   }
 
   private mapToUserResponse(user: any): UserResponseDto {
     return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
+      id: user.id, email: user.email, name: user.name, role: user.role,
       createdAt: user.createdAt,
-      lastLogin: undefined, // TODO: Implement last login tracking
+      lastLogin: undefined,
       status: (user.status || 'ACTIVE').toLowerCase() as 'active' | 'inactive',
     };
   }

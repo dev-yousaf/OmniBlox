@@ -37,6 +37,7 @@ export default function BillsPage() {
   const [bills, setBills] = useState<PurchaseOrder[]>([]);
   const [filtered, setFiltered] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [page, setPage] = useState(1);
@@ -49,9 +50,10 @@ export default function BillsPage() {
 
   useEffect(() => {
     setLoading(true);
+    setError(null);
     list()
       .then((data) => setBills(data))
-      .catch(() => setBills([]))
+      .catch(() => { setBills([]); setError("Failed to load bills."); })
       .finally(() => setLoading(false));
   }, [list]);
 
@@ -173,6 +175,8 @@ export default function BillsPage() {
       <div className="border rounded-[5px] bg-card shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        ) : error ? (
+          <div className="flex items-center justify-center py-16 text-destructive"><p>{error}</p></div>
         ) : paginated.length === 0 ? (
           <div className="py-16 text-center text-muted-foreground">
             <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />

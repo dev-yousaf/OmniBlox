@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
+import { CacheService } from '../cache/cache.service';
 import { SalesReturnsService } from '../sales-returns/sales-returns.service';
 import { PurchaseReturnsService } from '../purchase-returns/purchase-returns.service';
 
 @Injectable()
 export class ReturnsService {
+  private readonly LIST_KEY = (cid: string) => `returns:list:${cid}`;
+
   constructor(
+    private cache: CacheService,
     private readonly salesReturnsService: SalesReturnsService,
     private readonly purchaseReturnsService: PurchaseReturnsService,
   ) {}
@@ -14,6 +18,10 @@ export class ReturnsService {
    * Merges both types and adds a type field for frontend routing
    */
   async findAllReturns(companyId: string) {
+    const cacheKey = this.LIST_KEY(companyId);
+    const cached = await this.cache.get<any[]>(cacheKey);
+    if (cached) return cached;
+
     // Fetch both types in parallel
     const [salesReturns, purchaseReturns] = await Promise.all([
       this.salesReturnsService.findAll(companyId),
@@ -39,6 +47,7 @@ export class ReturnsService {
       (a, b) => b.returnDate.getTime() - a.returnDate.getTime(),
     );
 
+    await this.cache.set(cacheKey, allReturns, 120);
     return allReturns;
   }
 }

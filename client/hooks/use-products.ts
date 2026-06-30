@@ -143,7 +143,6 @@ export function useAllProducts(
     }
 
     if (!isAuthenticated) {
-      setLoading(false);
       return;
     }
 

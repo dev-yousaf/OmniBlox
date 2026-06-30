@@ -71,6 +71,7 @@ export default function SubCategoriesPage() {
   const [items, setItems] = useState<SubCategory[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -98,6 +99,7 @@ export default function SubCategoriesPage() {
 
   const load = async () => {
     try {
+      setError(null);
       setIsLoading(true);
       const [subs, cats] = await Promise.all([
         getSubCategories(filterCategoryId !== "all" ? filterCategoryId : undefined),
@@ -106,7 +108,7 @@ export default function SubCategoriesPage() {
       setItems(subs);
       setCategories(cats);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to load", variant: "destructive" });
+      setError(err?.message || "Failed to load sub categories.");
     } finally {
       setIsLoading(false);
     }
@@ -285,6 +287,8 @@ export default function SubCategoriesPage() {
             <div className="flex justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
+          ) : error ? (
+            <div className="flex items-center justify-center py-16 text-destructive"><p>{error}</p></div>
           ) : sorted.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">No sub categories found.</div>
           ) : (

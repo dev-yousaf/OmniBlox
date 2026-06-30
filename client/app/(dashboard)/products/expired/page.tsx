@@ -84,6 +84,7 @@ export default function ExpiredProductsPage() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -102,15 +103,16 @@ export default function ExpiredProductsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
+      setError(null);
       const data = await getExpiredProducts({ page, limit: pageSize });
       setProducts(data.products);
       setTotalPages(data.pages);
     } catch {
-      toast({ title: "Error", description: "Failed to load expired products", variant: "destructive" });
+      setError("Failed to load expired products.");
     } finally {
       setLoading(false);
     }
-  }, [page, getExpiredProducts, toast]);
+  }, [page, getExpiredProducts]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -261,6 +263,8 @@ export default function ExpiredProductsPage() {
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
+        ) : error ? (
+          <div className="flex items-center justify-center py-16 text-destructive"><p>{error}</p></div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
             <Package className="w-12 h-12 mb-3" />

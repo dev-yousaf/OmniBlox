@@ -69,6 +69,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 10;
@@ -106,12 +107,13 @@ export default function ProductsPage() {
 
   const loadProducts = async ({ showSpinner = true } = {}) => {
     try {
+      setError(null);
       if (showSpinner) setLoading(true);
       const res = await getProducts({ page, limit: pageSize, search: searchQuery || undefined });
       setProducts(res.products);
       setTotalPages(res.pages);
     } catch {
-      toast({ title: "Error", description: "Failed to load products.", variant: "destructive" });
+      setError("Failed to load products.");
     } finally {
       setLoading(false);
     }
@@ -401,6 +403,10 @@ export default function ProductsPage() {
                     ))}
                   </TableRow>
                 ))
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={10} className="text-center py-10 text-destructive">{error}</TableCell>
+                </TableRow>
               ) : products.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">

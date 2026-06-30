@@ -4,12 +4,19 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 import { CreatePurchaseReturnDto } from './dto/create-purchase-return.dto';
 import { UpdatePurchaseReturnDto } from './dto/update-purchase-return.dto';
 
 @Injectable()
 export class PurchaseReturnsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly LIST_KEY = (cid: string) => `purchase-returns:list:${cid}`;
+  private readonly ITEM_KEY = (cid: string, id: string) => `purchase-returns:item:${cid}:${id}`;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private cache: CacheService,
+  ) {}
 
   /**
    * Create a new purchase return and update inventory atomically
@@ -103,7 +110,7 @@ export class PurchaseReturnsService {
     }
 
     // Use transaction to ensure atomicity
-    return await this.prisma.$transaction(
+    const result = await this.prisma.$transaction(
       async (tx) => {
         // Generate unique reference number
         const referenceNumber = `PR-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
@@ -174,13 +181,20 @@ export class PurchaseReturnsService {
       },
       { timeout: 20000 },
     );
+
+    await this.cache.del(this.LIST_KEY(companyId));
+    return result;
   }
 
   /**
    * Get all purchase returns for a company
    */
-  findAll(companyId: string) {
-    return this.prisma.purchaseReturn.findMany({
+  async findAll(companyId: string) {
+    const cacheKey = this.LIST_KEY(companyId);
+    const cached = await this.cache.get<any[]>(cacheKey);
+    if (cached) return cached;
+
+    const result = await this.prisma.purchaseReturn.findMany({
       where: { companyId },
       include: {
         items: {
@@ -202,12 +216,19 @@ export class PurchaseReturnsService {
         createdAt: 'desc',
       },
     });
+
+    await this.cache.set(cacheKey, result, 120);
+    return result;
   }
 
   /**
    * Get a single purchase return by ID
    */
   async findOne(id: string, companyId: string) {
+    const cacheKey = this.ITEM_KEY(companyId, id);
+    const cached = await this.cache.get<any>(cacheKey);
+    if (cached) return cached;
+
     const purchaseReturn = await this.prisma.purchaseReturn.findFirst({
       where: { id, companyId },
       include: {
@@ -232,6 +253,7 @@ export class PurchaseReturnsService {
       throw new NotFoundException(`Purchase return with ID ${id} not found`);
     }
 
+    await this.cache.set(cacheKey, purchaseReturn, 300);
     return purchaseReturn;
   }
 
@@ -242,7 +264,7 @@ export class PurchaseReturnsService {
     // Get existing purchase return
     const existing = await this.findOne(id, companyId);
 
-    return this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.purchaseReturn.update({
         where: { id },
         data: {
@@ -485,6 +507,10 @@ export class PurchaseReturnsService {
 
       return updated;
     });
+
+    await this.cache.del(this.LIST_KEY(companyId));
+    await this.cache.del(this.ITEM_KEY(companyId, id));
+    return updated;
   }
 
   /**
@@ -493,6 +519,9 @@ export class PurchaseReturnsService {
    */
   async remove(id: string, companyId: string) {
     const purchaseReturn = await this.findOne(id, companyId);
+
+    await this.cache.del(this.LIST_KEY(companyId));
+    await this.cache.del(this.ITEM_KEY(companyId, id));
 
     // If completed, we need to reverse inventory changes
     if (purchaseReturn.status === 'COMPLETED') {

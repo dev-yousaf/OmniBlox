@@ -4,12 +4,30 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 import { CreateSubCategoryDto } from './dto/create-sub-category.dto';
 import { UpdateSubCategoryDto } from './dto/update-sub-category.dto';
 
+const CACHE_TTL = 60 * 30;
+const LIST_KEY = (cid: string, catId?: string) =>
+  `subcats:${cid}:list${catId ? `:${catId}` : ''}`;
+const ITEM_KEY = (cid: string, id: string) => `subcats:${cid}:${id}`;
+
+const INVALIDATE_KEYS = async (
+  cache: CacheService,
+  cid: string,
+  catId?: string,
+) => {
+  await cache.del(LIST_KEY(cid));
+  if (catId) await cache.del(LIST_KEY(cid, catId));
+};
+
 @Injectable()
 export class SubCategoriesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cache: CacheService,
+  ) {}
 
   private generateSlug(name: string): string {
     return name
@@ -21,17 +39,26 @@ export class SubCategoriesService {
   }
 
   async create(dto: CreateSubCategoryDto, companyId: string) {
-    const category = await this.prisma.productCategory.findFirst({
-      where: { id: dto.categoryId, companyId },
-    });
+    const [category] = await Promise.all([
+      this.prisma.productCategory.findFirst({
+        where: { id: dto.categoryId, companyId },
+      }),
+      dto.name
+        ? this.prisma.subCategory.findFirst({
+            where: { name: dto.name, categoryId: dto.categoryId, companyId },
+          })
+        : Promise.resolve(null),
+    ]);
 
     if (!category) {
       throw new NotFoundException('Category not found');
     }
 
-    const existing = await this.prisma.subCategory.findFirst({
-      where: { name: dto.name, categoryId: dto.categoryId, companyId },
-    });
+    const existing = dto.name
+      ? await this.prisma.subCategory.findFirst({
+          where: { name: dto.name, categoryId: dto.categoryId, companyId },
+        })
+      : null;
 
     if (existing) {
       throw new ConflictException(
@@ -57,7 +84,7 @@ export class SubCategoriesService {
       code = `SC${nextNum}`;
     }
 
-    return this.prisma.subCategory.create({
+    const sub = await this.prisma.subCategory.create({
       data: {
         name: dto.name,
         slug,
@@ -70,29 +97,43 @@ export class SubCategoriesService {
       },
       include: { category: { select: { id: true, name: true } } },
     });
+
+    await INVALIDATE_KEYS(this.cache, companyId, dto.categoryId);
+    return sub;
   }
 
-  findAll(companyId: string, categoryId?: string) {
+  async findAll(companyId: string, categoryId?: string) {
+    const cacheKey = LIST_KEY(companyId, categoryId);
+    const cached = await this.cache.get(cacheKey);
+    if (cached) return cached;
+
     const where: any = { companyId };
     if (categoryId) where.categoryId = categoryId;
 
-    return this.prisma.subCategory.findMany({
+    const data = await this.prisma.subCategory.findMany({
       where,
       orderBy: { name: 'asc' },
       include: { category: { select: { id: true, name: true } } },
     });
+
+    await this.cache.set(cacheKey, data, CACHE_TTL);
+    return data;
   }
 
   async findOne(id: string, companyId: string) {
+    const cacheKey = ITEM_KEY(companyId, id);
+    const cached = await this.cache.get(cacheKey);
+    if (cached) return cached;
+
     const subCategory = await this.prisma.subCategory.findFirst({
       where: { id, companyId },
       include: { category: { select: { id: true, name: true } } },
     });
-
     if (!subCategory) {
       throw new NotFoundException('Sub-category not found');
     }
 
+    await this.cache.set(cacheKey, subCategory, CACHE_TTL);
     return subCategory;
   }
 
@@ -131,64 +172,67 @@ export class SubCategoriesService {
     if (dto.status !== undefined) data.status = dto.status;
     if (dto.categoryId !== undefined) data.categoryId = dto.categoryId;
 
-    return this.prisma.subCategory.update({
+    const sub = await this.prisma.subCategory.update({
       where: { id },
       data,
       include: { category: { select: { id: true, name: true } } },
     });
+
+    await Promise.all([
+      this.cache.del(LIST_KEY(companyId)),
+      this.cache.del(ITEM_KEY(companyId, id)),
+    ]);
+    return sub;
   }
 
   async remove(id: string, companyId: string) {
-    await this.findOne(id, companyId);
+    const sub = await this.findOne(id, companyId);
 
-    await this.prisma.product.updateMany({
-      where: { subCategoryId: id, companyId },
-      data: { subCategoryId: null },
-    });
+    await Promise.all([
+      this.prisma.product.updateMany({
+        where: { subCategoryId: id, companyId },
+        data: { subCategoryId: null },
+      }),
+      this.prisma.subCategory.delete({ where: { id } }),
+    ]);
 
-    await this.prisma.subCategory.delete({ where: { id } });
+    await Promise.all([
+      this.cache.del(LIST_KEY(companyId)),
+      this.cache.del(ITEM_KEY(companyId, id)),
+    ]);
 
     return { message: 'Sub-category deleted successfully' };
   }
 
   async bulkDelete(ids: string[], companyId: string) {
-    const results = {
-      deleted: [] as string[],
-      failed: [] as { id: string; error: string }[],
-    };
+    const found = await this.prisma.subCategory.findMany({
+      where: { id: { in: ids }, companyId },
+      select: { id: true },
+    });
+    const foundIds = found.map((s) => s.id);
+    const notFound = ids.filter((id) => !foundIds.includes(id));
 
-    for (const id of ids) {
-      try {
-        const subCategory = await this.prisma.subCategory.findFirst({
-          where: { id, companyId },
-        });
-
-        if (!subCategory) {
-          results.failed.push({
-            id,
-            error: 'Sub-category not found or access denied',
-          });
-          continue;
-        }
-
-        await this.prisma.product.updateMany({
-          where: { subCategoryId: id, companyId },
+    if (foundIds.length > 0) {
+      await Promise.all([
+        this.prisma.product.updateMany({
+          where: { subCategoryId: { in: foundIds }, companyId },
           data: { subCategoryId: null },
-        });
-
-        await this.prisma.subCategory.delete({ where: { id } });
-        results.deleted.push(id);
-      } catch (error) {
-        results.failed.push({
-          id,
-          error: error.message || 'Failed to delete sub-category',
-        });
-      }
+        }),
+        this.prisma.subCategory.deleteMany({
+          where: { id: { in: foundIds }, companyId },
+        }),
+      ]);
     }
 
+    await this.cache.del(LIST_KEY(companyId));
+
     return {
-      message: `Successfully deleted ${results.deleted.length} out of ${ids.length} sub-categories`,
-      ...results,
+      message: `Successfully deleted ${foundIds.length} out of ${ids.length} sub-categories`,
+      deleted: foundIds,
+      failed: notFound.map((id) => ({
+        id,
+        error: 'Sub-category not found or access denied',
+      })),
     };
   }
 }
