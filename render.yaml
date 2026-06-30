@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: omniblox-api
+    env: node
+    region: singapore
+    plan: starter
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm run start:prod
+    rootDir: server
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL_POOLED
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: AUTH_SECRET
+        sync: false
+      - key: CORS_ORIGIN
+        value: https://omniblox.vercel.app
+      - key: BACKEND_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: COOKIE_DOMAIN
+        sync: false
