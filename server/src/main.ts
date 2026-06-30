@@ -54,7 +54,9 @@ async function bootstrap() {
 
   // Add this CORS configuration
   app.enableCors({
-    origin: ['http://localhost:3000'], // The origin of your Next.js app
+    origin: [process.env.CORS_ORIGIN || 'http://localhost:3000'].filter(
+      Boolean,
+    ),
     credentials: true, // This is crucial for sending cookies
   });
 
@@ -75,7 +77,7 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 
-  const port = process.env.PORT ?? 5001;
+  const port = process.env.PORT || 5005;
   await app.listen(port);
   console.log('[main.ts] Application is running on:', port);
 }

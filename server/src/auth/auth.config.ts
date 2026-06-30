@@ -18,6 +18,10 @@ export const auth = betterAuth({
       enabled: true,
       maxAge: 5 * 60, // 5 minutes
     },
+    cookie: {
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    },
     // Add companyId and role to session
     additionalFields: {
       companyId: {
@@ -71,5 +75,8 @@ export const auth = betterAuth({
     },
   },
   secret: process.env.AUTH_SECRET,
-  trustedOrigins: [process.env.CORS_ORIGIN || 'http://localhost:3000'],
+  trustedOrigins: [
+    process.env.CORS_ORIGIN || 'http://localhost:3000',
+    process.env.BACKEND_URL || 'http://localhost:5005',
+  ].filter(Boolean),
 });

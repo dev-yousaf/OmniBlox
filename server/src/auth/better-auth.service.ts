@@ -20,7 +20,7 @@ export class BetterAuthService {
       database: {
         // We'll configure this later to use Prisma
         provider: 'postgresql',
-        url: process.env.DATABASE_URL || '',
+        url: process.env.DATABASE_URL_POOLED || process.env.DATABASE_URL || '',
       },
     });
   }
