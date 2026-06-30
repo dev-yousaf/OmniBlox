@@ -11,6 +11,7 @@ import { UpdateExpenseStatusDto } from './dto/update-expense-status.dto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
+import { MulterFile } from '../types/multer-file';
 
 const writeFile = promisify(fs.writeFile);
 const mkdir = promisify(fs.mkdir);
@@ -259,7 +260,7 @@ export class ExpensesService {
   async uploadAttachment(
     expenseId: string,
     companyId: string,
-    file: Express.Multer.File,
+    file: MulterFile,
   ) {
     if (!file) throw new BadRequestException('No file provided');
     await this.findOne(expenseId, companyId);

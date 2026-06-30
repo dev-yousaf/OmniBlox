@@ -18,6 +18,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { UserRole } from '@prisma/client';
 import { AuthGuard } from '@thallesp/nestjs-better-auth';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import type { MulterFile } from '../types/multer-file';
+
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CompanyId } from '../auth/decorators/company-id.decorator';
 import { UserId } from '../auth/decorators/user-id.decorator';
@@ -100,7 +102,7 @@ export class ExpensesController {
   async uploadAttachment(
     @Param('id') id: string,
     @CompanyId() companyId: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: MulterFile,
   ) {
     return this.expensesService.uploadAttachment(id, companyId, file);
   }
