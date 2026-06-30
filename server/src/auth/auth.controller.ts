@@ -93,10 +93,21 @@ export class AuthController {
         .json()
         .catch(() => ({}));
 
-      // Forward cookies if any
+      // Forward cookies with cross-domain attributes
       const cookies: string[] = [];
+      const isProduction = process.env.NODE_ENV === 'production';
       response.headers.forEach((value, key) => {
-        if (key.toLowerCase() === 'set-cookie') cookies.push(value);
+        if (key.toLowerCase() === 'set-cookie') {
+          if (isProduction) {
+            const parts = value.split(';').map(p => p.trim());
+            const hasSameSite = parts.some(p => p.toLowerCase().startsWith('samesite='));
+            const hasSecure = parts.some(p => p.toLowerCase() === 'secure');
+            if (!hasSameSite) parts.push('SameSite=None');
+            if (!hasSecure) parts.push('Secure');
+            value = parts.join('; ');
+          }
+          cookies.push(value);
+        }
       });
       if (cookies.length > 0) res.setHeader('Set-Cookie', cookies);
 
