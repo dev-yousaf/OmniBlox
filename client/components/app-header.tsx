@@ -138,8 +138,8 @@ function CalculatorPopover() {
           <Calculator className="h-4 w-4" />
         </div>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[192px] p-2">
-        <div className="bg-muted rounded-md px-2 py-1 text-right text-sm font-mono mb-2 min-h-[28px]">{display}</div>
+      <PopoverContent align="end" className="w-[220px] p-2">
+        <div className="bg-muted rounded-md px-3 py-2 text-right text-base font-mono mb-2 min-h-[36px] overflow-x-auto whitespace-nowrap">{display}</div>
         <div className="grid grid-cols-4 gap-1">
           {["7","8","9","/","4","5","6","*","1","2","3","-","0",".","C","=","+","%"].map((k) =>
             k === "=" ? (
