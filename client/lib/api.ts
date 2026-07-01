@@ -39,13 +39,14 @@ class ApiClient {
   private baseUrl: string;
 
   constructor() {
-    if (process.env.NEXT_PUBLIC_API_URL) {
-      this.baseUrl = process.env.NEXT_PUBLIC_API_URL;
-    } else if (typeof window !== "undefined") {
-      // Use Next.js rewrite to proxy to the API during development
-      this.baseUrl = `${window.location.origin}/api`;
+    if (typeof window !== "undefined") {
+      // Browser: use API URL if set (local dev), otherwise same-origin proxy (Vercel)
+      this.baseUrl = process.env.NEXT_PUBLIC_API_URL || `${window.location.origin}/api`;
+    } else if (process.env.API_URL) {
+      // Server-side (SSR): use direct backend URL
+      this.baseUrl = process.env.API_URL;
     } else {
-      this.baseUrl = "http://localhost:5005";
+      this.baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5005";
     }
   }
 
