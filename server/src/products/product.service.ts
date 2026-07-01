@@ -140,7 +140,9 @@ export class ProductService {
         expiryDate,
         unit,
         warranty,
-        warehouseId: _warehouseId, // extracted to prevent leaking into restProductData
+        warehouseId: _warehouseId,
+        itemCode: _itemCode,
+        manufacturer: _manufacturer,
         ...restProductData
       } = productData;
       const dateData: Record<string, Date> = {};
@@ -480,8 +482,10 @@ export class ProductService {
         ...productData
       } = updateProductDto;
       const updateData: any = { ...productData };
-      // Remove fields that are not part of Product model
-      delete updateData.warehouseId;
+      // Remove fields from DTO that don't exist on Product model
+      for (const key of ['warehouseId', 'itemCode', 'manufacturer']) {
+        delete updateData[key];
+      }
       if (manufacturedDate !== undefined)
         updateData.manufacturedDate = manufacturedDate
           ? new Date(manufacturedDate)
