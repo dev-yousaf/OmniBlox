@@ -140,6 +140,7 @@ export class ProductService {
         expiryDate,
         unit,
         warranty,
+        warehouseId: _warehouseId, // extracted to prevent leaking into restProductData
         ...restProductData
       } = productData;
       const dateData: Record<string, Date> = {};
