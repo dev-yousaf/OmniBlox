@@ -480,7 +480,12 @@ export class ProductService {
         subCategory: updateSubCategory,
         ...productData
       } = updateProductDto;
-      const updateData: any = { ...productData };
+      const updateData: any = {};
+      for (const [key, value] of Object.entries(productData)) {
+        if (value !== undefined) {
+          updateData[key] = value;
+        }
+      }
       // Remove fields from DTO that don't exist on Product model
       for (const key of ['warehouseId', 'itemCode', 'manufacturer', 'warranty']) {
         delete updateData[key];
