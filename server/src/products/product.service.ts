@@ -480,6 +480,8 @@ export class ProductService {
         ...productData
       } = updateProductDto;
       const updateData: any = { ...productData };
+      // Remove fields that are not part of Product model
+      delete updateData.warehouseId;
       if (manufacturedDate !== undefined)
         updateData.manufacturedDate = manufacturedDate
           ? new Date(manufacturedDate)
