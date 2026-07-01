@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { AuthProvider } from "@/contexts";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { GlobalRouteProgressBar } from "@/components/ui/global-route-progress-bar";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   subsets: ["latin"],
@@ -46,6 +47,7 @@ export default function RootLayout({
             <AuthProvider>{children}</AuthProvider>
           </ThemeProvider>
         </Suspense>
+        <Toaster />
         <Analytics />
       </body>
     </html>
