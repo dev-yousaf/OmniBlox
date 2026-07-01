@@ -179,7 +179,6 @@ export class ProductService {
           sku,
           type: type || 'STANDARD',
           unit,
-          warranty,
           ...restProductData,
           ...dateData,
           subCategoryId,
@@ -483,7 +482,7 @@ export class ProductService {
       } = updateProductDto;
       const updateData: any = { ...productData };
       // Remove fields from DTO that don't exist on Product model
-      for (const key of ['warehouseId', 'itemCode', 'manufacturer']) {
+      for (const key of ['warehouseId', 'itemCode', 'manufacturer', 'warranty']) {
         delete updateData[key];
       }
       if (manufacturedDate !== undefined)
@@ -622,8 +621,8 @@ export class ProductService {
         0,
       );
       return this.transformToDto(product, totalStock);
-    } catch {
-      throw new BadRequestException('Failed to update product');
+    } catch (error: any) {
+      throw new BadRequestException(error?.message || 'Failed to update product');
     }
   }
 
