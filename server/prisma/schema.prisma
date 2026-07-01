@@ -129,6 +129,10 @@ model Session {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Multi-tenant session fields (populated by Better Auth databaseHooks)
+  companyId String
+  role      String
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")

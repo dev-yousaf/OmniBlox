@@ -41,14 +41,15 @@ interface UserSession {
     token: string;
     ipAddress?: string;
     userAgent?: string;
+    // Our custom multi-tenant fields
+    companyId: string;
+    role: string;
   };
   user: {
     id: string;
     email: string;
     name: string;
     emailVerified: boolean;
-    companyId: string;
-    role: string;
   };
 }
 
@@ -195,8 +196,8 @@ export class AuthController {
         id: session.user.id,
         email: session.user.email,
         name: session.user.name,
-        role: session.user.role,
-        companyId: session.user.companyId,
+        role: session.session.role,
+        companyId: session.session.companyId,
       },
     };
   }
@@ -204,7 +205,7 @@ export class AuthController {
   @Get('company')
   @UseGuards(AuthGuard)
   getCurrentCompany(@Session() session: UserSession) {
-    return { companyId: session.user.companyId };
+    return { companyId: session.session.companyId };
   }
 
   @Get('session')
@@ -212,8 +213,8 @@ export class AuthController {
   getSession(@Session() session: UserSession) {
     return {
       userId: session.session.userId,
-      role: session.user.role,
-      companyId: session.user.companyId,
+      role: session.session.role,
+      companyId: session.session.companyId,
       expiresAt: session.session.expiresAt,
     };
   }

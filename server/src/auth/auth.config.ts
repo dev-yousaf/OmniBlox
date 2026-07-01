@@ -22,6 +22,16 @@ export const auth = betterAuth({
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       secure: process.env.NODE_ENV === 'production',
     },
+    additionalFields: {
+      companyId: {
+        type: 'string',
+        required: true,
+      },
+      role: {
+        type: 'string',
+        required: true,
+      },
+    },
   },
   user: {
     additionalFields: {
@@ -34,6 +44,30 @@ export const auth = betterAuth({
         type: 'string',
         required: true,
         input: false,
+      },
+    },
+  },
+  databaseHooks: {
+    session: {
+      create: {
+        before: async (session) => {
+          const user = await prisma.user.findUnique({
+            where: { id: session.userId },
+            select: { companyId: true, role: true },
+          });
+
+          if (!user) {
+            throw new Error('User not found');
+          }
+
+          return {
+            data: {
+              ...session,
+              companyId: user.companyId,
+              role: user.role,
+            },
+          };
+        },
       },
     },
   },
