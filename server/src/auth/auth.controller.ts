@@ -93,23 +93,23 @@ export class AuthController {
         .json()
         .catch(() => ({}));
 
-      // Forward cookies with cross-domain attributes
-      const cookies: string[] = [];
+      // Forward cookies using res.cookie() for explicit SameSite/Secure control
       const isProduction = process.env.NODE_ENV === 'production';
-      response.headers.forEach((value, key) => {
+      response.headers.forEach((headerValue, key) => {
         if (key.toLowerCase() === 'set-cookie') {
-          if (isProduction) {
-            const parts = value.split(';').map(p => p.trim());
-            const hasSameSite = parts.some(p => p.toLowerCase().startsWith('samesite='));
-            const hasSecure = parts.some(p => p.toLowerCase() === 'secure');
-            if (!hasSameSite) parts.push('SameSite=None');
-            if (!hasSecure) parts.push('Secure');
-            value = parts.join('; ');
-          }
-          cookies.push(value);
+          const eqIdx = headerValue.indexOf('=');
+          const name = headerValue.slice(0, eqIdx);
+          const rest = headerValue.slice(eqIdx + 1);
+          const semiIdx = rest.indexOf(';');
+          const val = semiIdx > -1 ? rest.slice(0, semiIdx).trim() : rest.trim();
+          res.cookie(name, val, {
+            httpOnly: headerValue.toLowerCase().includes('httponly'),
+            path: '/',
+            sameSite: isProduction ? 'none' : 'lax',
+            secure: isProduction,
+          });
         }
       });
-      if (cookies.length > 0) res.setHeader('Set-Cookie', cookies);
 
       return { response, body };
     };
