@@ -19,6 +19,8 @@ services:
         sync: false
       - key: CORS_ORIGIN
         value: https://omniblox.vercel.app
+      - key: BETTER_AUTH_URL
+        sync: false
       - key: BACKEND_URL
         sync: false
       - key: RESEND_API_KEY
