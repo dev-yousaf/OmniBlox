@@ -93,23 +93,12 @@ export class AuthController {
         .json()
         .catch(() => ({}));
 
-      // Forward cookies using res.cookie() for explicit SameSite/Secure control
-      const isProduction = process.env.NODE_ENV === 'production';
-      response.headers.forEach((headerValue, key) => {
-        if (key.toLowerCase() === 'set-cookie') {
-          const eqIdx = headerValue.indexOf('=');
-          const name = headerValue.slice(0, eqIdx);
-          const rest = headerValue.slice(eqIdx + 1);
-          const semiIdx = rest.indexOf(';');
-          const val = semiIdx > -1 ? rest.slice(0, semiIdx).trim() : rest.trim();
-          res.cookie(name, val, {
-            httpOnly: headerValue.toLowerCase().includes('httponly'),
-            path: '/',
-            sameSite: isProduction ? 'none' : 'lax',
-            secure: isProduction,
-          });
-        }
+      // Forward cookies as raw Set-Cookie headers (avoid res.cookie which double-encodes)
+      const setCookies: string[] = [];
+      response.headers.forEach((value, key) => {
+        if (key.toLowerCase() === 'set-cookie') setCookies.push(value);
       });
+      if (setCookies.length > 0) res.setHeader('Set-Cookie', setCookies);
 
       return { response, body };
     };
