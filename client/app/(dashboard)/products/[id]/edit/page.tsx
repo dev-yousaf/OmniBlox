@@ -1,8 +1,7 @@
 "use client";
 
-import { use, useEffect, useState, useRef } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { RefreshCw, Minus } from "lucide-react";
 import Link from "next/link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
@@ -21,7 +20,6 @@ export default function EditProductPage({
   const router = useRouter();
   const [productData, setProductData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -44,10 +42,6 @@ export default function EditProductPage({
       loadProduct();
     }
   }, [productId, getProduct, toast, router]);
-
-  const handleSuccess = () => {
-    router.push("/products");
-  };
 
   if (loading) {
     return <PageLoadingSkeleton />;
@@ -96,23 +90,11 @@ export default function EditProductPage({
       </div>
 
       <ProductForm
-        ref={formRef}
         initialData={productData}
         isEdit={true}
         productId={productId}
-        onSuccess={handleSuccess}
+        onSuccess={() => router.push("/products")}
       />
-      <div className="flex items-center justify-end gap-2 mt-6">
-        <Link href={`/products/${productId}`}>
-          <Button variant="outline" className="h-[34px] px-4 text-[13px]">Cancel</Button>
-        </Link>
-        <Button
-          className="h-[34px] px-4 text-[13px] bg-[#092c4c] text-white hover:bg-[#092c4c]/90"
-          onClick={() => formRef.current?.requestSubmit()}
-        >
-          Save Product
-        </Button>
-      </div>
     </div>
   );
 }

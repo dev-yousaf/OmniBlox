@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Minus } from "lucide-react";
@@ -9,27 +8,9 @@ import { ProductForm } from "@/components/products/product-form";
 
 function NewProductForm() {
   const router = useRouter();
-  const formRef = useRef<HTMLFormElement>(null);
-
-  const handleSuccess = () => {
-    router.push("/products");
-  };
 
   return (
-    <>
-      <ProductForm ref={formRef} onSuccess={handleSuccess} />
-      <div className="flex items-center justify-end gap-2 mt-6">
-        <Link href="/products">
-          <Button variant="outline" className="h-[34px] px-4 text-[13px]">Cancel</Button>
-        </Link>
-        <Button
-          className="h-[34px] px-4 text-[13px] bg-[#092c4c] text-white hover:bg-[#092c4c]/90"
-          onClick={() => formRef.current?.requestSubmit()}
-        >
-          Save Product
-        </Button>
-      </div>
-    </>
+    <ProductForm onSuccess={() => router.push("/products")} />
   );
 }
 

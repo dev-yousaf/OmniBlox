@@ -34,6 +34,7 @@ import {
   CircleChevronDown,
   CirclePlus,
   Calendar,
+  Loader2,
 } from "lucide-react";
 
 interface VariantAttribute {
@@ -88,6 +89,20 @@ interface ProductFormData {
   expiryDate: string;
 }
 
+interface FormErrors {
+  name?: string;
+  sku?: string;
+  unit?: string;
+  category?: string;
+  barcodeSymbology?: string;
+  salePrice?: string;
+  costPrice?: string;
+  stock?: string;
+  reorderLevel?: string;
+  taxRate?: string;
+  brand?: string;
+}
+
 interface ProductFormProps {
   initialData?: Partial<ProductFormData>;
   isEdit?: boolean;
@@ -95,6 +110,8 @@ interface ProductFormProps {
   onSuccess?: (product?: Product) => void;
   hideWarehouse?: boolean;
   formId?: string;
+  onSubmittingChange?: (submitting: boolean) => void;
+  showSubmit?: boolean;
 }
 
 const BARCODE_OPTIONS = [
@@ -142,27 +159,34 @@ function CardSection({
 function FormField({
   label,
   required = false,
+  error,
+  fieldName,
   children,
   className = "",
 }: {
   label: string;
   required?: boolean;
+  error?: string;
+  fieldName?: string;
   children: React.ReactNode;
   className?: string;
 }) {
   return (
-    <div className={`flex flex-col gap-[4px] ${className}`}>
+    <div className={`flex flex-col gap-[4px] ${className}`} data-error={fieldName}>
       <Label className="text-[14px] font-medium text-[#212b36] dark:text-card-foreground leading-[21px]">
         {label}
         {required && <span className="text-red-500"> *</span>}
       </Label>
       {children}
+      {error && (
+        <p className="text-[12px] text-red-500 mt-[2px]">{error}</p>
+      )}
     </div>
   );
 }
 
 const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
-  function ProductForm({ initialData, isEdit = false, productId, onSuccess, hideWarehouse = false, formId }, ref) {
+  function ProductForm({ initialData, isEdit = false, productId, onSuccess, hideWarehouse = false, formId, onSubmittingChange = () => {}, showSubmit = true }, ref) {
     const router = useRouter();
     const { toast } = useToast();
     const { createProduct, updateProduct, getBrands, getProducts } =
@@ -176,6 +200,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [errors, setErrors] = useState<FormErrors>({});
     const [categories, setCategories] = useState<
       Array<{ id: string; name: string }>
     >([]);
@@ -286,8 +311,18 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
       }
     }, []);
 
+    const clearError = (field: keyof FormErrors) => {
+      setErrors((prev) => {
+        if (!prev[field]) return prev;
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    };
+
     const handleInputChange = (field: keyof ProductFormData, value: string) => {
       setFormData((prev) => ({ ...prev, [field]: value }));
+      clearError(field as keyof FormErrors);
 
       if (field === "category") {
         setShowCustomCategory(value === "Other");
@@ -437,10 +472,33 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
       handleInputChange("sku", `${prefix}-${num}`);
     };
 
+    const validateForm = (): boolean => {
+      const newErrors: FormErrors = {};
+      if (!formData.name.trim()) newErrors.name = "Product name is required";
+      if (!formData.sku.trim()) newErrors.sku = "SKU is required";
+      if (!formData.unit.trim()) newErrors.unit = "Unit is required";
+      if (!formData.barcodeSymbology) newErrors.barcodeSymbology = "Barcode symbology is required";
+      const finalCategory = showCustomCategory ? formData.customCategory : formData.category;
+      if (!finalCategory.trim()) newErrors.category = "Category is required";
+      if (!formData.salePrice || parseFloat(formData.salePrice) < 0) newErrors.salePrice = "Valid sale price is required";
+      if (formData.costPrice && parseFloat(formData.costPrice) < 0) newErrors.costPrice = "Cost price cannot be negative";
+      if (formData.taxRate && (parseFloat(formData.taxRate) < 0 || parseFloat(formData.taxRate) > 100)) newErrors.taxRate = "Tax rate must be between 0 and 100";
+      setErrors(newErrors);
+      if (Object.keys(newErrors).length > 0) {
+        const firstErrorField = Object.keys(newErrors)[0];
+        setTimeout(() => {
+          document.querySelector(`[data-error="${firstErrorField}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
+      return Object.keys(newErrors).length === 0;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       if (isSubmitting) return;
+      if (!validateForm()) return;
       setIsSubmitting(true);
+      onSubmittingChange?.(true);
       setSubmitError(null);
 
       try {
@@ -507,6 +565,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
         setSubmitError(msg);
       } finally {
         setIsSubmitting(false);
+        onSubmittingChange?.(false);
       }
     };
 
@@ -521,7 +580,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
         <CardSection icon={<Info className="h-4 w-4" />} title="Product Information">
           <div className="space-y-4">
             <div className="flex gap-4">
-              <FormField label="Product Name" required className="flex-1">
+              <FormField label="Product Name" required fieldName="name" error={errors.name} className="flex-1">
                 <Input placeholder="Enter product name" value={formData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)} required
                   className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
@@ -534,7 +593,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
             </div>
 
             <div className="flex gap-4">
-              <FormField label="SKU" required className="flex-1">
+              <FormField label="SKU" required fieldName="sku" error={errors.sku} className="flex-1">
                 <div className="flex gap-2">
                   <Input placeholder="PRD-001" value={formData.sku}
                     onChange={(e) => handleInputChange("sku", e.target.value)} required
@@ -565,7 +624,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
             </div>
 
             <div className="flex gap-4">
-              <FormField label="Category" required className="flex-1">
+              <FormField label="Category" required fieldName="category" error={errors.category} className="flex-1">
                 <div>
                   <Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)}>
                     <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
@@ -612,7 +671,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
             </div>
 
             <div className="flex gap-4">
-              <FormField label="Brand" required className="flex-1">
+              <FormField label="Brand" required fieldName="brand" error={errors.brand} className="flex-1">
                 <Select value={formData.brand} onValueChange={(value) => handleInputChange("brand", value)}>
                   <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
                     <SelectValue placeholder="Select" />
@@ -626,7 +685,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                   </SelectContent>
                 </Select>
               </FormField>
-              <FormField label="Unit" required className="flex-1">
+              <FormField label="Unit" required fieldName="unit" error={errors.unit} className="flex-1">
                 <Select value={formData.unit} onValueChange={(value) => handleInputChange("unit", value)}>
                   <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
                     <SelectValue placeholder="Select" />
@@ -648,7 +707,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                   onChange={(e) => handleInputChange("itemCode", e.target.value)}
                   className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
               </FormField>
-              <FormField label="Barcode Symbology" required className="flex-1">
+              <FormField label="Barcode Symbology" required fieldName="barcodeSymbology" error={errors.barcodeSymbology} className="flex-1">
                 <Select value={formData.barcodeSymbology}
                   onValueChange={(value) => handleInputChange("barcodeSymbology", value as "CODE128" | "EAN13" | "UPCA" | "QR")}>
                   <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
@@ -705,7 +764,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
             </div>
 
             <div className="flex gap-4">
-              <FormField label="Quantity" required className="flex-1">
+              <FormField label="Quantity" required fieldName="stock" error={errors.stock} className="flex-1">
                 <Input type="number" placeholder="0" value={formData.stock}
                   onChange={(e) => handleInputChange("stock", e.target.value)}
                   className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
@@ -727,12 +786,12 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                   <p className="text-[11px] text-muted-foreground mt-1">Stock will be assigned to this warehouse</p>
                 </FormField>
               )}
-              <FormField label="Price" required className="flex-1">
+              <FormField label="Price" required fieldName="salePrice" error={errors.salePrice} className="flex-1">
                 <Input type="number" step="0.01" placeholder="0.00" value={formData.salePrice}
                   onChange={(e) => handleInputChange("salePrice", e.target.value)} required
                   className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
               </FormField>
-              <FormField label="Tax Type" required className="flex-1">
+              <FormField label="Tax Type" required fieldName="taxRate" error={errors.taxRate} className="flex-1">
                 <Select value={formData.taxRate || "0"} onValueChange={(value) => handleInputChange("taxRate", value)}>
                   <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
                     <SelectValue placeholder="Select" />
@@ -750,12 +809,12 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
             </div>
 
             <div className="flex gap-4">
-              <FormField label="Reorder Level" className="flex-1">
+              <FormField label="Reorder Level" fieldName="reorderLevel" error={errors.reorderLevel} className="flex-1">
                 <Input type="number" placeholder="0" value={formData.reorderLevel}
                   onChange={(e) => handleInputChange("reorderLevel", e.target.value)}
                   className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
               </FormField>
-              <FormField label="Cost Price" className="flex-1">
+              <FormField label="Cost Price" fieldName="costPrice" error={errors.costPrice} className="flex-1">
                 <Input type="number" step="0.01" placeholder="0.00" value={formData.costPrice}
                   onChange={(e) => handleInputChange("costPrice", e.target.value)}
                   className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
@@ -1024,6 +1083,21 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
               )}
             </div>
           </CardSection>
+        )}
+        {showSubmit && (
+          <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="h-[34px] px-4 text-[13px] bg-[#092c4c] text-white hover:bg-[#092c4c]/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+              ) : (
+                isEdit ? "Update Product" : "Save Product"
+              )}
+            </Button>
+          </div>
         )}
       </form>
     );
