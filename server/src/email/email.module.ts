@@ -10,8 +10,14 @@ import { EmailService } from './email.service';
       transport: {
         host: process.env.MAIL_HOST || 'localhost',
         port: parseInt(process.env.MAIL_PORT || '1025'),
-        ignoreTLS: true,
-        secure: false,
+        ignoreTLS: process.env.MAIL_IGNORE_TLS === 'false' ? false : true,
+        secure: process.env.MAIL_SECURE === 'true' ? true : false,
+        auth: process.env.MAIL_USER
+          ? {
+              user: process.env.MAIL_USER,
+              pass: process.env.MAIL_PASS,
+            }
+          : undefined,
       },
       defaults: {
         from: `"${process.env.MAIL_FROM_NAME || 'OmniBlox'}" <${

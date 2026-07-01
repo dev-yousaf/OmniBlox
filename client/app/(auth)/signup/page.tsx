@@ -81,8 +81,8 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted to-background p-4">
-      <div className="w-full max-w-4xl rounded-2xl border bg-card text-card-foreground shadow-xl p-6 sm:p-10">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted to-background p-4 overflow-y-auto">
+      <div className="w-full max-w-4xl rounded-2xl border bg-card text-card-foreground shadow-xl p-6 sm:p-10 my-8">
         {/* Header */}
         <div className="text-center">
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
