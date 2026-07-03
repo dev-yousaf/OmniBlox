@@ -44,7 +44,7 @@ interface SignupErrors {
 export default function SignupPage() {
   const router = useRouter();
   const { signup } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [industry, setIndustry] = useState("");
   const [otherIndustry, setOtherIndustry] = useState("");
   const [error, setError] = useState("");
@@ -98,7 +98,7 @@ export default function SignupPage() {
     e.preventDefault();
     setError("");
     if (!validate()) return;
-    setIsLoading(true);
+    setSubmitting(true);
 
     const formData = new FormData(e.target as HTMLFormElement);
     const password = formData.get("password") as string;
@@ -120,7 +120,7 @@ export default function SignupPage() {
     } catch (err: any) {
       setError(err.message || "An error occurred during signup");
     } finally {
-      setIsLoading(false);
+      setSubmitting(false);
     }
   }
 
@@ -418,9 +418,9 @@ export default function SignupPage() {
               size="lg"
               className="mt-6 w-full font-semibold tracking-wide"
               type="submit"
-              disabled={isLoading}
+              disabled={submitting}
             >
-              {isLoading ? (
+              {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Creating Workspace...

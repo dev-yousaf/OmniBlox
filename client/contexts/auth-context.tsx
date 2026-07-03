@@ -72,7 +72,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      setIsLoading(true);
       await api.login(email, password);
       const userData = await api.getProfile();
       setUser(userData as User);
@@ -80,23 +79,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       console.error("Login failed:", error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const signup = async (data: SignupData) => {
     try {
-      setIsLoading(true);
       const response = (await api.signup(data)) as any;
-      // Return userId for OTP verification page
       return { userId: response.userId as string };
     } catch (error: any) {
       console.error("Signup failed:", error);
-      setIsLoading(false);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 

@@ -29,7 +29,7 @@ import { api } from "@/lib/api";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [showMagicLink, setShowMagicLink] = useState(false);
@@ -62,7 +62,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    setIsLoading(true);
+    setSubmitting(true);
     setError("");
 
     try {
@@ -71,13 +71,13 @@ export default function LoginPage() {
     } catch (err: any) {
       setError(err.message || "Invalid email or password");
     } finally {
-      setIsLoading(false);
+      setSubmitting(false);
     }
   };
 
   const handleMagicLinkRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setSubmitting(true);
     setError("");
 
     try {
@@ -162,9 +162,9 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 className="w-full font-semibold tracking-wide"
-                disabled={isLoading}
+                disabled={submitting}
               >
-                {isLoading ? (
+                {submitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...
                   </>
@@ -250,9 +250,9 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 className="w-full font-semibold tracking-wide"
-                disabled={isLoading}
+                disabled={submitting}
               >
-                {isLoading ? (
+                {submitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing
                     in...
