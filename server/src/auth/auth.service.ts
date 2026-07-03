@@ -120,10 +120,10 @@ export class AuthService {
       },
     };
 
-    // Send verification email asynchronously (don't block the response)
-    this._sendVerificationOtp(result.user).catch((error) => {
-      console.error('Failed to send verification OTP:', error);
-    });
+    // Email verification disabled — OTP code left in place but not triggered
+    // this._sendVerificationOtp(result.user).catch((error) => {
+    //   console.error('Failed to send verification OTP:', error);
+    // });
 
     return signupResult;
   }
