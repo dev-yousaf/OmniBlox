@@ -118,7 +118,17 @@ export default function SignupPage() {
       await signup(payload);
       router.push('/login');
     } catch (err: any) {
-      setError(err.message || "An error occurred during signup");
+      const msg = err.message || "An error occurred during signup";
+      const lower = msg.toLowerCase();
+      if (lower.includes("workspace url")) {
+        setErrors((prev) => ({ ...prev, workspaceUrl: msg }));
+        setTimeout(() => document.querySelector('[data-field="signup-workspaceUrl"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+      } else if (lower.includes("email")) {
+        setErrors((prev) => ({ ...prev, email: msg }));
+        setTimeout(() => document.querySelector('[data-field="signup-email"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+      } else {
+        setError(msg);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -126,7 +136,7 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted to-background p-4 overflow-y-auto">
-      <div className="w-full max-w-4xl rounded-2xl border bg-card text-card-foreground shadow-xl p-6 sm:p-10 my-8">
+      <div className="w-full max-w-4xl rounded-2xl border bg-card text-card-foreground shadow-xl p-6 sm:p-10 my-8 max-h-[95vh] overflow-y-auto">
         {/* Header */}
         <div className="text-center">
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">

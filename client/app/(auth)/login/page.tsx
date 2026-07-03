@@ -69,7 +69,17 @@ export default function LoginPage() {
       await login(email, password);
       router.push("/dashboard");
     } catch (err: any) {
-      setError(err.message || "Invalid email or password");
+      const msg = err.message || "Invalid email or password";
+      const lower = msg.toLowerCase();
+      if (lower.includes("email") || lower.includes("user not found")) {
+        setErrors((prev) => ({ ...prev, email: msg }));
+        setTimeout(() => document.querySelector('[data-field="login-email"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+      } else if (lower.includes("password")) {
+        setErrors((prev) => ({ ...prev, password: msg }));
+        setTimeout(() => document.querySelector('[data-field="login-password"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+      } else {
+        setError(msg);
+      }
     } finally {
       setSubmitting(false);
     }
