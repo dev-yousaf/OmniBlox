@@ -31,13 +31,37 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [showMagicLink, setShowMagicLink] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
 
+  const clearFieldError = (field: 'email' | 'password') => {
+    setErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const validate = (): boolean => {
+    const next: { email?: string; password?: string } = {};
+    if (!email.trim()) next.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) next.email = "Invalid email format";
+    if (!password) next.password = "Password is required";
+    setErrors(next);
+    if (Object.keys(next).length > 0) {
+      const first = Object.keys(next)[0];
+      setTimeout(() => document.querySelector(`[data-field="login-${first}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+    }
+    return Object.keys(next).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) return;
     setIsLoading(true);
     setError("");
 
@@ -171,7 +195,7 @@ export default function LoginPage() {
               )}
 
               {/* Email Field */}
-              <div className="space-y-2">
+              <div className="space-y-2" data-field="login-email">
                 <Label htmlFor="email" className="text-sm font-medium">
                   Email
                 </Label>
@@ -183,14 +207,17 @@ export default function LoginPage() {
                     placeholder="name@company.com"
                     className="pl-10 text-sm font-medium"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); clearFieldError('email'); }}
                     required
                   />
                 </div>
+                {errors.email && (
+                  <p className="text-[12px] text-red-500 mt-[2px]">{errors.email}</p>
+                )}
               </div>
 
               {/* Password Field */}
-              <div className="space-y-2">
+              <div className="space-y-2" data-field="login-password">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="text-sm font-medium">
                     Password
@@ -209,11 +236,14 @@ export default function LoginPage() {
                     placeholder="Your password"
                     className="pl-10 text-sm font-medium"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => { setPassword(e.target.value); clearFieldError('password'); }}
                     autoComplete="current-password"
                     required
                   />
                 </div>
+                {errors.password && (
+                  <p className="text-[12px] text-red-500 mt-[2px]">{errors.password}</p>
+                )}
               </div>
 
               {/* Submit Button */}

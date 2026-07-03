@@ -30,6 +30,17 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/auth-context";
 
+interface SignupErrors {
+  name?: string;
+  email?: string;
+  password?: string;
+  cpassword?: string;
+  companyName?: string;
+  workspaceUrl?: string;
+  industry?: string;
+  country?: string;
+}
+
 export default function SignupPage() {
   const router = useRouter();
   const { signup } = useAuth();
@@ -37,22 +48,60 @@ export default function SignupPage() {
   const [industry, setIndustry] = useState("");
   const [otherIndustry, setOtherIndustry] = useState("");
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState<SignupErrors>({});
+
+  const clearError = (field: keyof SignupErrors) => {
+    setErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const validate = (): boolean => {
+    const form = document.getElementById('signup-form') as HTMLFormElement
+    if (!form) return true
+    const fd = new FormData(form)
+    const vals = {
+      name: (fd.get('name') as string || '').trim(),
+      email: (fd.get('email') as string || '').trim(),
+      password: fd.get('password') as string || '',
+      cpassword: fd.get('cpassword') as string || '',
+      companyName: (fd.get('companyName') as string || '').trim(),
+      workspaceUrl: (fd.get('workspaceUrl') as string || '').trim(),
+      country: fd.get('country') as string || '',
+    }
+
+    const next: SignupErrors = {}
+    if (!vals.name) next.name = 'Full name is required'
+    if (!vals.email) next.email = 'Work email is required'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(vals.email)) next.email = 'Invalid email format'
+    if (!vals.password) next.password = 'Password is required'
+    else if (vals.password.length < 6) next.password = 'Password must be at least 6 characters'
+    if (vals.password !== vals.cpassword) next.cpassword = 'Passwords do not match'
+    if (!vals.companyName) next.companyName = 'Company name is required'
+    if (!vals.workspaceUrl) next.workspaceUrl = 'Workspace URL is required'
+    if (!industry) next.industry = 'Industry is required'
+    if (industry === 'other' && !otherIndustry.trim()) next.industry = 'Please specify your industry'
+    if (!vals.country) next.country = 'Country is required'
+
+    setErrors(next)
+    if (Object.keys(next).length > 0) {
+      const first = Object.keys(next)[0]
+      setTimeout(() => document.querySelector(`[data-field="signup-${first}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100)
+    }
+    return Object.keys(next).length === 0
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setIsLoading(true);
     setError("");
+    if (!validate()) return;
+    setIsLoading(true);
 
     const formData = new FormData(e.target as HTMLFormElement);
     const password = formData.get("password") as string;
-    const cpassword = formData.get("cpassword") as string;
-
-    // Validate passwords match
-    if (password !== cpassword) {
-      setError("Passwords do not match");
-      setIsLoading(false);
-      return;
-    }
 
     const payload = {
       email: formData.get("email") as string,
@@ -66,8 +115,7 @@ export default function SignupPage() {
     };
 
     try {
-      const result = await signup(payload);
-      // Email verification disabled — redirect to login directly
+      await signup(payload);
       router.push('/login');
     } catch (err: any) {
       setError(err.message || "An error occurred during signup");
@@ -90,7 +138,7 @@ export default function SignupPage() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="mt-10 space-y-12">
+        <form id="signup-form" onSubmit={handleSubmit} className="mt-10 space-y-12">
           {/* Error Alert */}
           {error && (
             <Alert variant="destructive">
@@ -105,7 +153,7 @@ export default function SignupPage() {
               1. Administrator Account
             </h2>
             <div className="grid gap-6 md:grid-cols-2">
-              <div>
+              <div data-field="signup-name">
                 <Label
                   htmlFor="name"
                   className="mb-2 block text-sm font-medium"
@@ -119,12 +167,14 @@ export default function SignupPage() {
                     name="name"
                     placeholder="e.g., John Doe"
                     className="pl-10 font-medium"
+                    onChange={() => clearError('name')}
                     required
                   />
                 </div>
+                {errors.name && <p className="text-[12px] text-red-500 mt-1">{errors.name}</p>}
               </div>
 
-              <div>
+              <div data-field="signup-email">
                 <Label
                   htmlFor="email"
                   className="mb-2 block text-sm font-medium"
@@ -139,12 +189,14 @@ export default function SignupPage() {
                     type="email"
                     placeholder="you@company.com"
                     className="pl-10 font-medium"
+                    onChange={() => clearError('email')}
                     required
                   />
                 </div>
+                {errors.email && <p className="text-[12px] text-red-500 mt-1">{errors.email}</p>}
               </div>
 
-              <div>
+              <div data-field="signup-password">
                 <Label
                   htmlFor="password"
                   className="mb-2 block text-sm font-medium"
@@ -159,12 +211,14 @@ export default function SignupPage() {
                     placeholder="Enter a secure password"
                     className="pl-10 font-medium"
                     autoComplete="new-password"
+                    onChange={() => clearError('password')}
                     required
                   />
                 </div>
+                {errors.password && <p className="text-[12px] text-red-500 mt-1">{errors.password}</p>}
               </div>
 
-              <div>
+              <div data-field="signup-cpassword">
                 <Label
                   htmlFor="cpassword"
                   className="mb-2 block text-sm font-medium"
@@ -179,9 +233,11 @@ export default function SignupPage() {
                     placeholder="Retype your password"
                     className="pl-10 font-medium"
                     autoComplete="new-password"
+                    onChange={() => clearError('cpassword')}
                     required
                   />
                 </div>
+                {errors.cpassword && <p className="text-[12px] text-red-500 mt-1">{errors.cpassword}</p>}
               </div>
             </div>
           </section>
@@ -192,7 +248,7 @@ export default function SignupPage() {
               2. Business Details
             </h2>
             <div className="grid gap-6 md:grid-cols-2">
-              <div>
+              <div data-field="signup-companyName">
                 <Label
                   htmlFor="companyName"
                   className="mb-2 block text-sm font-medium"
@@ -206,12 +262,14 @@ export default function SignupPage() {
                     name="companyName"
                     placeholder="e.g., JD Retail & Hardware"
                     className="pl-10 font-medium"
+                    onChange={() => clearError('companyName')}
                     required
                   />
                 </div>
+                {errors.companyName && <p className="text-[12px] text-red-500 mt-1">{errors.companyName}</p>}
               </div>
 
-              <div>
+              <div data-field="signup-workspaceUrl">
                 <Label
                   htmlFor="workspaceUrl"
                   className="mb-2 block text-sm font-medium"
@@ -226,6 +284,7 @@ export default function SignupPage() {
                       name="workspaceUrl"
                       placeholder="your-company"
                       className="pl-10 rounded-r-none font-medium"
+                      onChange={() => clearError('workspaceUrl')}
                       required
                     />
                   </div>
@@ -233,9 +292,10 @@ export default function SignupPage() {
                     .OmniBlox.app
                   </span>
                 </div>
+                {errors.workspaceUrl && <p className="text-[12px] text-red-500 mt-1">{errors.workspaceUrl}</p>}
               </div>
 
-              <div>
+              <div data-field="signup-industry">
                 <Label
                   htmlFor="industry"
                   className="mb-2 block text-sm font-medium"
@@ -245,7 +305,7 @@ export default function SignupPage() {
                 <Select
                   name="industry"
                   value={industry}
-                  onValueChange={setIndustry}
+                  onValueChange={(v) => { setIndustry(v); clearError('industry'); }}
                   required
                 >
                   <SelectTrigger id="industry">
@@ -270,6 +330,7 @@ export default function SignupPage() {
                     </SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.industry && <p className="text-[12px] text-red-500 mt-1">{errors.industry}</p>}
 
                 {/* Conditionally show Other Industry Input */}
                 {industry === "other" && (
@@ -287,7 +348,7 @@ export default function SignupPage() {
                         name="otherIndustry"
                         placeholder="Type your industry"
                         value={otherIndustry}
-                        onChange={(e) => setOtherIndustry(e.target.value)}
+                        onChange={(e) => { setOtherIndustry(e.target.value); clearError('industry'); }}
                         className="pl-10 font-medium"
                         required
                       />
@@ -296,14 +357,14 @@ export default function SignupPage() {
                 )}
               </div>
 
-              <div>
+              <div data-field="signup-country">
                 <Label
                   htmlFor="country"
                   className="mb-2 block text-sm font-medium"
                 >
                   Country
                 </Label>
-                <Select name="country" required>
+                <Select name="country" onValueChange={() => clearError('country')} required>
                   <SelectTrigger id="country">
                     <SelectValue placeholder="Select your country" />
                   </SelectTrigger>
@@ -322,6 +383,7 @@ export default function SignupPage() {
                     </SelectItem>
                   </SelectContent>
                 </Select>
+                {errors.country && <p className="text-[12px] text-red-500 mt-1">{errors.country}</p>}
               </div>
             </div>
           </section>
