@@ -100,17 +100,13 @@ export class TeamService {
       data: { token, type: 'INVITATION', expiresAt, userId: user.id },
     });
 
-    const companyName = inviter?.company?.name || 'the company';
-    const inviterName = inviter?.name || 'A team member';
-    this.emailService
-      .sendInvitationEmail(dto.email, dto.name, token, inviterName, companyName)
-      .catch((err) => console.error('Failed to send invitation email:', err));
-
     await Promise.all([
       this.cache.del(LIST_KEY(companyId)),
       this.cache.del(STATS_KEY(companyId)),
     ]);
-    return this.mapToUserResponse(user);
+    const response = this.mapToUserResponse(user);
+    response.inviteToken = token;
+    return response;
   }
 
   async findAll(companyId: string): Promise<UserResponseDto[]> {

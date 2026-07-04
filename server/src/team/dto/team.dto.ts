@@ -51,6 +51,7 @@ export class UserResponseDto {
   createdAt: Date;
   lastLogin?: Date;
   status: 'active' | 'inactive';
+  inviteToken?: string;
 }
 
 export class UserListResponseDto {

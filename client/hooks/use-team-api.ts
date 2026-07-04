@@ -9,6 +9,7 @@ export interface TeamUser {
   createdAt: string;
   lastLogin?: string;
   status: "active" | "inactive";
+  inviteToken?: string;
 }
 
 export interface CreateUserData {

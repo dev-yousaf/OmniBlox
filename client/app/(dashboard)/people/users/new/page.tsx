@@ -18,7 +18,16 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { PageError, checkRoleAccess } from "@/components/ui/page-error";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, ChevronRight, Loader2, UserPlus, Mail } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronRight,
+  Loader2,
+  UserPlus,
+  Link2,
+  CheckCircle2,
+  Copy,
+  Share2,
+} from "lucide-react";
 
 export default function CreateUserPage() {
   const [formData, setFormData] = useState<CreateUserData>({
@@ -27,6 +36,13 @@ export default function CreateUserPage() {
     role: "OBSERVER",
   });
   const [loading, setLoading] = useState(false);
+  const [createdUser, setCreatedUser] = useState<{
+    name: string;
+    email: string;
+    role: string;
+    inviteToken: string;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const { createUser } = useTeamApi();
   const { toast } = useToast();
@@ -47,13 +63,41 @@ export default function CreateUserPage() {
     return <PageError type="forbidden" />;
   }
 
+  const getInviteLink = () => {
+    if (typeof window === "undefined" || !createdUser?.inviteToken) return "";
+    const base = window.location.origin;
+    return `${base}/accept-invitation?token=${createdUser.inviteToken}`;
+  };
+
+  const handleCopy = async () => {
+    const link = getInviteLink();
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      toast({ title: "Copied!", description: "Invitation link copied to clipboard" });
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({ title: "Copy failed", description: "Please select and copy the link manually", variant: "destructive" });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setLoading(true);
-      await createUser(formData);
-      toast({ title: "Invitation Sent", description: `An invitation email has been sent to ${formData.email}.` });
-      router.push("/people/users");
+      const result = await createUser(formData);
+      if (result.inviteToken) {
+        setCreatedUser({
+          name: result.name,
+          email: result.email,
+          role: result.role,
+          inviteToken: result.inviteToken,
+        });
+      } else {
+        toast({ title: "User Created", description: `${result.name} has been created.` });
+        router.push("/people/users");
+      }
     } catch (error: any) {
       let msg = error?.message || "Failed to create user.";
       if (error?.statusCode === 403) msg = "You don't have permission to create users.";
@@ -63,6 +107,90 @@ export default function CreateUserPage() {
       setLoading(false);
     }
   };
+
+  if (createdUser) {
+    const inviteLink = getInviteLink();
+    return (
+      <div className="space-y-5">
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+          <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <Link href="/people/users" className="hover:text-foreground transition-colors">Users</Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <span className="text-foreground">Invitation Link</span>
+        </div>
+
+        {/* Success card */}
+        <div className="border rounded-[5px] bg-card shadow-sm">
+          <div className="px-5 py-[15px] border-b flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <h2 className="text-sm font-semibold text-foreground">Invitation Link Generated</h2>
+          </div>
+          <div className="p-5 space-y-5">
+            <Alert className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <AlertDescription className="text-sm text-green-700 dark:text-green-300">
+                <strong>{createdUser.name}</strong> ({createdUser.email}) has been added as <strong>{createdUser.role}</strong>.
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Share this invitation link</Label>
+              <p className="text-xs text-muted-foreground">
+                Send this link via WhatsApp, email, or any messaging platform. The link expires in 48 hours.
+              </p>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 relative">
+                  <Link2 className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    readOnly
+                    value={inviteLink}
+                    className="h-[34px] rounded-[5px] text-xs pl-9 pr-3 bg-muted/50 font-mono select-all"
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-[34px] rounded-[5px] px-3 gap-1.5 shrink-0"
+                  onClick={handleCopy}
+                >
+                  {copied ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <Link href="/people/users">
+                <Button type="button" variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">
+                  Back to Users
+                </Button>
+              </Link>
+              <Button
+                type="button"
+                size="sm"
+                className="h-[34px] rounded-[5px] bg-[#ff9025] hover:bg-[#ff9025]/90 text-white text-[13px] font-medium px-3"
+                onClick={() => {
+                  setCreatedUser(null);
+                  setFormData({ email: "", name: "", role: "OBSERVER" });
+                }}
+              >
+                <Share2 className="h-3.5 w-3.5 mr-1.5" />
+                Invite Another
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -92,7 +220,7 @@ export default function CreateUserPage() {
           </Link>
           <Button type="submit" form="create-user-form" disabled={loading} size="sm" className="h-[34px] rounded-[5px] bg-[#ff9025] hover:bg-[#ff9025]/90 text-white text-[13px] font-medium px-3 gap-1.5">
             {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserPlus className="h-3.5 w-3.5" />}
-            {loading ? "Sending..." : "Send Invitation"}
+            {loading ? "Creating..." : "Create User"}
           </Button>
         </div>
       </div>
@@ -130,9 +258,9 @@ export default function CreateUserPage() {
             </div>
 
             <Alert className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
-              <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <Link2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               <AlertDescription className="text-sm text-blue-700 dark:text-blue-300">
-                An invitation email will be sent to <strong>{formData.email || "the provided email"}</strong>.
+                An invitation link will be generated for <strong>{formData.email || "the provided email"}</strong>. You can share it via WhatsApp or any messaging platform.
               </AlertDescription>
             </Alert>
           </div>
