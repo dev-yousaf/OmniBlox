@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const GUEST_PATHS = ["/", "/features", "/pricing", "/about", "/contact", "/login", "/signup", "/forgot-password"];
+const GUEST_PATHS = ["/", "/features", "/pricing", "/about", "/contact", "/login", "/signup", "/forgot-password", "/accept-invitation"];
 
 export function middleware(req: NextRequest) {
   try {
     const url = req.nextUrl.clone();
     const path = url.pathname;
 
-    // Skip non-HTML requests and all framework/static assets to avoid interfering with HMR and static files
+    // Skip non-HTML requests and all framework/static assets
     const accept = req.headers.get("accept") || "";
     const isHtml = accept.includes("text/html");
     const isAsset =
@@ -15,44 +15,33 @@ export function middleware(req: NextRequest) {
       path.startsWith("/api") ||
       path.startsWith("/favicon.ico") ||
       path.startsWith("/static") ||
-      /\.[\w.-]+$/.test(path); // any file with extension (css/js/png/etc)
+      /\.[\w.-]+$/.test(path);
 
-    if (
-      !isHtml ||
-      isAsset ||
-      req.method === "HEAD" ||
-      req.method === "OPTIONS"
-    ) {
+    if (!isHtml || isAsset || req.method === "HEAD" || req.method === "OPTIONS") {
       return NextResponse.next();
     }
 
     const hasCookie = req.cookies.get("omniblox_logged_in")?.value === "1";
 
     if (hasCookie) {
-      // If user appears logged in and is trying to access guest route, redirect to login
-      // (workspace slug redirect is handled client-side after session validation)
-      for (const guest of GUEST_PATHS) {
-        if (path === guest || path.startsWith(guest + "/")) {
-          url.pathname = "/login";
-          return NextResponse.redirect(url);
-        }
+      const isGuestPath = GUEST_PATHS.some((g) => path === g || path.startsWith(g + "/"));
+      const segments = path.split("/").filter(Boolean);
+      const isWorkspacePath = segments.length >= 2;
+
+      if (isGuestPath || !isWorkspacePath) {
+        url.pathname = "/login";
+        return NextResponse.redirect(url);
       }
     }
 
     return NextResponse.next();
-  } catch (err) {
-    // On error, don't block the request
+  } catch {
     return NextResponse.next();
   }
 }
 
 export const config = {
   matcher: [
-    "/",
-    "/login",
-    "/signup",
-    "/forgot-password",
-    // Exclude all Next.js internals and static assets explicitly
     "/((?!api|_next/static|_next/image|_next/webpack-hmr|_next/flight|favicon.ico|robots.txt|sitemap.xml|site.webmanifest|static).*)",
   ],
 };

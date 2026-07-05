@@ -52,14 +52,15 @@ export function ProtectedRoute({
 
 // Auth guard for guest routes (login, signup)
 export function GuestRoute({ children }: { children: ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.replace("/dashboard");
+      const ws = (user as any)?.company?.workspaceUrl;
+      router.replace(ws ? `/${ws}/dashboard` : "/login");
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, user, router]);
 
   // Show loading state
   if (isLoading) {
