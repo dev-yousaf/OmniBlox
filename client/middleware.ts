@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 const GUEST_PATHS = ["/", "/features", "/pricing", "/about", "/contact", "/login", "/signup", "/forgot-password", "/accept-invitation"];
 
+// Old app routes that existed before workspace prefix migration — redirect to login
+const OLD_APP_ROUTES = ["/dashboard", "/sales", "/products", "/purchases", "/expenses", "/inventory", "/people", "/settings", "/suppliers", "/quotations", "/audit-log", "/sales-returns", "/purchase-returns"];
+
 export function middleware(req: NextRequest) {
   try {
     const url = req.nextUrl.clone();
@@ -36,6 +39,15 @@ export function middleware(req: NextRequest) {
 
       if (isGuestPath || firstSegment !== workspace) {
         url.pathname = `/${workspace}/dashboard`;
+        return NextResponse.redirect(url);
+      }
+    }
+
+    // If no session, redirect old app route bookmarks to login
+    if (!hasCookie) {
+      const isOldRoute = OLD_APP_ROUTES.some((r) => path === r || path.startsWith(r + "/"));
+      if (isOldRoute) {
+        url.pathname = "/login";
         return NextResponse.redirect(url);
       }
     }
