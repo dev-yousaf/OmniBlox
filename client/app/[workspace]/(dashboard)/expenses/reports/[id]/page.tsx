@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {

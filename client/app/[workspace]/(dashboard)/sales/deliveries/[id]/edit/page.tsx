@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";

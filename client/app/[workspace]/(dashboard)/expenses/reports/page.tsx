@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useWorkspace } from "@/hooks/use-workspace";
 import {
   Card,
   CardContent,

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 export default function PeoplePage() {
   const router = useRouter();

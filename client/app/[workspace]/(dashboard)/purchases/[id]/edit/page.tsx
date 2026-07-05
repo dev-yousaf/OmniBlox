@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { useParams, useRouter } from "next/navigation";
+import { useWorkspace } from "@/hooks/use-workspace";
 import {
   Check,
   ChevronsUpDown,

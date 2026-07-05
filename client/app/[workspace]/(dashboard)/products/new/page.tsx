@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Minus } from "lucide-react";
 import { WorkspaceLink as Link } from "@/components/workspace-link";

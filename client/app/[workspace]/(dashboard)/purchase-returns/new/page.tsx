@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useWorkspace } from "@/hooks/use-workspace";
 import {
   ArrowLeft, ChevronRight, Loader2, Plus, Save, Trash2,
 } from "lucide-react";

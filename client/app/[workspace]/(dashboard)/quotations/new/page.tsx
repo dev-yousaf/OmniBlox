@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { useRouter } from "next/navigation";
+import { useWorkspace } from "@/hooks/use-workspace";
 import {
   Check, ChevronsUpDown, ChevronRight, Loader2, Plus, Save, Trash2, Package,
 } from "lucide-react";
