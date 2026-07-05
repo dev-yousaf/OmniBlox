@@ -23,7 +23,13 @@ export function middleware(req: NextRequest) {
     const hasCookie = req.cookies.get("omniblox_logged_in")?.value === "1";
     const workspace = req.cookies.get("omniblox_workspace")?.value;
 
-    if (hasCookie && workspace) {
+    if (hasCookie) {
+      // If workspace cookie is missing, redirect to login so client can re-establish it
+      if (!workspace) {
+        url.pathname = "/login";
+        return NextResponse.redirect(url);
+      }
+
       const isGuestPath = GUEST_PATHS.some((g) => path === g || path.startsWith(g + "/"));
       const firstSegment = path.split("/").filter(Boolean)[0] || "";
 

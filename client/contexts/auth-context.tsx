@@ -72,6 +72,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     validateSession();
   }, []);
 
+  // Redirect to workspace URL if on a non-workspace path after session resolves
+  useEffect(() => {
+    if (!isLoading && user) {
+      const ws = (user as any)?.company?.workspaceUrl;
+      if (ws) {
+        const firstSegment = window.location.pathname.split("/").filter(Boolean)[0] || "";
+        if (firstSegment !== ws) {
+          router.replace(`/${ws}/dashboard`);
+        }
+      }
+    }
+  }, [isLoading, user, router]);
+
   const login = async (email: string, password: string) => {
     try {
       await api.login(email, password);
