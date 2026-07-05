@@ -20,7 +20,8 @@ export function middleware(req: NextRequest) {
       return NextResponse.next();
     }
 
-    const hasCookie = req.cookies.get("omniblox_logged_in")?.value === "1";
+    const hasCookie = req.cookies.get("omniblox_logged_in")?.value === "1" || 
+                      !!req.cookies.get("better-auth.session_token");
     const workspace = req.cookies.get("omniblox_workspace")?.value;
 
     if (hasCookie) {
