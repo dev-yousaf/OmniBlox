@@ -29,10 +29,11 @@ export function middleware(req: NextRequest) {
     const hasCookie = req.cookies.get("omniblox_logged_in")?.value === "1";
 
     if (hasCookie) {
-      // If user appears logged in and is trying to access guest route, redirect to dashboard
+      // If user appears logged in and is trying to access guest route, redirect to login
+      // (workspace slug redirect is handled client-side after session validation)
       for (const guest of GUEST_PATHS) {
         if (path === guest || path.startsWith(guest + "/")) {
-          url.pathname = "/dashboard";
+          url.pathname = "/login";
           return NextResponse.redirect(url);
         }
       }
