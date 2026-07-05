@@ -272,7 +272,19 @@ export default function SignupPage() {
                     name="companyName"
                     placeholder="e.g., JD Retail & Hardware"
                     className="pl-10 font-medium"
-                    onChange={() => clearError('companyName')}
+                    onChange={(e) => {
+                      clearError('companyName');
+                      const slug = e.target.value
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')
+                        .replace(/^-+|-+$/g, '');
+                      const wsInput = document.getElementById('workspaceUrl') as HTMLInputElement;
+                      if (wsInput) {
+                        wsInput.value = slug;
+                        wsInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        clearError('workspaceUrl');
+                      }
+                    }}
                     required
                   />
                 </div>
@@ -286,22 +298,20 @@ export default function SignupPage() {
                 >
                   Workspace URL
                 </Label>
-                <div className="flex mt-1">
-                  <div className="relative flex-1">
-                    <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="workspaceUrl"
-                      name="workspaceUrl"
-                      placeholder="your-company"
-                      className="pl-10 rounded-r-none font-medium"
-                      onChange={() => clearError('workspaceUrl')}
-                      required
-                    />
-                  </div>
-                  <span className="inline-flex items-center rounded-r-md border border-l-0 bg-muted px-3 text-sm text-muted-foreground">
-                    .OmniBlox.app
-                  </span>
+                <div className="relative mt-1">
+                  <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="workspaceUrl"
+                    name="workspaceUrl"
+                    placeholder="your-company"
+                    className="pl-10 font-medium"
+                    onChange={() => clearError('workspaceUrl')}
+                    required
+                  />
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Auto-generated from company name. Used to identify your workspace.
+                </p>
                 {errors.workspaceUrl && <p className="text-[12px] text-red-500 mt-1">{errors.workspaceUrl}</p>}
               </div>
 
