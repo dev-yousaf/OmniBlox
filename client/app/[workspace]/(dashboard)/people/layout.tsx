@@ -1,5 +1,5 @@
 import type React from "react"
-import Link from "next/link"
+import { WorkspaceLink as Link } from "@/components/workspace-link"
 
 export default function PeopleLayout({
   children,

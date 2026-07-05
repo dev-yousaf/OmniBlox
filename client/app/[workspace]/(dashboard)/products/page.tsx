@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import {
   MoreHorizontal,
   Edit,

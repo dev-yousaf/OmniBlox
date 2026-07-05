@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useWorkspace } from "@/hooks/use-workspace"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Upload, Download, FileText } from "lucide-react"
@@ -9,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function ImportPurchasesPage() {
   const router = useRouter()
+  const ws = useWorkspace()
   const [file, setFile] = useState<File | null>(null)
   const [importing, setImporting] = useState(false)
 
@@ -18,7 +20,7 @@ export default function ImportPurchasesPage() {
     // Simulate import
     setTimeout(() => {
       setImporting(false)
-      router.push("/purchases")
+      router.push(`/${ws}/purchases`)
     }, 2000)
   }
 

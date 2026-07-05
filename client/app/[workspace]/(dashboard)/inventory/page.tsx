@@ -30,7 +30,7 @@ import {
   useInventoryApi,
   type InventoryItem,
 } from "@/hooks/use-inventory-api";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 
 const statusStyles: Record<string, string> = {
   in_stock: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",

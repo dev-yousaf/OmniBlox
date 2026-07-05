@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import {
   Alert,
   AlertDescription,
@@ -22,6 +22,7 @@ import {
   type CreateSupplierData,
 } from "@/hooks/use-suppliers-api";
 import { useToast } from "@/hooks/use-toast";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { ArrowLeft, ChevronRight, Loader2, Save, Truck } from "lucide-react";
 
 export default function CreateSupplierPage() {
@@ -34,6 +35,7 @@ export default function CreateSupplierPage() {
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const { createSupplier } = useSuppliersApi();
 
@@ -60,7 +62,7 @@ export default function CreateSupplierPage() {
         title: "Success",
         description: "Supplier created successfully.",
       });
-      router.push("/suppliers");
+      router.push(`/${ws}/suppliers`);
     } catch (error: any) {
       const message = error?.message || "Failed to create supplier.";
       setSubmitError(message);
@@ -217,19 +219,19 @@ export default function CreateSupplierPage() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Name</span>
                 <span className="font-medium truncate max-w-[160px] text-right">
-                  {formData.name || "—"}
+                  {formData.name || "\u2014"}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Email</span>
                 <span className="font-medium truncate max-w-[160px] text-right">
-                  {formData.email || "—"}
+                  {formData.email || "\u2014"}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Phone</span>
                 <span className="font-medium truncate max-w-[160px] text-right">
-                  {formData.phone || "—"}
+                  {formData.phone || "\u2014"}
                 </span>
               </div>
             </div>
@@ -240,11 +242,11 @@ export default function CreateSupplierPage() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total Suppliers</span>
-                <span className="font-semibold">—</span>
+                <span className="font-semibold">{"\u2014"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Avg. Purchase</span>
-                <span className="font-semibold">—</span>
+                <span className="font-semibold">{"\u2014"}</span>
               </div>
             </div>
           </Card>

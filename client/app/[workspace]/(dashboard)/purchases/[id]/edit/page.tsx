@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { useParams, useRouter } from "next/navigation";
 import {
   Check,
@@ -94,6 +94,7 @@ const createItemId = () =>
 export default function EditPurchasePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const purchaseId = params?.id ?? "";
 
@@ -347,7 +348,7 @@ export default function EditPurchasePage() {
         description: "The purchase order was saved successfully.",
       });
 
-      router.push("/purchases");
+      router.push(`/${ws}/purchases`);
     } catch (err) {
       const message = normalizeError(err);
       setSubmitError(message);

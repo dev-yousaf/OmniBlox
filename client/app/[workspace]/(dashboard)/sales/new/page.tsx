@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { useRouter } from "next/navigation";
 import {
   Check,
@@ -116,6 +116,7 @@ const createItemId = () =>
 
 export default function NewSalePage() {
   const router = useRouter();
+  const ws = useWorkspace();
   const { getProducts } = useProductApi();
   const { getWarehouses } = useInventoryApi();
   const { getCustomers, createCustomer } = useCustomersApi();

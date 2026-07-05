@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import { ArrowLeft, ChevronRight, Loader2, Plus } from "lucide-react";
 
 export default function NewWarehousePage() {
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const { createWarehouse } = useInventoryApi();
   const [loading, setLoading] = useState(false);
@@ -28,7 +29,7 @@ export default function NewWarehousePage() {
       setLoading(true);
       await createWarehouse({ name: formData.name.trim(), location: formData.location?.trim() || undefined });
       toast({ title: "Success", description: "Warehouse created successfully" });
-      router.push("/inventory/warehouses");
+      router.push(`/${ws}/inventory/warehouses`);
     } catch (error: any) {
       toast({ title: "Error", description: error?.message || "Failed to create warehouse", variant: "destructive" });
     } finally {

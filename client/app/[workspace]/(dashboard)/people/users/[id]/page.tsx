@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import {
 import { useTeamApi, type TeamUser } from "@/hooks/use-team-api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { PageError, checkRoleAccess } from "@/components/ui/page-error";
 import { format } from "date-fns";
 import {
@@ -41,6 +42,7 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 export default function UserDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const ws = useWorkspace();
   const { user: authUser } = useAuth();
   const currentRole = (authUser?.role || "").toUpperCase();
   const canView = checkRoleAccess(currentRole, ["OWNER", "ADMIN", "MANAGER"]);
@@ -61,7 +63,7 @@ export default function UserDetailPage() {
         setUser(userData);
       } catch (error) {
         toast({ title: "Error", description: "Failed to load user details.", variant: "destructive" });
-        router.push("/people/users");
+        router.push(`/${ws}/people/users`);
       } finally {
         setLoading(false);
       }
@@ -77,7 +79,7 @@ export default function UserDetailPage() {
       setDeleting(true);
       await deleteUser(user.id);
       toast({ title: "Success", description: "User deleted successfully." });
-      router.push("/people/users");
+      router.push(`/${ws}/people/users`);
     } catch (error: any) {
       toast({ title: "Error", description: error.message || "Failed to delete user.", variant: "destructive" });
     } finally {

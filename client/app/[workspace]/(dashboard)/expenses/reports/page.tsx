@@ -13,6 +13,7 @@ import { FileText, TrendingUp, BarChart3, PieChart } from "lucide-react";
 
 export default function ExpenseReportsPage() {
   const router = useRouter();
+  const ws = useWorkspace();
 
   return (
     <div className="space-y-6">
@@ -29,7 +30,7 @@ export default function ExpenseReportsPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card
           className="cursor-pointer hover:border-primary transition-colors"
-          onClick={() => router.push("/expenses/reports/new")}
+          onClick={() => router.push(`/${ws}/expenses/reports/new`)}
         >
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -132,7 +133,7 @@ export default function ExpenseReportsPage() {
 
           <div className="pt-4">
             <Button
-              onClick={() => router.push("/expenses/reports/new")}
+              onClick={() => router.push(`/${ws}/expenses/reports/new`)}
               className="w-full md:w-auto"
             >
               <FileText className="mr-2 h-4 w-4" />

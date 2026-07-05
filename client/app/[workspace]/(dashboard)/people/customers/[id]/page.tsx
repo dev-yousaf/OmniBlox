@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   ArrowLeft, Edit, Trash2, MapPin, ChevronRight,
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useCustomerDetail } from "../_hooks/use-customer-detail";
 import { useAuth } from "@/contexts/auth-context";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 const statusStyles: Record<string, string> = {
   PAID: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
@@ -37,6 +38,7 @@ export default function CustomerDetailPage() {
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const ws = useWorkspace();
   const customerId = params?.id ?? "";
   const { customer, sales, loading, error, delete: deleteCustomer } = useCustomerDetail(customerId);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -59,7 +61,7 @@ export default function CustomerDetailPage() {
     setDeleting(true);
     try {
       await deleteCustomer();
-      router.push("/people/customers");
+      router.push(`/${ws}/people/customers`);
     } catch { /* handled */ }
     setDeleting(false);
   };

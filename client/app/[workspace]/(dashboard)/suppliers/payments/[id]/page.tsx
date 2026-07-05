@@ -23,6 +23,7 @@ import { Separator } from "@/components/ui/separator";
 export default function PaymentDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const ws = useWorkspace();
   const [loading, setLoading] = useState(true);
 
   // Mock data - replace with actual API call
@@ -324,7 +325,7 @@ export default function PaymentDetailPage() {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => router.push("/suppliers")}
+                onClick={() => router.push(`/${ws}/suppliers`)}
               >
                 View Supplier Details
               </Button>

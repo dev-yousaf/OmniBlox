@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +36,7 @@ export default function CreateBillerPage() {
   const { createBiller, checkCodeAvailability } = useBillersApi();
   const { toast } = useToast();
   const router = useRouter();
+  const ws = useWorkspace();
 
   const handleCodeChange = async (code: string) => {
     setFormData({ ...formData, code });
@@ -73,7 +74,7 @@ export default function CreateBillerPage() {
         status: formData.status,
       });
       toast({ title: "Success", description: "Biller created successfully." });
-      router.push("/people/billers");
+      router.push(`/${ws}/people/billers`);
     } catch (error: any) {
       toast({ title: "Error", description: error?.message || "Failed to create biller.", variant: "destructive" });
     } finally {

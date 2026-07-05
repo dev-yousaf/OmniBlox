@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import {
 import { useInventoryApi } from "@/hooks/use-inventory-api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { format } from "date-fns";
 import {
   AlertDialog,
@@ -50,6 +51,7 @@ export default function WarehouseDetailPage() {
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const params = useParams();
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const { getWarehouse, deleteWarehouse } = useInventoryApi();
 
@@ -69,7 +71,7 @@ export default function WarehouseDetailPage() {
       setWarehouse(data);
     } catch (error) {
       toast({ title: "Error", description: "Failed to load warehouse details", variant: "destructive" });
-      router.push("/inventory/warehouses");
+      router.push(`/${ws}/inventory/warehouses`);
     } finally {
       setLoading(false);
     }
@@ -81,7 +83,7 @@ export default function WarehouseDetailPage() {
       setDeleting(true);
       await deleteWarehouse(warehouse.id);
       toast({ title: "Success", description: "Warehouse deleted successfully" });
-      router.push("/inventory/warehouses");
+      router.push(`/${ws}/inventory/warehouses`);
     } catch (error) {
       toast({ title: "Error", description: "Failed to delete warehouse", variant: "destructive" });
     } finally {

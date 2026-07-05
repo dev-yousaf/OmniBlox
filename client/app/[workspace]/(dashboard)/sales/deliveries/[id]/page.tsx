@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { ArrowLeft, Edit, Loader2, Package, Trash2, Truck } from "lucide-react";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 
@@ -37,6 +37,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useDeliveriesApi, type Delivery } from "@/hooks/use-deliveries-api";
 import { useAuth } from "@/contexts/auth-context";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 const STATUS_BADGE_MAP = {
   PENDING: { label: "Pending", variant: "secondary" as const },
@@ -50,6 +51,7 @@ export default function DeliveryDetailPage() {
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const deliveryId = params?.id ?? "";
 
@@ -106,7 +108,7 @@ export default function DeliveryDetailPage() {
         title: "Delivery deleted",
         description: "The delivery has been deleted successfully.",
       });
-      router.push("/sales/deliveries");
+      router.push(`/${ws}/sales/deliveries`);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to delete delivery";

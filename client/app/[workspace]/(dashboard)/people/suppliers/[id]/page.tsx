@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import {
 import { useSuppliersApi, type Supplier } from "@/hooks/use-suppliers-api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { format } from "date-fns";
 import {
   AlertDialog,
@@ -28,6 +29,7 @@ import {
 export default function SupplierDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const ws = useWorkspace();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
@@ -46,7 +48,7 @@ export default function SupplierDetailPage() {
         setSupplier(data);
       } catch (error) {
         toast({ title: "Error", description: "Failed to load supplier.", variant: "destructive" });
-        router.push("/people/suppliers");
+        router.push(`/${ws}/people/suppliers`);
       } finally {
         setLoading(false);
       }
@@ -60,7 +62,7 @@ export default function SupplierDetailPage() {
       setDeleting(true);
       await deleteSupplier(supplier.id);
       toast({ title: "Deleted", description: "Supplier deleted successfully." });
-      router.push("/people/suppliers");
+      router.push(`/${ws}/people/suppliers`);
     } catch (error: any) {
       toast({ title: "Error", description: error?.message || "Failed to delete supplier.", variant: "destructive" });
     } finally {

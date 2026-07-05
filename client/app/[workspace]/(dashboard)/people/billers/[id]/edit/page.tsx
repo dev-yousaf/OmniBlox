@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ import { ArrowLeft, ChevronRight, Loader2, Save } from "lucide-react";
 export default function EditBillerPage() {
   const params = useParams();
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const { getBiller, updateBiller, checkCodeAvailability } = useBillersApi();
 
@@ -47,7 +48,7 @@ export default function EditBillerPage() {
         });
       } catch (error) {
         toast({ title: "Error", description: "Failed to load biller.", variant: "destructive" });
-        router.push("/people/billers");
+        router.push(`/${ws}/people/billers`);
       } finally {
         setLoading(false);
       }

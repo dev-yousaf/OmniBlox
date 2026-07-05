@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   ArrowLeft, Edit, Trash2, Loader2, AlertTriangle, CheckCircle2,
@@ -18,6 +18,7 @@ import {
 import { useReturnsApi, type PurchaseReturn } from "@/hooks/use-returns-api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   PENDING: { label: "Pending", className: "bg-amber-100 text-amber-700 border-amber-200" },
@@ -31,6 +32,7 @@ export default function PurchaseReturnDetailPage() {
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const params = useParams();
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const { getPurchaseReturn, deletePurchaseReturn, updatePurchaseReturn } = useReturnsApi();
 
@@ -71,7 +73,7 @@ export default function PurchaseReturnDetailPage() {
     try {
       await deletePurchaseReturn(pr.id);
       toast({ title: "Return deleted" });
-      router.push("/purchase-returns");
+      router.push(`/${ws}/purchase-returns`);
     } catch (e: any) {
       toast({ title: "Failed to delete", description: e?.message || "Unknown error", variant: "destructive" });
     } finally {

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   useExpensesApi,
@@ -33,6 +33,7 @@ export default function ExpenseDetailPage() {
   const api = useExpensesApi();
   const { toast } = useToast();
   const router = useRouter();
+  const ws = useWorkspace();
 
   useEffect(() => {
     if (!expenseId) return;
@@ -50,7 +51,7 @@ export default function ExpenseDetailPage() {
         description: error.message || "Failed to fetch expense",
         variant: "destructive",
       });
-      router.push("/expenses");
+      router.push(`/${ws}/expenses`);
     } finally {
       setLoading(false);
     }

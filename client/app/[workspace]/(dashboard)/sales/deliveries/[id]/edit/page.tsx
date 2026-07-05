@@ -2,7 +2,7 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 
@@ -42,6 +42,7 @@ const STATUS_OPTIONS: Array<{ value: DeliveryStatus; label: string }> = [
 export default function EditDeliveryPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const deliveryId = params?.id ?? "";
 

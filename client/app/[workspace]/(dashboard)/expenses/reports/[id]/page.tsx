@@ -15,6 +15,7 @@ import {
 export default function ExpenseReportDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const ws = useWorkspace();
 
   return (
     <div className="space-y-6">
@@ -31,7 +32,7 @@ export default function ExpenseReportDetailPage() {
         </div>
         <Button
           variant="outline"
-          onClick={() => router.push("/expenses/reports")}
+          onClick={() => router.push(`/${ws}/expenses/reports`)}
         >
           Back to Reports
         </Button>

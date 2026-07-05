@@ -44,6 +44,7 @@ import { Badge } from "@/components/ui/badge";
 
 export default function NewExpenseReportPage() {
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const { generateExpenseReport } = useReportsApi();
   const { getExpenseCategories } = useExpenseCategoriesApi();
@@ -196,7 +197,7 @@ export default function NewExpenseReportPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => router.push("/expenses/reports")}
+            onClick={() => router.push(`/${ws}/expenses/reports`)}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>

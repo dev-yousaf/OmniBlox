@@ -21,10 +21,11 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Download, Filter } from "lucide-react";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 
 export default function SupplierPaymentsPage() {
   const router = useRouter();
+  const ws = useWorkspace();
   const payments = [
     {
       id: "PAY-001",

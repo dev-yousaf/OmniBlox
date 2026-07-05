@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight } from "lucide-react";
 import { useInventoryApi, type StockAdjustment } from "@/hooks/use-inventory-api";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 
 export default function TransferDetailPage() {
   const params = useParams();

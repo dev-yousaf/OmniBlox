@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   Alert,
@@ -29,6 +29,7 @@ import { ArrowLeft, ChevronRight, Loader2, Save } from "lucide-react";
 export default function EditCustomerPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const customerId = params?.id ?? "";
   const { getCustomer, updateCustomer } = useCustomersApi();
@@ -63,7 +64,7 @@ export default function EditCustomerPage() {
           description: "Failed to load customer for editing.",
           variant: "destructive",
         });
-        router.push("/people/customers");
+        router.push(`/${ws}/people/customers`);
       } finally {
         if (active) setLoading(false);
       }

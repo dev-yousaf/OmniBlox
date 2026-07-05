@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -12,6 +12,7 @@ import {
 import { useInventoryApi, type Warehouse as WarehouseType } from "@/hooks/use-inventory-api";
 import { useProductApi } from "@/hooks/use-product-api";
 import { useAuth } from "@/contexts/auth-context";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import {
@@ -32,6 +33,7 @@ export default function WarehousesPage() {
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const { toast } = useToast();
   const router = useRouter();
+  const ws = useWorkspace();
   const { getWarehouses, deleteWarehouse } = useInventoryApi();
   const { getProductStats } = useProductApi();
 

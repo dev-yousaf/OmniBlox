@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, ArrowLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 
 export default function NewExpensePage() {
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
@@ -43,6 +43,7 @@ export default function NewExpensePage() {
   const categoriesApi = useExpenseCategoriesApi();
   const { toast } = useToast();
   const router = useRouter();
+  const ws = useWorkspace();
 
   useEffect(() => {
     fetchCategories();
@@ -92,7 +93,7 @@ export default function NewExpensePage() {
       setSubmitting(true);
       await expensesApi.createExpense(formData);
       toast({ title: "Success", description: "Expense created successfully" });
-      router.push("/expenses");
+      router.push(`/${ws}/expenses`);
     } catch (error: any) {
       toast({
         title: "Error",

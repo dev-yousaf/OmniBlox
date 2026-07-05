@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,7 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 export default function BillerDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const ws = useWorkspace();
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -48,7 +49,7 @@ export default function BillerDetailPage() {
         setBiller(data);
       } catch (error) {
         toast({ title: "Error", description: "Failed to load biller.", variant: "destructive" });
-        router.push("/people/billers");
+        router.push(`/${ws}/people/billers`);
       } finally {
         setLoading(false);
       }
@@ -62,7 +63,7 @@ export default function BillerDetailPage() {
       setDeleting(true);
       await deleteBiller(biller.id);
       toast({ title: "Deleted", description: "Biller deleted successfully." });
-      router.push("/people/billers");
+      router.push(`/${ws}/people/billers`);
     } catch (error: any) {
       toast({ title: "Error", description: error?.message || "Failed to delete biller.", variant: "destructive" });
     } finally {

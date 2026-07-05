@@ -23,10 +23,11 @@ import {
   RotateCcw, ChevronLeft, ChevronRight, RefreshCw, FileText, FileSpreadsheet, DollarSign, TrendingUp,
   Package, CalendarIcon, Warehouse,
 } from "lucide-react";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { useSalesList } from "./_hooks/use-sales";
 import type { SaleSummary } from "./_types";
 import { useAuth } from "@/contexts/auth-context";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { useToast } from "@/hooks/use-toast";
 import { useInventoryApi } from "@/hooks/use-inventory-api";
 import { useProductApi } from "@/hooks/use-product-api";
@@ -52,6 +53,7 @@ export default function SalesPage() {
   const { user } = useAuth();
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const {
     sales,

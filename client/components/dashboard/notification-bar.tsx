@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { Info, X } from "lucide-react";
 import type { LowStockProduct } from "./types";
 

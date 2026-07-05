@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -174,9 +174,9 @@ export default function SuppliersPage() {
                         {s.name}
                       </Link>
                     </td>
-                    <td className="px-5 text-muted-foreground">{s.email || "—"}</td>
-                    <td className="px-5 text-muted-foreground">{s.phone || "—"}</td>
-                    <td className="px-5 text-muted-foreground truncate max-w-[200px]">{s.address || "—"}</td>
+                    <td className="px-5 text-muted-foreground">{s.email || "\u2014"}</td>
+                    <td className="px-5 text-muted-foreground">{s.phone || "\u2014"}</td>
+                    <td className="px-5 text-muted-foreground truncate max-w-[200px]">{s.address || "\u2014"}</td>
                     <td className="px-5">
                       <Link href={`/suppliers/${s.id}`}>
                         <Button variant="ghost" size="sm" className="h-[30px] rounded-[5px] text-xs">

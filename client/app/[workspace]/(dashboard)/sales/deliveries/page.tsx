@@ -36,7 +36,7 @@ import {
   MoreHorizontal,
   Loader2,
 } from "lucide-react";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { useAuth } from "@/contexts/auth-context";
 import { useDeliveriesApi, type Delivery } from "@/hooks/use-deliveries-api";
 import { toast } from "@/hooks/use-toast";

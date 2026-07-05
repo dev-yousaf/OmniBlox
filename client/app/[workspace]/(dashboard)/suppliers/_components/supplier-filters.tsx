@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Plus, Download, Upload } from "lucide-react"
-import Link from "next/link"
+import { WorkspaceLink as Link } from "@/components/workspace-link"
 import { SupplierFiltersProps } from "../_types"
 
 export function SupplierFilters({ filters, onFiltersChange }: SupplierFiltersProps) {

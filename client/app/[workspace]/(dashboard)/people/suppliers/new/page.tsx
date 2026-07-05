@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,7 @@ export default function CreateSupplierPage() {
   });
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const { createSupplier } = useSuppliersApi();
 
@@ -33,7 +34,7 @@ export default function CreateSupplierPage() {
         phone: formData.phone?.trim() || undefined, address: formData.address?.trim() || undefined,
       });
       toast({ title: "Success", description: "Supplier created successfully." });
-      router.push("/people/suppliers");
+      router.push(`/${ws}/people/suppliers`);
     } catch (error: any) {
       toast({ title: "Error", description: error?.message || "Failed to create supplier.", variant: "destructive" });
     } finally {

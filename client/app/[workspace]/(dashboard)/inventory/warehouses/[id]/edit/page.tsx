@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { ArrowLeft, ChevronRight, Loader2, Save } from "lucide-react";
 export default function WarehouseEditPage() {
   const params = useParams();
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const { getWarehouse, updateWarehouse } = useInventoryApi();
 
@@ -34,7 +35,7 @@ export default function WarehouseEditPage() {
       setFormData({ name: data.name, location: data.location || "" });
     } catch (error) {
       toast({ title: "Error", description: "Failed to load warehouse.", variant: "destructive" });
-      router.push("/inventory/warehouses");
+      router.push(`/${ws}/inventory/warehouses`);
     } finally {
       setLoading(false);
     }

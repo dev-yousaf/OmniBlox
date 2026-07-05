@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   ArrowLeft, Edit, Trash2, ChevronRight,
@@ -18,6 +18,7 @@ import {
 import { useSuppliersApi, type Supplier } from "@/hooks/use-suppliers-api";
 import { usePurchasesApi, type PurchaseOrder } from "@/hooks/use-purchases-api";
 import { useAuth } from "@/contexts/auth-context";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 const statusStyles: Record<string, string> = {
   PENDING: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800",
@@ -36,6 +37,7 @@ export default function SupplierDetailPage() {
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const ws = useWorkspace();
   const supplierId = params?.id ?? "";
   const { getSupplier, deleteSupplier } = useSuppliersApi();
   const { list: listPurchases } = usePurchasesApi();
@@ -94,7 +96,7 @@ export default function SupplierDetailPage() {
     setDeleting(true);
     try {
       await deleteSupplier(supplierId);
-      router.push("/suppliers");
+      router.push(`/${ws}/suppliers`);
     } catch { /* handled */ }
     setDeleting(false);
   };

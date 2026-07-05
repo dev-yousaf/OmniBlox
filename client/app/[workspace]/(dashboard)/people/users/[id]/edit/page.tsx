@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { useTeamApi, type TeamUser, type UpdateUserData } from "@/hooks/use-team-api";
 import { useAuth } from "@/contexts/auth-context";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { PageError, checkRoleAccess } from "@/components/ui/page-error";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, ChevronRight, Loader2, Save } from "lucide-react";
@@ -23,6 +24,7 @@ import { ArrowLeft, ChevronRight, Loader2, Save } from "lucide-react";
 export default function EditUserPage() {
   const params = useParams();
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const { user: authUser } = useAuth();
   const currentRole = (authUser?.role || "").toUpperCase();
@@ -48,7 +50,7 @@ export default function EditUserPage() {
         });
       } catch (error) {
         toast({ title: "Error", description: "Failed to load user.", variant: "destructive" });
-        router.push("/people/users");
+        router.push(`/${ws}/people/users`);
       } finally {
         setLoading(false);
       }

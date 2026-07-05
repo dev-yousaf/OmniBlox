@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, ChevronRight, Loader2, Plus, Save, Trash2, Package } from "lucide-react";
 
@@ -38,6 +38,7 @@ const STATUS_OPTIONS = [
 export default function EditSalesReturnPage() {
   const params = useParams();
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const { getSalesReturn, updateSalesReturn } = useReturnsApi();
   const { warehouses } = useWarehouses();

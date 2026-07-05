@@ -6,7 +6,7 @@ import {
   ServerCrash,
   Lock,
 } from "lucide-react";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { Button } from "@/components/ui/button";
 
 type ErrorType =

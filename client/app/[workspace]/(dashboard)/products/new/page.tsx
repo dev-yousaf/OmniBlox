@@ -3,14 +3,15 @@
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Minus } from "lucide-react";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { ProductForm } from "@/components/products/product-form";
 
 function NewProductForm() {
   const router = useRouter();
+  const ws = useWorkspace();
 
   return (
-    <ProductForm onSuccess={() => router.push("/products")} />
+    <ProductForm onSuccess={() => router.push(`/${ws}/products`)} />
   );
 }
 

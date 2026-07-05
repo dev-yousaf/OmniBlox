@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   ArrowLeft, Edit, Trash2, Loader2, CheckCircle2, Package, RotateCcw, Mail,
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useSaleDetail } from "../_hooks/use-sales";
 import { useAuth } from "@/contexts/auth-context";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { useState } from "react";
 
 const statusStyles: Record<string, string> = {
@@ -38,6 +39,7 @@ export default function SaleDetailPage() {
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const ws = useWorkspace();
   const saleId = params?.id ?? "";
   const { sale, loading, updating, error, markAsPaid, deleteSale } = useSaleDetail(saleId);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -60,7 +62,7 @@ export default function SaleDetailPage() {
     setDeleting(true);
     try {
       await deleteSale();
-      router.push("/sales");
+      router.push(`/${ws}/sales`);
     } catch { /* handled */ }
     setDeleting(false);
   };

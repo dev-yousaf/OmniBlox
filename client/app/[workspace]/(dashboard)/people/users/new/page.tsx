@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import {
 import { useTeamApi, type CreateUserData } from "@/hooks/use-team-api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { PageError, checkRoleAccess } from "@/components/ui/page-error";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -47,6 +48,7 @@ export default function CreateUserPage() {
   const { createUser } = useTeamApi();
   const { toast } = useToast();
   const router = useRouter();
+  const ws = useWorkspace();
   const { user } = useAuth();
 
   const currentRole = (user?.role || "").toUpperCase();
@@ -96,7 +98,7 @@ export default function CreateUserPage() {
         });
       } else {
         toast({ title: "User Created", description: `${result.name} has been created.` });
-        router.push("/people/users");
+        router.push(`/${ws}/people/users`);
       }
     } catch (error: any) {
       let msg = error?.message || "Failed to create user.";

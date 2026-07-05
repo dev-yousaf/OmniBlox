@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import {
   Alert,
   AlertDescription,
@@ -35,6 +35,7 @@ export default function CreateCustomerPage() {
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const { createCustomer } = useCustomersApi();
 
@@ -62,7 +63,7 @@ export default function CreateCustomerPage() {
         title: "Success",
         description: "Customer created successfully.",
       });
-      router.push("/people/customers");
+      router.push(`/${ws}/people/customers`);
     } catch (error: any) {
       const message = error?.message || "Failed to create customer.";
       setSubmitError(message);

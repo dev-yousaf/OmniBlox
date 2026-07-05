@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft, ChevronRight, Loader2, Plus, Save, Trash2,
@@ -31,6 +31,7 @@ type ItemRow = {
 
 export default function NewSalesReturnPage() {
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const initialAutoFillDone = useRef(false);
@@ -172,7 +173,7 @@ export default function NewSalesReturnPage() {
       setSubmitting(true);
       await createSalesReturn({ warehouseId: formData.warehouseId, saleId: formData.saleId || undefined, reason: formData.reason || undefined, items });
       toast({ title: "Sales return created successfully" });
-      router.push("/sales-returns");
+      router.push(`/${ws}/sales-returns`);
     } catch (e: any) {
       toast({ title: "Failed to create return", description: e?.message || "Unknown error", variant: "destructive" });
     } finally {

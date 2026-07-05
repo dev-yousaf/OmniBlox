@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   ArrowLeft, Edit, Trash2, Loader2, Package, RotateCcw,
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { usePurchasesApi, type PurchaseOrder } from "@/hooks/use-purchases-api";
 import { useAuth } from "@/contexts/auth-context";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { ReceivePurchaseDialog } from "@/components/purchases/ReceivePurchaseDialog";
 import { toast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
@@ -38,6 +39,7 @@ export default function PurchaseDetailPage() {
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const ws = useWorkspace();
   const purchaseId = params?.id ?? "";
   const { getById, receive, markAsPaid } = usePurchasesApi();
 
@@ -104,7 +106,7 @@ export default function PurchaseDetailPage() {
     try {
       await api.delete(`/purchases/${purchase.id}`);
       toast({ title: "Purchase deleted" });
-      router.push("/purchases");
+      router.push(`/${ws}/purchases`);
     } catch (e: any) {
       toast({
         title: "Failed to delete",

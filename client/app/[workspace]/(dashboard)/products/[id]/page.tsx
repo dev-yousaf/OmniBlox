@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import {
 	Edit,
 	Trash2,
@@ -33,6 +33,7 @@ import { useProductApi } from "@/hooks/use-product-api";
 import { useInventoryApi } from "@/hooks/use-inventory-api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+import { useWorkspace } from "@/hooks/use-workspace";
 import { useWarehouses } from "@/hooks/use-warehouses";
 import type { Product, StockLedgerEntry } from "@/lib/types";
 import type { InventoryItem } from "@/hooks/use-inventory-api";
@@ -92,6 +93,7 @@ export default function ProductDetailPage({
 	const { getProductInventory } = useInventoryApi();
 	const { toast } = useToast();
 	const router = useRouter();
+  const ws = useWorkspace();
 	const { user } = useAuth();
 	const { warehouses, loading: warehousesLoading } = useWarehouses();
 	const canManage =
@@ -189,7 +191,7 @@ export default function ProductDetailPage({
 				description: "Failed to load product details",
 				variant: "destructive",
 			});
-			router.push("/products");
+			router.push(`/${ws}/products`);
 		} finally {
 			setLoading(false);
 			setInventoryLoading(false);
@@ -288,7 +290,7 @@ export default function ProductDetailPage({
 					title: "Success",
 					description: "Product deleted successfully",
 				});
-				router.push("/products");
+				router.push(`/${ws}/products`);
 			} catch (error) {
 				toast({
 					title: "Error",

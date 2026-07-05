@@ -1,5 +1,5 @@
 import { ArrowLeft, Save, Plus } from "lucide-react"
-import Link from "next/link"
+import { WorkspaceLink as Link } from "@/components/workspace-link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { Flag, Receipt } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { RecentSale } from "./types";

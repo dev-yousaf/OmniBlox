@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft, ChevronRight, Loader2, Plus, Save, Trash2,
@@ -32,6 +32,7 @@ type ItemRow = {
 
 export default function NewPurchaseReturnPage() {
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const initialAutoFillDone = useRef(false);
@@ -178,7 +179,7 @@ export default function NewPurchaseReturnPage() {
         purchaseOrderId: formData.purchaseOrderId || undefined, reason: formData.reason || undefined, items,
       });
       toast({ title: "Purchase return created successfully" });
-      router.push("/purchase-returns");
+      router.push(`/${ws}/purchase-returns`);
     } catch (e: any) {
       toast({ title: "Failed to create return", description: e?.message || "Unknown error", variant: "destructive" });
     } finally {

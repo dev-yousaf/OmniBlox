@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { useRouter } from "next/navigation";
 import {
   Check,
@@ -86,6 +86,7 @@ const createItemId = () =>
 
 export default function NewPurchasePage() {
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const { getSuppliers } = useSuppliersApi();
   const { create } = usePurchasesApi();
@@ -279,7 +280,7 @@ export default function NewPurchasePage() {
 
       await create(payload);
       toast({ title: "Purchase order created successfully" });
-      router.push("/purchases");
+      router.push(`/${ws}/purchases`);
     } catch (error) {
       const message = normalizeError(error);
       toast({ title: "Failed to create purchase order", description: message, variant: "destructive" });

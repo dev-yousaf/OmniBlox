@@ -15,13 +15,14 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { useAllProducts } from "@/hooks/use-products";
 import { useWarehouses } from "@/hooks/use-warehouses";
 import { useStockAdjustmentService, type StockAdjustmentResponse } from "../_services/stock-adjustment-service";
 import { useInventoryApi } from "@/hooks/use-inventory-api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+import { useWorkspace } from "@/hooks/use-workspace";
 import type { Product } from "@/lib/types";
 import type { Warehouse } from "@/hooks/use-warehouses";
 
@@ -39,6 +40,7 @@ type AdjustmentItem = {
 
 export default function StockAdjustmentPage() {
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const { user } = useAuth();
   const { products, loading: productsLoading } = useAllProducts();
@@ -58,7 +60,7 @@ export default function StockAdjustmentPage() {
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
 
   useEffect(() => {
-    if (!canManage) router.push("/inventory");
+    if (!canManage) router.push(`/${ws}/inventory`);
   }, [canManage, router]);
 
   const loadAdjustments = useCallback(async () => {

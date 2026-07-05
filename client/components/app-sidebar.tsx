@@ -36,6 +36,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
+import { useWorkspace } from "@/hooks/use-workspace";
 
 type Role = "OWNER" | "ADMIN" | "MANAGER" | "STAFF" | string;
 
@@ -184,9 +185,9 @@ function matchScore(item: SidebarItem, pathname: string, searchParams: URLSearch
 
   if (pathname === hrefPath) return MatchScore.PATH;
 
-  if (hrefPath === "/dashboard" && pathname === "/") return MatchScore.DASHBOARD_ROOT_ALIAS;
+  if (hrefPath.endsWith("/dashboard") && pathname === hrefPath.replace(/\/dashboard$/, '')) return MatchScore.DASHBOARD_ROOT_ALIAS;
 
-  // parent prefix: /products matches /products/123, /products/new, etc.
+  // parent prefix: /ws/products matches /ws/products/123, /ws/products/new, etc.
   if (pathname.startsWith(hrefPath + "/")) return MatchScore.PREFIX;
 
   return MatchScore.NONE;
@@ -205,18 +206,22 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { user } = useAuth();
+  const ws = useWorkspace();
   const userRole = (user?.role || "").toUpperCase() as Role;
   const isSuperadmin = user?.isSuperadmin === true;
 
   // Exactly one item is ever marked active: the single best match across
   // the whole nav (by id, not display name), so two items that resolve to
   // the same path can never both light up at once.
+  // Strip workspace prefix from pathname for matching
+  const strippedPathname = pathname.replace(new RegExp(`^/${ws}`), '') || '/';
+
   const activeItemId = useMemo(() => {
     let bestItem: SidebarItem | null = null;
     let bestScore: number = MatchScore.NONE;
 
     for (const item of allSidebarItems) {
-      const score = matchScore(item, pathname, searchParams);
+      const score = matchScore(item, strippedPathname, searchParams);
       if (score > bestScore) {
         bestScore = score;
         bestItem = item;
@@ -224,7 +229,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
     }
 
     return bestItem?.id ?? null;
-  }, [pathname, searchParams]);
+  }, [strippedPathname, searchParams]);
 
   const initials = getInitials(user?.name, "AD");
 
@@ -241,7 +246,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
         collapsed ? "justify-center px-0" : "justify-between px-4"
       )}>
         {!collapsed && (
-          <Link href="/dashboard" className="flex items-center gap-2">
+          <Link href={`/${ws}/dashboard`} className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-sidebar-accent-foreground text-sidebar-accent font-bold text-sm">
               N
             </div>
@@ -288,7 +293,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
 
                   if (collapsed) {
                     return (
-                      <Link key={item.id} href={item.href} title={item.name}>
+                      <Link key={item.id} href={`/${ws}${item.href}`} title={item.name}>
                         <Button
                           variant="ghost"
                           className={cn(
@@ -305,7 +310,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
                   }
 
                   return (
-                    <Link key={item.id} href={item.href}>
+                    <Link key={item.id} href={`/${ws}${item.href}`}>
                       <div
                         className={cn(
                           "flex items-center gap-2 px-3 py-2 rounded-lg transition-colors",

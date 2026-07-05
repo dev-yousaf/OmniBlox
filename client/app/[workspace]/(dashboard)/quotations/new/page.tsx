@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { useRouter } from "next/navigation";
 import {
   Check, ChevronsUpDown, ChevronRight, Loader2, Plus, Save, Trash2, Package,
@@ -45,6 +45,7 @@ const createItemId = () =>
 
 export default function NewQuotationPage() {
   const router = useRouter();
+  const ws = useWorkspace();
   const { createQuotation } = useQuotationsApi();
   const { getCustomers } = useCustomersApi();
   const { getProducts } = useProductApi();

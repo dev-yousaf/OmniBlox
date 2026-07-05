@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw, Minus } from "lucide-react";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { ProductForm } from "@/components/products/product-form";
 import { useProductApi } from "@/hooks/use-product-api";
@@ -18,6 +18,7 @@ export default function EditProductPage({
   const { getProduct } = useProductApi();
   const { toast } = useToast();
   const router = useRouter();
+  const ws = useWorkspace();
   const [productData, setProductData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +33,7 @@ export default function EditProductPage({
           description: error.message || "Failed to load product",
           variant: "destructive",
         });
-        router.push("/products");
+        router.push(`/${ws}/products`);
       } finally {
         setLoading(false);
       }
@@ -93,7 +94,7 @@ export default function EditProductPage({
         initialData={productData}
         isEdit={true}
         productId={productId}
-        onSuccess={() => router.push("/products")}
+        onSuccess={() => router.push(`/${ws}/products`)}
       />
     </div>
   );

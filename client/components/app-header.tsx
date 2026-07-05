@@ -36,6 +36,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/auth-context";
+import { useWorkspace } from "@/hooks/use-workspace";
 import Link from "next/link";
 
 type AppHeaderProps = Record<string, never>;
@@ -163,6 +164,7 @@ function CalculatorPopover() {
 export function AppHeader(_props: AppHeaderProps) {
   const { setOpen } = useCommandMenu();
   const { logout, user } = useAuth();
+  const ws = useWorkspace();
 
   const companyName = user?.company?.name || "OmniBlox";
   const initials = companyName
@@ -219,19 +221,19 @@ export function AppHeader(_props: AppHeaderProps) {
               <DropdownMenuLabel>Create New</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/products/new" className="cursor-pointer"><Package className="h-4 w-4 mr-2" />Product</Link>
+                <Link href={`/${ws}/products/new`} className="cursor-pointer"><Package className="h-4 w-4 mr-2" />Product</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/sales/new" className="cursor-pointer"><ShoppingCart className="h-4 w-4 mr-2" />Sale</Link>
+                <Link href={`/${ws}/sales/new`} className="cursor-pointer"><ShoppingCart className="h-4 w-4 mr-2" />Sale</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/purchases/new" className="cursor-pointer"><ShoppingBag className="h-4 w-4 mr-2" />Purchase</Link>
+                <Link href={`/${ws}/purchases/new`} className="cursor-pointer"><ShoppingBag className="h-4 w-4 mr-2" />Purchase</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/people/customers/new" className="cursor-pointer"><Users className="h-4 w-4 mr-2" />Customer</Link>
+                <Link href={`/${ws}/people/customers/new`} className="cursor-pointer"><Users className="h-4 w-4 mr-2" />Customer</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/people/suppliers/new" className="cursor-pointer"><Building className="h-4 w-4 mr-2" />Supplier</Link>
+                <Link href={`/${ws}/people/suppliers/new`} className="cursor-pointer"><Building className="h-4 w-4 mr-2" />Supplier</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -273,7 +275,7 @@ export function AppHeader(_props: AppHeaderProps) {
               <DropdownMenuLabel>Settings</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/settings" className="cursor-pointer"><Settings className="h-4 w-4 mr-2" />Settings</Link>
+                <Link href={`/${ws}/settings`} className="cursor-pointer"><Settings className="h-4 w-4 mr-2" />Settings</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout}>

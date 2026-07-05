@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function ExpenseCategoryDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const ws = useWorkspace();
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState<ExpenseCategory | null>(null);
 
@@ -59,7 +60,7 @@ export default function ExpenseCategoryDetailPage() {
             <p className="text-muted-foreground">Category not found</p>
             <Button
               variant="outline"
-              onClick={() => router.push("/expenses/categories")}
+              onClick={() => router.push(`/${ws}/expenses/categories`)}
               className="mt-4"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -86,7 +87,7 @@ export default function ExpenseCategoryDetailPage() {
         </div>
         <Button
           variant="outline"
-          onClick={() => router.push("/expenses/categories")}
+          onClick={() => router.push(`/${ws}/expenses/categories`)}
         >
           Back to Categories
         </Button>

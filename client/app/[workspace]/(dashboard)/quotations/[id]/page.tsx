@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   ArrowLeft, Edit, Trash2, Loader2, CheckCircle, XCircle,
@@ -67,6 +67,7 @@ const statusLabels: Record<string, string> = {
 export default function QuotationDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const ws = useWorkspace();
   const quotationId = params?.id ?? "";
 
   const {
@@ -201,7 +202,7 @@ export default function QuotationDetailPage() {
     try {
       await deleteQuotation(quotation.id);
       toast.success("Quotation deleted successfully");
-      router.push("/quotations");
+      router.push(`/${ws}/quotations`);
     } catch (err) {
       toast.error(getErrorMessage(err, "Failed to delete quotation"));
     } finally {

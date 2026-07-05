@@ -14,12 +14,13 @@ import {
   ChevronLeft, ArrowRight, Warehouse as WarehouseIcon, Calendar,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { useAllProducts } from "@/hooks/use-products";
 import { useWarehouses } from "@/hooks/use-warehouses";
 import { useInventoryApi, type StockAdjustment } from "@/hooks/use-inventory-api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+import { useWorkspace } from "@/hooks/use-workspace";
 import type { Product } from "@/lib/types";
 import type { Warehouse } from "@/hooks/use-warehouses";
 
@@ -37,6 +38,7 @@ const HISTORY_PAGE_SIZE = 10;
 
 export default function StockTransferPage() {
   const router = useRouter();
+  const ws = useWorkspace();
   const { toast } = useToast();
   const { user } = useAuth();
   const { products, loading: productsLoading } = useAllProducts();
@@ -65,7 +67,7 @@ export default function StockTransferPage() {
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
 
   useEffect(() => {
-    if (!canManage) router.push("/inventory");
+    if (!canManage) router.push(`/${ws}/inventory`);
   }, [canManage, router]);
 
   const usedProductIds = useMemo(

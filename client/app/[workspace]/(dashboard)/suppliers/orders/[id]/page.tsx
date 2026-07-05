@@ -30,6 +30,7 @@ import {
 export default function PurchaseOrderDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const ws = useWorkspace();
   const [loading, setLoading] = useState(true);
 
   // Mock data - replace with actual API call
@@ -322,7 +323,7 @@ export default function PurchaseOrderDetailPage() {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => router.push("/suppliers")}
+                onClick={() => router.push(`/${ws}/suppliers`)}
               >
                 View Supplier Details
               </Button>
