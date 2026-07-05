@@ -10,14 +10,14 @@ import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, company } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.replace("/dashboard");
+      router.replace(company?.workspaceUrl ? `/${company.workspaceUrl}/dashboard` : "/login");
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, company, router]);
 
   if (isLoading) {
     return (

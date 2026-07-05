@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +34,6 @@ export default function LoginPage() {
   const [showMagicLink, setShowMagicLink] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const { login } = useAuth();
-  const router = useRouter();
 
   const clearFieldError = (field: 'email' | 'password') => {
     setErrors((prev) => {
@@ -67,7 +65,6 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      router.push("/dashboard");
     } catch (err: any) {
       const msg = err.message || "Invalid email or password";
       const lower = msg.toLowerCase();

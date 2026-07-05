@@ -48,24 +48,18 @@ function MagicLoginContent() {
         setStatus("success");
         setMessage("Successfully logged in! Redirecting to dashboard...");
 
-        // Tiny delay to ensure the browser has persisted the Set-Cookie
-        // before we issue the next credentialed fetch
         await new Promise((r) => setTimeout(r, 200));
 
-        // Refresh user context to update auth state; on failure, still redirect
+        const ws = (response as any)?.user?.company?.workspaceUrl;
+
         try {
           await refreshUser({ silent: true });
         } catch (e) {
-          // Non-fatal: cookie may not be immediately available; proceed
-          console.warn(
-            "Refresh after magic link failed; proceeding to dashboard",
-            e
-          );
+          console.warn("Refresh after magic link failed", e);
         }
 
-        // Redirect to dashboard after a brief delay
         setTimeout(() => {
-          router.push("/dashboard");
+          router.push(ws ? `/${ws}/dashboard` : "/login");
         }, 1500);
       } catch (error: any) {
         setStatus("error");
