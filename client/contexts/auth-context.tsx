@@ -76,7 +76,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userData = await api.getProfile();
       setUser(userData as User);
       const ws = (userData as any)?.company?.workspaceUrl;
-      router.push(ws ? `/${ws}/dashboard` : "/dashboard");
+      if (ws) {
+        router.push(`/${ws}/dashboard`);
+      } else {
+        router.push("/login");
+      }
     } catch (error: any) {
       console.error("Login failed:", error);
       throw error;

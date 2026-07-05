@@ -271,6 +271,15 @@ export class AuthService {
       throw new UnauthorizedException('User not found');
     }
 
+    const companyWs = user.company.workspaceUrl || user.company.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+    if (!user.company.workspaceUrl) {
+      await this.prisma.company.update({
+        where: { id: user.company.id },
+        data: { workspaceUrl: companyWs },
+      });
+    }
+
     return {
       id: user.id,
       email: user.email,
@@ -281,7 +290,7 @@ export class AuthService {
       company: {
         id: user.company.id,
         name: user.company.name,
-        workspaceUrl: user.company.workspaceUrl,
+        workspaceUrl: companyWs,
         industry: user.company.industry,
         country: user.company.country,
       },
