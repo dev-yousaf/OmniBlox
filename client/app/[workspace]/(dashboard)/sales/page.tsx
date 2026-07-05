@@ -388,7 +388,7 @@ export default function SalesPage() {
                     <tr
                       key={sale.id}
                       className="h-[56px] border-b hover:bg-muted/30 transition-colors cursor-pointer"
-                      onClick={() => router.push(`/sales/${sale.id}`)}
+                      onClick={() => router.push(`/${ws}/sales/${sale.id}`)}
                     >
                       <td className="w-[50px] px-5" onClick={(e) => e.stopPropagation()}>
                         <Checkbox

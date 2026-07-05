@@ -170,7 +170,7 @@ export default function QuotationDetailPage() {
       toast.success("Quotation converted to sale successfully!", {
         description: `Sale ${sale.invoiceNumber} has been created`,
       });
-      router.push(`/sales/${sale.id}`);
+      router.push(`/${ws}/sales/${sale.id}`);
     } catch (err) {
       toast.error(getConvertError(err));
       setActionLoading(false);
@@ -203,7 +203,7 @@ export default function QuotationDetailPage() {
     try {
       await deleteQuotation(quotation.id);
       toast.success("Quotation deleted successfully");
-      router.push(`/${ws}/quotations`);
+      router.push(`/${ws}/${ws}/quotations`);
     } catch (err) {
       toast.error(getErrorMessage(err, "Failed to delete quotation"));
     } finally {

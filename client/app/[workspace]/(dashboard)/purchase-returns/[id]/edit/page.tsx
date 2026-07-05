@@ -125,7 +125,7 @@ export default function EditPurchaseReturnPage() {
         items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, unitPrice: item.unitPrice })),
       });
       toast({ title: "Purchase return updated successfully" });
-      router.push(`/purchase-returns/${pr.id}`);
+      router.push(`/${ws}/purchase-returns/${pr.id}`);
     } catch (e: any) {
       toast({ title: "Failed to update", description: e?.message || "Unknown error", variant: "destructive" });
     } finally {

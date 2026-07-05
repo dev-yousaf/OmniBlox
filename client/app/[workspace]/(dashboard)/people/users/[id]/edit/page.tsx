@@ -50,7 +50,7 @@ export default function EditUserPage() {
         });
       } catch (error) {
         toast({ title: "Error", description: "Failed to load user.", variant: "destructive" });
-        router.push(`/${ws}/people/users`);
+        router.push(`/${ws}/${ws}/people/users`);
       } finally {
         setLoading(false);
       }
@@ -71,7 +71,7 @@ export default function EditUserPage() {
         role: formData.role as UpdateUserData["role"] | undefined,
       });
       toast({ title: "Saved", description: "User updated successfully." });
-      router.push(`/people/users/${updated.id}`);
+      router.push(`/${ws}/people/users/${updated.id}`);
     } catch (error: any) {
       toast({ title: "Error", description: error?.message || "Failed to update user.", variant: "destructive" });
     } finally {

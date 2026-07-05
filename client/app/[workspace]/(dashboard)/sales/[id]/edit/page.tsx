@@ -333,7 +333,7 @@ export default function EditSalePage() {
         description: "The sale details were saved successfully.",
       });
 
-      router.push(`/sales/${sale.id}`);
+      router.push(`/${ws}/sales/${sale.id}`);
     } catch (submitErr) {
       setSubmitError(normalizeError(submitErr));
     } finally {

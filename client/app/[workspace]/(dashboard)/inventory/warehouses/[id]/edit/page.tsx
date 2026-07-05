@@ -36,7 +36,7 @@ export default function WarehouseEditPage() {
       setFormData({ name: data.name, location: data.location || "" });
     } catch (error) {
       toast({ title: "Error", description: "Failed to load warehouse.", variant: "destructive" });
-      router.push(`/${ws}/inventory/warehouses`);
+      router.push(`/${ws}/${ws}/inventory/warehouses`);
     } finally {
       setLoading(false);
     }
@@ -52,7 +52,7 @@ export default function WarehouseEditPage() {
       setSubmitting(true);
       await updateWarehouse(params.id as string, { name: formData.name.trim(), location: formData.location.trim() || undefined });
       toast({ title: "Success", description: "Warehouse updated successfully" });
-      router.push(`/inventory/warehouses/${params.id}`);
+      router.push(`/${ws}/inventory/warehouses/${params.id}`);
     } catch (error) {
       toast({ title: "Error", description: "Failed to update warehouse", variant: "destructive" });
     } finally {

@@ -120,7 +120,7 @@ export default function EditDeliveryPage() {
         description: "The delivery has been updated successfully.",
       });
 
-      router.push(`/sales/deliveries/${deliveryId}`);
+      router.push(`/${ws}/sales/deliveries/${deliveryId}`);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to update delivery";

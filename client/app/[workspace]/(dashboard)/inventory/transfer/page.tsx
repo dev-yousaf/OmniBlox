@@ -67,7 +67,7 @@ export default function StockTransferPage() {
   const canManage = user?.role === "OWNER" || user?.role === "ADMIN" || user?.role === "MANAGER";
 
   useEffect(() => {
-    if (!canManage) router.push(`/${ws}/inventory`);
+    if (!canManage) router.push(`/${ws}/${ws}/inventory`);
   }, [canManage, router]);
 
   const usedProductIds = useMemo(
@@ -254,7 +254,7 @@ export default function StockTransferPage() {
         description: `Reference: ${result.referenceNumber} — ${items.length} item(s) transferred`,
       });
 
-      router.push(`/inventory/transfer/${result.id}`);
+      router.push(`/${ws}/inventory/transfer/${result.id}`);
     } catch (error: any) {
       setSubmitError(error?.message || "Failed to create stock transfer");
     } finally {

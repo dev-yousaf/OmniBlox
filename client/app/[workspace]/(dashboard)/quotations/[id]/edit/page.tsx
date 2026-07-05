@@ -268,7 +268,7 @@ export default function EditQuotationPage() {
       toast.success("Quotation updated", {
         description: "The quotation details were saved successfully.",
       });
-      router.push(`/quotations/${updated.id}`);
+      router.push(`/${ws}/quotations/${updated.id}`);
     } catch (err) {
       const msg = normalizeError(err);
       setSubmitError(msg);

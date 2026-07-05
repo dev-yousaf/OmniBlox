@@ -65,7 +65,7 @@ export default function EditCustomerPage() {
           description: "Failed to load customer for editing.",
           variant: "destructive",
         });
-        router.push(`/${ws}/people/customers`);
+        router.push(`/${ws}/${ws}/people/customers`);
       } finally {
         if (active) setLoading(false);
       }
@@ -97,7 +97,7 @@ export default function EditCustomerPage() {
 
       const updated = await updateCustomer(customer.id, payload);
       toast({ title: "Saved", description: "Customer updated successfully." });
-      router.push(`/people/customers/${updated.id}`);
+      router.push(`/${ws}/people/customers/${updated.id}`);
     } catch (error: any) {
       const message = error?.message || "Failed to update customer.";
       setSubmitError(message);

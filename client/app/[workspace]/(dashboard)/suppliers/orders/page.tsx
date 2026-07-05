@@ -124,7 +124,7 @@ export default function SupplierOrdersPage() {
                 <TableRow
                   key={order.id}
                   className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => router.push(`/suppliers/orders/${order.id}`)}
+                  onClick={() => router.push(`/${ws}/suppliers/orders/${order.id}`)}
                 >
                   <TableCell className="font-medium">{order.id}</TableCell>
                   <TableCell>{order.supplier}</TableCell>
@@ -138,7 +138,7 @@ export default function SupplierOrdersPage() {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        router.push(`/suppliers/orders/${order.id}`);
+                        router.push(`/${ws}/suppliers/orders/${order.id}`);
                       }}
                     >
                       View

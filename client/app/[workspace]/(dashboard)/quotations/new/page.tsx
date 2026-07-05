@@ -196,7 +196,7 @@ export default function NewQuotationPage() {
       toast.success("Quotation created successfully!", {
         description: `Quotation ${created.referenceNumber} has been created`,
       });
-      router.push(`/quotations/${created.id}`);
+      router.push(`/${ws}/quotations/${created.id}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Please try again";
       setSubmitError(msg);

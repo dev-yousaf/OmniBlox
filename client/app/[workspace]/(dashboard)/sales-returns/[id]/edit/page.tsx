@@ -117,7 +117,7 @@ export default function EditSalesReturnPage() {
         status: formData.status, items: items.map((item) => ({ productId: item.productId, quantity: item.quantity, unitPrice: item.unitPrice })),
       });
       toast({ title: "Sales return updated successfully" });
-      router.push(`/sales-returns/${sr.id}`);
+      router.push(`/${ws}/sales-returns/${sr.id}`);
     } catch (e: any) {
       toast({ title: "Failed to update", description: e?.message || "Unknown error", variant: "destructive" });
     } finally {

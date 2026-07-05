@@ -79,7 +79,7 @@ export default function EditExpensePage() {
         description: error.message || "Failed to fetch expense",
         variant: "destructive",
       });
-      router.push(`/${ws}/expenses`);
+      router.push(`/${ws}/${ws}/expenses`);
     } finally {
       if (mounted) setLoading(false);
     }
@@ -104,7 +104,7 @@ export default function EditExpensePage() {
       setSubmitting(true);
       await expensesApi.updateExpense(expense.id, formData);
       toast({ title: "Success", description: "Expense updated successfully" });
-      router.push(`/expenses/${expense.id}`);
+      router.push(`/${ws}/expenses/${expense.id}`);
     } catch (error: any) {
       toast({
         title: "Error",

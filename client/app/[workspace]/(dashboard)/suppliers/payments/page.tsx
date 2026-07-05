@@ -161,7 +161,7 @@ export default function SupplierPaymentsPage() {
                   key={payment.id}
                   className="cursor-pointer hover:bg-muted/50"
                   onClick={() =>
-                    router.push(`/suppliers/payments/${payment.id}`)
+                    router.push(`/${ws}/suppliers/payments/${payment.id}`)
                   }
                 >
                   <TableCell className="font-medium">{payment.id}</TableCell>
@@ -181,7 +181,7 @@ export default function SupplierPaymentsPage() {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        router.push(`/suppliers/payments/${payment.id}`);
+                        router.push(`/${ws}/suppliers/payments/${payment.id}`);
                       }}
                     >
                       View

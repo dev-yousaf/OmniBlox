@@ -39,7 +39,7 @@ export default function EditSupplierPage() {
         });
       } catch (error) {
         toast({ title: "Error", description: "Failed to load supplier.", variant: "destructive" });
-        router.push(`/${ws}/people/suppliers`);
+        router.push(`/${ws}/${ws}/people/suppliers`);
       } finally {
         setLoading(false);
       }
@@ -58,7 +58,7 @@ export default function EditSupplierPage() {
         creditLimit: formData.creditLimit,
       });
       toast({ title: "Saved", description: "Supplier updated successfully." });
-      router.push(`/people/suppliers/${updated.id}`);
+      router.push(`/${ws}/people/suppliers/${updated.id}`);
     } catch (error: any) {
       toast({ title: "Error", description: error?.message || "Failed to update supplier.", variant: "destructive" });
     } finally {

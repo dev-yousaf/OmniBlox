@@ -397,7 +397,7 @@ export default function NewSalePage() {
       };
 
       const created = await createSale(payload);
-      router.push(`/sales/${created.id}`);
+      router.push(`/${ws}/sales/${created.id}`);
     } catch (error) {
       setSubmitError(normalizeError(error));
     } finally {

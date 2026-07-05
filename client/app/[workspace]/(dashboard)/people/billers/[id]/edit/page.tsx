@@ -49,7 +49,7 @@ export default function EditBillerPage() {
         });
       } catch (error) {
         toast({ title: "Error", description: "Failed to load biller.", variant: "destructive" });
-        router.push(`/${ws}/people/billers`);
+        router.push(`/${ws}/${ws}/people/billers`);
       } finally {
         setLoading(false);
       }
@@ -95,7 +95,7 @@ export default function EditBillerPage() {
         status: formData.status,
       });
       toast({ title: "Saved", description: "Biller updated successfully." });
-      router.push(`/people/billers/${updated.id}`);
+      router.push(`/${ws}/people/billers/${updated.id}`);
     } catch (error: any) {
       toast({ title: "Error", description: error?.message || "Failed to update biller.", variant: "destructive" });
     } finally {

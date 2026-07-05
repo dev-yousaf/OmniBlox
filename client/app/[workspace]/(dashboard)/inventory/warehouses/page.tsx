@@ -234,7 +234,7 @@ export default function WarehousesPage() {
                   <tr
                     key={warehouse.id}
                     className="h-[52px] border-b hover:bg-muted/30 transition-colors cursor-pointer"
-                    onClick={() => router.push(`/inventory/warehouses/${warehouse.id}`)}
+                    onClick={() => router.push(`/${ws}/inventory/warehouses/${warehouse.id}`)}
                   >
                     <td className="px-5">
                       <div className="flex items-center gap-2">
