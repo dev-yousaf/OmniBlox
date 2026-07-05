@@ -7,7 +7,6 @@ export function middleware(req: NextRequest) {
     const url = req.nextUrl.clone();
     const path = url.pathname;
 
-    // Skip non-HTML requests and all framework/static assets
     const accept = req.headers.get("accept") || "";
     const isHtml = accept.includes("text/html");
     const isAsset =
@@ -22,14 +21,14 @@ export function middleware(req: NextRequest) {
     }
 
     const hasCookie = req.cookies.get("omniblox_logged_in")?.value === "1";
+    const workspace = req.cookies.get("omniblox_workspace")?.value;
 
-    if (hasCookie) {
+    if (hasCookie && workspace) {
       const isGuestPath = GUEST_PATHS.some((g) => path === g || path.startsWith(g + "/"));
-      const segments = path.split("/").filter(Boolean);
-      const isWorkspacePath = segments.length >= 2;
+      const firstSegment = path.split("/").filter(Boolean)[0] || "";
 
-      if (isGuestPath || !isWorkspacePath) {
-        url.pathname = "/login";
+      if (isGuestPath || firstSegment !== workspace) {
+        url.pathname = `/${workspace}/dashboard`;
         return NextResponse.redirect(url);
       }
     }

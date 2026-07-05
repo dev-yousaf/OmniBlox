@@ -59,6 +59,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(true);
         const userData = await api.getProfile();
         setUser(userData as User);
+        const ws = (userData as any)?.company?.workspaceUrl;
+        if (ws) document.cookie = `omniblox_workspace=${ws}; path=/; max-age=31536000; SameSite=Lax`;
       } catch (error) {
         console.log("No active session");
         setUser(null);
@@ -76,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userData = await api.getProfile();
       setUser(userData as User);
       const ws = (userData as any)?.company?.workspaceUrl;
+      if (ws) document.cookie = `omniblox_workspace=${ws}; path=/; max-age=31536000; SameSite=Lax`;
       if (ws) {
         router.push(`/${ws}/dashboard`);
       } else {
@@ -102,6 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       await api.logout();
       setUser(null);
+      document.cookie = "omniblox_workspace=; path=/; max-age=0";
       router.push("/login");
     } catch (error) {
       console.error("Logout failed:", error);
