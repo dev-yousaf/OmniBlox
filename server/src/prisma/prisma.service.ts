@@ -9,8 +9,18 @@ export class PrismaService
   constructor() {
     // The 'super' call invokes the constructor of the PrismaClient.
     // We pass it a configuration object to override the default datasource URL.
+    //
+    // Prefer the true direct URL. The pooled URLs (DATABASE_URL /
+    // DATABASE_URL_POOLED) both carry `pgbouncer=true`, i.e. they are routed
+    // through Supabase's TRANSACTION-mode pooler, which cannot host Prisma
+    // interactive transactions or raw queries reliably (intermittent
+    // "Transaction API error: Transaction not found"). This app is a
+    // long-lived process (not serverless), so the direct connection is the
+    // correct datasource.
     const databaseUrl =
-      process.env.DATABASE_URL_POOLED || process.env.DATABASE_URL;
+      process.env.DIRECT_URL ||
+      process.env.DATABASE_URL ||
+      process.env.DATABASE_URL_POOLED;
 
     if (databaseUrl) {
       // If a runtime database URL is available, pass it explicitly to Prisma.
@@ -33,7 +43,7 @@ export class PrismaService
       // If no DB URL is provided, avoid passing `undefined` to PrismaClient.
       // Let Prisma use its default behavior (read from `schema.prisma` env()).
       console.warn(
-        '[PrismaService] No DATABASE_URL or DATABASE_URL_POOLED found; creating PrismaClient without explicit datasource override.',
+        '[PrismaService] No DIRECT_URL / DATABASE_URL / DATABASE_URL_POOLED found; creating PrismaClient without explicit datasource override.',
       );
 
       super();
