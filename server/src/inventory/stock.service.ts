@@ -81,13 +81,14 @@ interface ProductLike {
  *  - Rows are locked with `SELECT ... FOR UPDATE` before read-modify-write;
  *    concurrent sales of the same product/warehouse serialize on the lock and
  *    can never drive a quantity negative (`InsufficientStockException`).
- *  - Combos (type === 'COMBO') hold NO inventory of their own. Availability is
- *    DERIVED at read time as `min(floor(componentQty / ratio))` per warehouse
- *    (missing component row => 0). Mutations on a combo expand into its
- *    components (issue/receive/reverse), and `adjustStock`/`transferStock`
- *    reject combos. This is a documented behavior change: previously combos
- *    could hold independently-editable Inventory rows; those rows are now
- *    inert and the write path never creates or touches them.
+ *  - Combos (type === 'COMBO') hold their OWN inventory (the sellable deal
+ *    count, e.g. "50 combos"). Availability is derived at read time as
+ *    `min(own stock, min(floor(componentQty / ratio)))` per warehouse. Every
+ *    mutation on a combo also moves its components by `delta * ratio`
+ *    (issue/receive/reverse/adjust/transfer). Combos created before this
+ *    behavior (no own Inventory rows) keep working in pure component-derived
+ *    mode: their availability is the component minimum and negative mutations
+ *    only touch components until a positive mutation materializes the row.
  *  - All queries are scoped by companyId (multi-tenancy Golden Rule).
  */
 @Injectable()
@@ -149,7 +150,8 @@ export class StockService {
 
   /**
    * Absolute or delta adjustment. Pass exactly one of `newQuantity`/`delta`.
-   * Rejected for combos: their stock is derived from components.
+   * For combos the adjustment applies to the combo's own stock and its
+   * components follow by ratio.
    */
   async adjustStock(tx: Tx, p: AdjustStockParams): Promise<StockResult[]> {
     if (p.newQuantity === undefined && p.delta === undefined) {
@@ -165,11 +167,6 @@ export class StockService {
 
     await this.resolveWarehouse(tx, p.companyId, p.warehouseId);
     const product = await this.resolveProduct(tx, p.companyId, p.productId);
-    if (product.type === 'COMBO') {
-      throw new BadRequestException(
-        'Cannot adjust stock of a combo product directly; its stock is derived from its components. Adjust the components instead.',
-      );
-    }
 
     if (p.newQuantity !== undefined) {
       const newQuantity = this.assertInt(p.newQuantity, 'newQuantity');
@@ -182,6 +179,19 @@ export class StockService {
         p.warehouseId,
       );
       const delta = newQuantity - (current ?? 0);
+      if (product.type === 'COMBO') {
+        return this.applyMutation(
+          tx,
+          product,
+          p.warehouseId,
+          delta,
+          p.reference,
+          p.type,
+          p.note,
+          p.userId,
+          p.companyId,
+        );
+      }
       return this.changeQuantity(
         tx,
         product,
@@ -210,7 +220,8 @@ export class StockService {
 
   /**
    * Atomic warehouse transfer: source decremented and destination incremented
-   * in the same transaction. Rejected for combos.
+   * in the same transaction. For combos the transfer also moves the
+   * components by ratio.
    */
   async transferStock(
     tx: Tx,
@@ -226,13 +237,34 @@ export class StockService {
       this.resolveWarehouse(tx, p.companyId, p.toWarehouseId),
     ]);
     const product = await this.resolveProduct(tx, p.companyId, p.productId);
-    if (product.type === 'COMBO') {
-      throw new BadRequestException(
-        'Cannot transfer a combo product; its stock is derived from its components. Transfer the components instead.',
-      );
-    }
 
     const type = p.type ?? 'TRANSFER';
+    if (product.type === 'COMBO') {
+      const fromResults = await this.applyComboMutation(
+        tx,
+        product,
+        p.fromWarehouseId,
+        -quantity,
+        p.reference,
+        type,
+        p.note,
+        p.userId,
+        p.companyId,
+      );
+      const toResults = await this.applyComboMutation(
+        tx,
+        product,
+        p.toWarehouseId,
+        +quantity,
+        p.reference,
+        type,
+        p.note,
+        p.userId,
+        p.companyId,
+      );
+      return { from: fromResults[0], to: toResults[0] };
+    }
+
     const [fromResult] = await this.changeQuantity(
       tx,
       product,
@@ -325,19 +357,123 @@ export class StockService {
       }
       const components = product.comboComponents ?? [];
       if (!components.length) return 0;
-      return Math.min(
+      const componentCapacity = Math.min(
         ...components.map((c) =>
           Math.floor(
             (sumBy.get(c.productId) ?? 0) / Math.max(1, c.quantity),
           ),
         ),
       );
+      // Combo rows exist => the combo's own stock is the sellable count,
+      // capped by component capacity. Legacy combos (no own rows) fall back
+      // to pure component capacity.
+      return sumBy.has(product.id)
+        ? Math.min(sumBy.get(product.id) ?? 0, componentCapacity)
+        : componentCapacity;
     };
 
     for (const p of products) {
       result.set(p.id, compute(p));
     }
     return result;
+  }
+
+  /**
+   * Combo availability with the limiting factor named, so callers can show
+   * the user exactly why a combo cannot be sold (own stock vs. which
+   * component ran short). Returns `available` plus the binding product
+   * (the combo itself or the component with the least capacity).
+   */
+  async getComboAvailabilityDetail(
+    companyId: string,
+    comboId: string,
+    warehouseId?: string,
+    db: any = this.prisma,
+  ): Promise<{
+    available: number;
+    limiting: {
+      productId: string;
+      name: string;
+      available: number;
+      neededPerCombo: number;
+    } | null;
+  }> {
+    const combo = await db.product.findUnique({
+      where: { id: comboId, companyId },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        comboComponents: {
+          select: {
+            quantity: true,
+            productId: true,
+            product: { select: { name: true } },
+          },
+        },
+      },
+    });
+    if (!combo || combo.type !== 'COMBO') {
+      const rows = await db.inventory.findMany({
+        where: {
+          productId: comboId,
+          ...(warehouseId ? { warehouseId } : {}),
+        },
+        select: { quantity: true },
+      });
+      const total = rows.reduce((s, r) => s + r.quantity, 0);
+      return { available: total, limiting: null };
+    }
+
+    const componentIds = combo.comboComponents.map((c: any) => c.productId);
+    const rows = await db.inventory.findMany({
+      where: {
+        productId: { in: [comboId, ...componentIds] },
+        ...(warehouseId ? { warehouseId } : {}),
+      },
+      select: { productId: true, quantity: true },
+    });
+    const sumBy = new Map<string, number>();
+    for (const row of rows) {
+      sumBy.set(row.productId, (sumBy.get(row.productId) ?? 0) + row.quantity);
+    }
+
+    const own = sumBy.get(comboId);
+    let limiting: {
+      productId: string;
+      name: string;
+      available: number;
+      neededPerCombo: number;
+    } | null = null;
+    let componentCapacity = Infinity;
+    for (const c of combo.comboComponents as any[]) {
+      const capacity = Math.floor(
+        (sumBy.get(c.productId) ?? 0) / Math.max(1, c.quantity),
+      );
+      if (capacity < componentCapacity) {
+        componentCapacity = capacity;
+        limiting = {
+          productId: c.productId,
+          name: c.product.name,
+          available: sumBy.get(c.productId) ?? 0,
+          neededPerCombo: c.quantity,
+        };
+      }
+    }
+    componentCapacity = componentCapacity === Infinity ? 0 : componentCapacity;
+
+    if (own !== undefined && own <= componentCapacity) {
+      return {
+        available: own,
+        limiting: {
+          productId: comboId,
+          name: combo.name,
+          available: own,
+          neededPerCombo: 1,
+        },
+      };
+    }
+    return { available: componentCapacity, limiting };
   }
 
   // ------------------------------------------------------------------
@@ -490,9 +626,17 @@ export class StockService {
   }
 
   /**
-   * Combo expansion: moves stock on components by `delta * ratio`.
-   * Availability semantics: a combo of N requires N * ratio of each component,
-   * so issuing throws InsufficientStockException when any component runs dry.
+   * Combo mutation: moves the combo's own stock by `delta` and each component
+   * by `delta * ratio`, atomically. Availability semantics: selling N combos
+   * consumes N * ratio of every component; if any component (or the combo's
+   * own stock) would go negative, the whole mutation throws
+   * `InsufficientStockException` naming the product, so the sale is blocked
+   * with an actionable message.
+   *
+   * Own-row rule: positive deltas always materialize the combo's Inventory
+   * row (upsert) so creation/purchase/adjustment establish its stock.
+   * Negative deltas only touch an existing row, so legacy combos without own
+   * inventory keep working in pure component mode.
    */
   private async applyComboMutation(
     tx: Tx,
@@ -513,6 +657,37 @@ export class StockService {
     }
 
     const results: StockResult[] = [];
+    if (delta > 0) {
+      const [comboResult] = await this.changeQuantity(
+        tx,
+        combo,
+        warehouseId,
+        delta,
+        reference,
+        type,
+        note,
+        userId,
+        companyId,
+      );
+      results.push(comboResult);
+    } else {
+      const current = await this.lockInventory(tx, combo.id, warehouseId);
+      if (current != null) {
+        const [comboResult] = await this.changeQuantity(
+          tx,
+          combo,
+          warehouseId,
+          delta,
+          reference,
+          type,
+          note,
+          userId,
+          companyId,
+        );
+        results.push(comboResult);
+      }
+    }
+
     for (const component of components) {
       const componentProduct = await this.resolveProduct(
         tx,

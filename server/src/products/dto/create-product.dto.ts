@@ -48,6 +48,22 @@ export class VariantProductDto {
   @IsOptional()
   stock: number = 0;
 
+  @Transform(({ value }) => parseInt(value))
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  reorderLevel: number = 0;
+
+  @Transform(({ value }) => parseFloat(value))
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @IsOptional()
+  taxRate: number = 0;
+
+  @IsString()
+  @IsOptional()
+  warehouseId?: string;
+
   @IsOptional()
   attributes?: Record<string, string>;
 }

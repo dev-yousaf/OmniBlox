@@ -43,8 +43,11 @@ export interface VariantManagerProps {
   parentSku: string;
   parentCategory?: string;
   warehouseId?: string;
+  warehouses?: { id: string; name: string }[];
   defaultSalePrice?: string;
   defaultCostPrice?: string;
+  defaultReorderLevel?: string;
+  defaultTaxRate?: string;
   initialAttributes?: Record<string, string> | null;
   canManage?: boolean;
   onVariantsChange?: (payload: VariantPayload[]) => void;
@@ -83,10 +86,9 @@ function AttributeEditor({
                 if (preset) onApplyPreset(preset);
               }}
               disabled={disabled}
-            >
-              <SelectTrigger className="h-[34px] w-[160px] text-[12px] rounded-[5px]">
-                <SelectValue placeholder="Select preset" />
-              </SelectTrigger>
+                >                  <SelectTrigger className="h-8 w-32 text-xs rounded-[5px]">
+                    <SelectValue placeholder="Warehouse" />
+                  </SelectTrigger>
               <SelectContent>
                 {presets.map((a) => (
                   <SelectItem
@@ -150,13 +152,19 @@ function AttributeEditor({
 
 function DraftsTable({
   drafts,
+  warehouses,
   disabled,
   onUpdate,
   onRemove,
 }: {
   drafts: VariantPayload[];
+  warehouses?: { id: string; name: string }[];
   disabled?: boolean;
-  onUpdate: (index: number, field: "salePrice" | "costPrice" | "stock" | "sku", value: string) => void;
+  onUpdate: (
+    index: number,
+    field: "salePrice" | "costPrice" | "stock" | "sku" | "reorderLevel" | "taxRate" | "warehouseId",
+    value: string,
+  ) => void;
   onRemove: (index: number) => void;
 }) {
   return (
@@ -169,6 +177,9 @@ function DraftsTable({
             <th className="px-3 py-2 text-left font-medium text-[12px] text-muted-foreground">Sale Price</th>
             <th className="px-3 py-2 text-left font-medium text-[12px] text-muted-foreground">Cost Price</th>
             <th className="px-3 py-2 text-left font-medium text-[12px] text-muted-foreground">Stock</th>
+            <th className="px-3 py-2 text-left font-medium text-[12px] text-muted-foreground">Reorder Level</th>
+            <th className="px-3 py-2 text-left font-medium text-[12px] text-muted-foreground">Tax</th>
+            <th className="px-3 py-2 text-left font-medium text-[12px] text-muted-foreground">Warehouse</th>
             <th className="px-3 py-2" />
           </tr>
         </thead>
@@ -214,6 +225,58 @@ function DraftsTable({
                 />
               </td>
               <td className="px-3 py-2">
+                <Input
+                  type="number"
+                  className="h-8 text-xs w-20"
+                  value={variant.reorderLevel ?? ""}
+                  disabled={disabled}
+                  onChange={(e) => onUpdate(index, "reorderLevel", e.target.value)}
+                />
+              </td>
+              <td className="px-3 py-2">
+                <Select
+                  value={(variant.taxRate ?? 0).toString()}
+                  onValueChange={(value) => onUpdate(index, "taxRate", value)}
+                  disabled={disabled}
+                >
+                  <SelectTrigger className="h-8 w-20 text-xs rounded-[5px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">No Tax</SelectItem>
+                    <SelectItem value="5">5%</SelectItem>
+                    <SelectItem value="10">10%</SelectItem>
+                    <SelectItem value="12">12%</SelectItem>
+                    <SelectItem value="18">18%</SelectItem>
+                    <SelectItem value="20">20%</SelectItem>
+                  </SelectContent>
+                </Select>
+              </td>
+              <td className="px-3 py-2">
+                <Select
+                  value={variant.warehouseId ?? ""}
+                  onValueChange={(value) => onUpdate(index, "warehouseId", value)}
+                  disabled={disabled || !warehouses || warehouses.length === 0}
+                >
+                  <SelectTrigger className="h-8 w-32 text-xs rounded-[5px]">
+                    <SelectValue placeholder="Warehouse" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {warehouses && warehouses.length > 0 ? (
+                      warehouses.map((wh) => (
+                        <SelectItem key={wh.id} value={wh.id}>
+                          {wh.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="__none" disabled>
+                        No warehouses
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </td>
+              <td className="px-3 py-2">
                 <Button
                   type="button"
                   variant="ghost"
@@ -240,8 +303,11 @@ export function VariantManager({
   parentSku,
   parentCategory,
   warehouseId,
+  warehouses,
   defaultSalePrice,
   defaultCostPrice,
+  defaultReorderLevel,
+  defaultTaxRate,
   initialAttributes,
   canManage = true,
   onVariantsChange,
@@ -258,8 +324,11 @@ export function VariantManager({
     parentSku,
     parentCategory,
     warehouseId,
+    warehouses,
     defaultSalePrice,
     defaultCostPrice,
+    defaultReorderLevel,
+    defaultTaxRate,
     initialAttributes,
   });
 
@@ -271,6 +340,9 @@ export function VariantManager({
         salePrice: parseFloat(d.salePrice) || 0,
         costPrice: parseFloat(d.costPrice) || 0,
         stock: parseInt(d.stock) || 0,
+        reorderLevel: parseInt(d.reorderLevel) || 0,
+        taxRate: parseFloat(d.taxRate) || 0,
+        warehouseId: d.warehouseId || undefined,
         attributes: d.attributes,
       })),
     [variants.drafts],
@@ -395,6 +467,8 @@ export function VariantManager({
                     <TableHead className="text-[12px] font-semibold text-muted-foreground">Name</TableHead>
                     <TableHead className="w-[110px] text-[12px] font-semibold text-muted-foreground">Sale Price</TableHead>
                     <TableHead className="w-[110px] text-[12px] font-semibold text-muted-foreground">Cost Price</TableHead>
+                    <TableHead className="w-[110px] text-[12px] font-semibold text-muted-foreground">Reorder Level</TableHead>
+                    <TableHead className="w-[90px] text-[12px] font-semibold text-muted-foreground">Tax</TableHead>
                     {warehouseColumns.map((w) => (
                       <TableHead key={w.warehouseId} className="w-[110px] text-[12px] font-semibold text-muted-foreground">
                         Stock ({w.warehouseName})
@@ -416,7 +490,7 @@ export function VariantManager({
                           className="h-8 text-xs"
                           value={row.salePrice}
                           disabled={!canManage}
-                          onChange={(e) => variants.updateRowPrice(index, "salePrice", e.target.value)}
+                          onChange={(e) => variants.updateRowField(index, "salePrice", e.target.value)}
                         />
                       </TableCell>
                       <TableCell>
@@ -426,8 +500,36 @@ export function VariantManager({
                           className="h-8 text-xs"
                           value={row.costPrice}
                           disabled={!canManage}
-                          onChange={(e) => variants.updateRowPrice(index, "costPrice", e.target.value)}
+                          onChange={(e) => variants.updateRowField(index, "costPrice", e.target.value)}
                         />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          className="h-8 text-xs"
+                          value={row.reorderLevel}
+                          disabled={!canManage}
+                          onChange={(e) => variants.updateRowField(index, "reorderLevel", e.target.value)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={row.taxRate || "0"}
+                          onValueChange={(value) => variants.updateRowField(index, "taxRate", value)}
+                          disabled={!canManage}
+                        >
+                          <SelectTrigger className="h-8 text-xs rounded-[5px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="0">No Tax</SelectItem>
+                            <SelectItem value="5">5%</SelectItem>
+                            <SelectItem value="10">10%</SelectItem>
+                            <SelectItem value="12">12%</SelectItem>
+                            <SelectItem value="18">18%</SelectItem>
+                            <SelectItem value="20">20%</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       {warehouseColumns.map((w) => {
                         const stock = row.stocks.find(
@@ -543,6 +645,7 @@ export function VariantManager({
           {variants.drafts.length > 0 && (
             <DraftsTable
               drafts={payload}
+              warehouses={warehouses}
               onUpdate={(index, field, value) =>
                 variants.updateDraft(index, field, value)
               }
@@ -573,6 +676,7 @@ export function VariantManager({
               <>
                 <DraftsTable
                   drafts={payload}
+                  warehouses={warehouses}
                   onUpdate={(index, field, value) =>
                     variants.updateDraft(index, field, value)
                   }

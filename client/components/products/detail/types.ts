@@ -66,6 +66,7 @@ export interface DetailsTabProps {
 	inventoryLoading: boolean;
 	ledger: StockLedgerEntry[];
 	canManage: boolean;
+	warehouses?: { id: string; name: string }[];
 }
 
 export interface ChartsTabProps {

@@ -305,9 +305,39 @@ export class ProductService {
           );
         }
 
+        const requestedVariantWarehouseIds = [
+          ...new Set(
+            variants
+              .map((v) => v.warehouseId)
+              .filter((id): id is string => Boolean(id)),
+          ),
+        ];
+        if (requestedVariantWarehouseIds.length > 0) {
+          const found = await this.prisma.warehouse.findMany({
+            where: { id: { in: requestedVariantWarehouseIds }, companyId },
+            select: { id: true },
+          });
+          const foundIds = new Set(found.map((w) => w.id));
+          const missing = requestedVariantWarehouseIds.filter(
+            (id) => !foundIds.has(id),
+          );
+          if (missing.length > 0) {
+            throw new BadRequestException(
+              `Warehouse not found: ${missing.join(', ')}`,
+            );
+          }
+        }
+
         const createdVariantIds: string[] = [];
+        const variantWarehouseIds = new Set<string>();
         await this.prisma.$transaction(async (tx) => {
           for (const v of variants) {
+            const vWarehouseId = v.warehouseId ?? variantWarehouseId;
+            if (!vWarehouseId) {
+              throw new BadRequestException(
+                'A warehouse is required to create variants with stock',
+              );
+            }
             const child = await tx.product.create({
               data: {
                 sku: v.sku,
@@ -317,6 +347,8 @@ export class ProductService {
                 description: productData.description,
                 salePrice: v.salePrice,
                 costPrice: v.costPrice,
+                reorderLevel: v.reorderLevel ?? 0,
+                taxRate: v.taxRate ?? 0,
                 status: 'ACTIVE',
                 attributes: v.attributes ?? undefined,
                 categoryId: categoryRecord.id,
@@ -331,7 +363,7 @@ export class ProductService {
             if (v.stock > 0) {
               await this.stockService.receiveStock(tx, {
                 productId: child.id,
-                warehouseId: variantWarehouseId,
+                warehouseId: vWarehouseId,
                 quantity: v.stock,
                 reference: v.sku,
                 type: 'INITIAL',
@@ -339,13 +371,14 @@ export class ProductService {
                 companyId,
               });
             }
+            variantWarehouseIds.add(vWarehouseId);
           }
         });
 
         await this.stockService.invalidateStockCaches(
           companyId,
           createdVariantIds,
-          [variantWarehouseId],
+          Array.from(variantWarehouseIds),
         );
       }
 
@@ -750,7 +783,7 @@ export class ProductService {
       });
 
       let stockAdjusted = false;
-      if (stock !== undefined && product.type !== 'COMBO') {
+      if (stock !== undefined) {
         const defaultWarehouse: { id: string } | null =
           await this.prisma.warehouse.findFirst({
             where: { companyId },
@@ -793,10 +826,13 @@ export class ProductService {
           })
         : product;
 
-      const totalStock = updatedProduct.inventory.reduce(
-        (sum, inv) => sum + inv.quantity,
-        0,
-      );
+      const totalStock =
+        updatedProduct.type === 'COMBO'
+          ? await this.stockService.getAvailableStock(companyId, updatedProduct.id)
+          : updatedProduct.inventory.reduce(
+              (sum, inv) => sum + inv.quantity,
+              0,
+            );
       return this.transformToDto(updatedProduct, totalStock);
     } catch (error: any) {
       throw new BadRequestException(error?.message || 'Failed to update product');

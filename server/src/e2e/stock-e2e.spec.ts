@@ -17,6 +17,11 @@ import { InsufficientStockException } from '../inventory/insufficient-stock.exce
 
 jest.setTimeout(180_000);
 
+// The live Supabase pooler occasionally drops interactive transactions
+// during long runs ("Transaction not found..."); retry once so infra
+// hiccups don't fail the suite. Tests create unique data per attempt.
+jest.retryTimes(1);
+
 const log = (msg: string) => console.log(`[E2E] ${msg}`);
 const nowIso = () => new Date().toISOString();
 
@@ -546,6 +551,149 @@ describe('Stock E2E on live DB', () => {
     log('STEP4: oversell of 10 combos blocked; stock unchanged (A=18 B=9)');
   });
 
+  test('STEP 4b: combo with own stock - 50->49 on sale, components follow, shortage names the component', async () => {
+    // User scenario: combo qty 50, contains 12x A + 11x B per combo.
+    const a = await productService.create(
+      {
+        name: 'E2E OwnCombo-A',
+        sku: `E2E-OCA-${Date.now()}`,
+        category: 'E2E',
+        salePrice: 1,
+        costPrice: 1,
+        stock: 0,
+        warehouseId: wh1,
+        type: 'STANDARD',
+      },
+      companyId,
+      userId,
+    );
+    const b = await productService.create(
+      {
+        name: 'E2E OwnCombo-B',
+        sku: `E2E-OCB-${Date.now()}`,
+        category: 'E2E',
+        salePrice: 1,
+        costPrice: 1,
+        stock: 0,
+        warehouseId: wh1,
+        type: 'STANDARD',
+      },
+      companyId,
+      userId,
+    );
+    const aId = (a as any).id;
+    const bId = (b as any).id;
+    productIds.push(aId, bId);
+
+    const combo = await productService.create(
+      {
+        name: 'E2E Own Combo',
+        sku: `E2E-OWN-COMBO-${Date.now()}`,
+        category: 'E2E',
+        salePrice: 50,
+        costPrice: 25,
+        stock: 50,
+        warehouseId: wh1,
+        type: 'COMBO',
+        comboItems: [
+          { productId: aId, quantity: 12 },
+          { productId: bId, quantity: 11 },
+        ],
+      },
+      companyId,
+      userId,
+    );
+    const comboId = (combo as any).id;
+    const comboSku = (combo as any).sku;
+    productIds.push(comboId);
+    log(`STEP4b: combo=${comboId} stock 50 (12xA + 11xB per combo)`);
+
+    // Combo holds its OWN inventory + ledger; components seeded by ratio.
+    expect(await inventoryTable(comboId, wh1)).toBe(50);
+    expect(await inventoryTable(aId, wh1)).toBe(600);
+    expect(await inventoryTable(bId, wh1)).toBe(550);
+    const comboRows = await ledger(comboId, wh1);
+    expect(comboRows.length).toBe(1);
+    expect(comboRows[0].type).toBe('INITIAL');
+    expect(comboRows[0].quantity).toBe(50);
+    expect(comboRows[0].balance).toBe(50);
+    expect((await productsTable(comboSku)).stock).toBe(50);
+    expect(await comboAvailability(comboId, wh1)).toBe(50);
+    expect(await comboAvailability(comboId, wh2)).toBe(0);
+    log('STEP4b: combo own=50 ledger INITIAL +50; A=600 B=550; products table shows 50');
+
+    // Sell 1 combo: combo 50->49, A -12, B -11.
+    await salesService.create(
+      {
+        customer: { name: 'E2E Customer' },
+        warehouseId: wh1,
+        saleDate: nowIso(),
+        dueDate: nowIso(),
+        status: 'COMPLETED',
+        paymentStatus: 'PAID',
+        items: [{ productId: comboId, quantity: 1, unitPrice: 50 }],
+      },
+      userId,
+      companyId,
+    );
+    expect(await inventoryTable(comboId, wh1)).toBe(49);
+    expect(await inventoryTable(aId, wh1)).toBe(588);
+    expect(await inventoryTable(bId, wh1)).toBe(539);
+    expect((await productsTable(comboSku)).stock).toBe(49);
+    expect(await comboAvailability(comboId, wh1)).toBe(49);
+    const comboLedger = await ledger(comboId, wh1);
+    const saleRow = comboLedger[comboLedger.length - 1];
+    expect(saleRow.type).toBe('SALE');
+    expect(saleRow.quantity).toBe(-1);
+    expect(saleRow.balance).toBe(49);
+    log('STEP4b: sold 1 combo => combo 49 (ledger SALE -1 bal 49), A 588, B 539');
+
+    // Oversell beyond own stock: blocked, names the combo.
+    const overOwn = salesService.create(
+      {
+        customer: { name: 'E2E Customer' },
+        warehouseId: wh1,
+        saleDate: nowIso(),
+        dueDate: nowIso(),
+        status: 'COMPLETED',
+        paymentStatus: 'PAID',
+        items: [{ productId: comboId, quantity: 50, unitPrice: 50 }],
+      },
+      userId,
+      companyId,
+    );
+    await expect(overOwn).rejects.toThrow(/Insufficient stock for product "E2E Own Combo"/);
+    expect(await inventoryTable(comboId, wh1)).toBe(49);
+    log('STEP4b: oversell 50 blocked (own stock 49), combo unchanged');
+
+    // Component shortage: B drops below what the combo needs -> blocked and
+    // the message names the component.
+    await inventoryService.updateInventory(companyId, userId, bId, wh1, {
+      quantity: 1,
+      notes: 'E2E setup',
+    });
+    const shortComponent = salesService.create(
+      {
+        customer: { name: 'E2E Customer' },
+        warehouseId: wh1,
+        saleDate: nowIso(),
+        dueDate: nowIso(),
+        status: 'COMPLETED',
+        paymentStatus: 'PAID',
+        items: [{ productId: comboId, quantity: 1, unitPrice: 50 }],
+      },
+      userId,
+      companyId,
+    );
+    await expect(shortComponent).rejects.toThrow(
+      /component "E2E OwnCombo-B" has only 1 available .*needs 11 per combo/,
+    );
+    expect(await inventoryTable(comboId, wh1)).toBe(49);
+    expect(await inventoryTable(aId, wh1)).toBe(588);
+    expect(await inventoryTable(bId, wh1)).toBe(1);
+    log('STEP4b: sale blocked when component B short => message names B, stock untouched');
+  });
+
   test('STEP 5: concurrent oversell - one wins, stock never negative', async () => {
     const p = await productService.create(
       {
@@ -624,6 +772,9 @@ describe('Stock E2E on live DB', () => {
             salePrice: 12.5,
             costPrice: 6.5,
             stock: 10,
+            warehouseId: wh2,
+            reorderLevel: 3,
+            taxRate: 5,
             attributes: { Color: 'Red', Size: 'S' },
           },
           {
@@ -668,14 +819,24 @@ describe('Stock E2E on live DB', () => {
     for (const v of variants as any[]) {
       expect(v.parentId).toBe(parentId);
       expect(v.attributes).toBeTruthy();
-      expect(await inventoryTable(v.id, wh1)).toBe(10);
-      const rows = await ledger(v.id, wh1);
+      const expectedWh = v.sku.startsWith('E2E-VR-') ? wh2 : wh1;
+      expect(await inventoryTable(v.id, expectedWh)).toBe(10);
+      const rows = await ledger(v.id, expectedWh);
       expect(rows.length).toBe(1);
       expect(rows[0].type).toBe('INITIAL');
       expect(rows[0].quantity).toBe(10);
       expect(rows[0].balance).toBe(10);
+      if (v.sku.startsWith('E2E-VR-')) {
+        expect(v.reorderLevel).toBe(3);
+        expect(v.taxRate).toBe(5);
+        expect(await inventoryTable(v.id, wh1)).toBe(-1);
+      } else {
+        expect(v.reorderLevel ?? 0).toBe(0);
+        expect(v.taxRate ?? 0).toBe(0);
+        expect(await inventoryTable(v.id, wh2)).toBe(-1);
+      }
     }
-    log('STEP6: 4 variants each: inventory 10 wh1 + ledger [INITIAL +10 bal 10]');
+    log('STEP6: 4 variants each: inventory 10 (1 on wh2, 3 on wh1) + ledger [INITIAL +10 bal 10]; per-variant warehouse/reorderLevel/taxRate persisted');
 
     // Parent must NOT hold its own inventory/ledger rows
     const parentInv = await prisma.inventory.count({ where: { productId: parentId } });

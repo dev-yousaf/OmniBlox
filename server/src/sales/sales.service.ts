@@ -1319,24 +1319,40 @@ export class SalesService {
     const checks = Array.from(aggregated.entries()).map(
       async ([productId, quantityNeeded]) => {
         const product = productMap.get(productId);
+        if (product?.type === 'COMBO') {
+          const detail =
+            await this.stockService.getComboAvailabilityDetail(
+              companyId,
+              productId,
+              warehouseId,
+              tx,
+            );
+          if (detail.available < quantityNeeded) {
+            if (
+              detail.limiting &&
+              detail.limiting.productId !== productId
+            ) {
+              throw new BadRequestException(
+                `Insufficient stock for combo "${product.name}": component "${detail.limiting.name}" has only ${detail.limiting.available} available in the selected warehouse (needs ${detail.limiting.neededPerCombo} per combo).`,
+              );
+            }
+            throw new BadRequestException(
+              `Insufficient stock for product "${product.name}" in selected warehouse. Available: ${detail.available}, Needed: ${quantityNeeded}`,
+            );
+          }
+          return;
+        }
         const available =
-          product?.type === 'COMBO'
-            ? (await this.stockService.getAvailableStockMap(
-                companyId,
-                [productId],
-                warehouseId,
-                tx,
-              )).get(productId) ?? 0
-            : (
-                await tx.inventory.findUnique({
-                  where: {
-                    productId_warehouseId: {
-                      productId,
-                      warehouseId,
-                    },
-                  },
-                })
-              )?.quantity ?? 0;
+          (
+            await tx.inventory.findUnique({
+              where: {
+                productId_warehouseId: {
+                  productId,
+                  warehouseId,
+                },
+              },
+            })
+          )?.quantity ?? 0;
 
         if (available < quantityNeeded) {
           const productName = product?.name ?? productId;

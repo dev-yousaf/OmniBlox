@@ -36,6 +36,7 @@ export function DetailsTab({
 	inventoryLoading,
 	ledger,
 	canManage,
+	warehouses,
 }: DetailsTabProps) {
 	return (
 		<div role="tabpanel" id="panel-details" aria-labelledby="tab-details" className="space-y-4">
@@ -446,7 +447,10 @@ export function DetailsTab({
 							parentCategory={product.category}
 							defaultSalePrice={product.salePrice.toFixed(2)}
 							defaultCostPrice={product.costPrice.toFixed(2)}
+							defaultReorderLevel={(product.reorderLevel ?? 0).toString()}
+							defaultTaxRate={(product.taxRate ?? 0).toString()}
 							initialAttributes={product.attributes}
+							warehouses={warehouses}
 							canManage={canManage}
 						/>
 					</div>

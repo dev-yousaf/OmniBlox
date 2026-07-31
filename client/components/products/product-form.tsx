@@ -376,7 +376,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
       if (!formData.barcodeSymbology) newErrors.barcodeSymbology = "Barcode symbology is required";
       const finalCategory = showCustomCategory ? formData.customCategory : formData.category;
       if (!finalCategory.trim()) newErrors.category = "Category is required";
-      if (!formData.salePrice || parseFloat(formData.salePrice) < 0) newErrors.salePrice = "Valid sale price is required";
+      if (!formData.hasVariants && (!formData.salePrice || parseFloat(formData.salePrice) < 0)) newErrors.salePrice = "Valid sale price is required";
       if (formData.costPrice && parseFloat(formData.costPrice) < 0) newErrors.costPrice = "Cost price cannot be negative";
       if (formData.taxRate && (parseFloat(formData.taxRate) < 0 || parseFloat(formData.taxRate) > 100)) newErrors.taxRate = "Tax rate must be between 0 and 100";
       setErrors(newErrors);
@@ -407,6 +407,14 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
 
         const isDigitalOrService = formData.type === "DIGITAL" || formData.type === "SERVICE";
         const isCombo = formData.type === "COMBO";
+        const parentSalePrice =
+          formData.hasVariants && variantsPayload.length > 0
+            ? variantsPayload[0].salePrice
+            : parseFloat(formData.salePrice) || 0;
+        const parentCostPrice =
+          formData.hasVariants && variantsPayload.length > 0
+            ? variantsPayload[0].costPrice
+            : parseFloat(formData.costPrice) || 0;
 
         const productData: Record<string, unknown> = {
           name: formData.name,
@@ -423,9 +431,9 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
           warranty: customFieldsEnabled.warranties ? formData.warranty || undefined : undefined,
           manufacturedDate: customFieldsEnabled.expiry ? formData.manufacturedDate || undefined : undefined,
           expiryDate: customFieldsEnabled.expiry ? formData.expiryDate || undefined : undefined,
-          salePrice: parseFloat(formData.salePrice) || 0,
-          costPrice: parseFloat(formData.costPrice) || 0,
-          stock: isDigitalOrService || isCombo ? undefined : parseInt(formData.stock) || undefined,
+          salePrice: parentSalePrice,
+          costPrice: parentCostPrice,
+          stock: isDigitalOrService ? undefined : parseInt(formData.stock) || undefined,
           reorderLevel: isDigitalOrService || isCombo ? undefined : parseInt(formData.reorderLevel) || undefined,
           alertQuantity: formData.alertQuantity ? parseInt(formData.alertQuantity) : undefined,
           barcodeSymbology: formData.barcodeSymbology,
@@ -660,68 +668,89 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
               </div>
             </div>
 
-            <div className="flex gap-4">
-              <FormField label="Quantity" required fieldName="stock" error={errors.stock} className="flex-1">
-                <Input type="number" placeholder="0" value={formData.stock}
-                  onChange={(e) => handleInputChange("stock", e.target.value)}
-                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
-              </FormField>
-              {!hideWarehouse && (
-                <FormField label="Warehouse" className="flex-1">
-                  <Select value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
-                    <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {warehouses.length > 0 ? warehouses.map((wh) => (
-                        <SelectItem key={wh.id} value={wh.id}>{wh.name}</SelectItem>
-                      )) : (
-                        <SelectItem value="__none" disabled>No warehouses (auto-created)</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-[11px] text-muted-foreground mt-1">Stock will be assigned to this warehouse</p>
-                </FormField>
-              )}
-              <FormField label="Price" required fieldName="salePrice" error={errors.salePrice} className="flex-1">
-                <Input type="number" step="0.01" placeholder="0.00" value={formData.salePrice}
-                  onChange={(e) => handleInputChange("salePrice", e.target.value)} required
-                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
-              </FormField>
-              <FormField label="Tax Type" required fieldName="taxRate" error={errors.taxRate} className="flex-1">
-                <Select value={formData.taxRate || "0"} onValueChange={(value) => handleInputChange("taxRate", value)}>
-                  <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">No Tax</SelectItem>
-                    <SelectItem value="5">5%</SelectItem>
-                    <SelectItem value="10">10%</SelectItem>
-                    <SelectItem value="12">12%</SelectItem>
-                    <SelectItem value="18">18%</SelectItem>
-                    <SelectItem value="20">20%</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormField>
-            </div>
+            {!formData.hasVariants ? (
+              <>
+                <div className="flex gap-4">
+                  <FormField label="Quantity" required fieldName="stock" error={errors.stock} className="flex-1">
+                    <Input type="number" placeholder="0" value={formData.stock}
+                      onChange={(e) => handleInputChange("stock", e.target.value)}
+                      className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+                  </FormField>
+                  {!hideWarehouse && (
+                    <FormField label="Warehouse" className="flex-1">
+                      <Select value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
+                        <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {warehouses.length > 0 ? warehouses.map((wh) => (
+                            <SelectItem key={wh.id} value={wh.id}>{wh.name}</SelectItem>
+                          )) : (
+                            <SelectItem value="__none" disabled>No warehouses (auto-created)</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground mt-1">Stock will be assigned to this warehouse</p>
+                    </FormField>
+                  )}
+                  <FormField label="Price" required fieldName="salePrice" error={errors.salePrice} className="flex-1">
+                    <Input type="number" step="0.01" placeholder="0.00" value={formData.salePrice}
+                      onChange={(e) => handleInputChange("salePrice", e.target.value)} required
+                      className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+                  </FormField>
+                  <FormField label="Tax Type" required fieldName="taxRate" error={errors.taxRate} className="flex-1">
+                    <Select value={formData.taxRate || "0"} onValueChange={(value) => handleInputChange("taxRate", value)}>
+                      <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">No Tax</SelectItem>
+                        <SelectItem value="5">5%</SelectItem>
+                        <SelectItem value="10">10%</SelectItem>
+                        <SelectItem value="12">12%</SelectItem>
+                        <SelectItem value="18">18%</SelectItem>
+                        <SelectItem value="20">20%</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormField>
+                </div>
 
-            <div className="flex gap-4">
-              <FormField label="Reorder Level" fieldName="reorderLevel" error={errors.reorderLevel} className="flex-1">
-                <Input type="number" placeholder="0" value={formData.reorderLevel}
-                  onChange={(e) => handleInputChange("reorderLevel", e.target.value)}
-                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
-              </FormField>
-              <FormField label="Cost Price" fieldName="costPrice" error={errors.costPrice} className="flex-1">
-                <Input type="number" step="0.01" placeholder="0.00" value={formData.costPrice}
-                  onChange={(e) => handleInputChange("costPrice", e.target.value)}
-                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
-              </FormField>
-              <FormField label="Quantity Alert" className="flex-1">
-                <Input type="number" placeholder="0" value={formData.alertQuantity}
-                  onChange={(e) => handleInputChange("alertQuantity", e.target.value)}
-                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
-              </FormField>
-            </div>
+                <div className="flex gap-4">
+                  <FormField label="Reorder Level" fieldName="reorderLevel" error={errors.reorderLevel} className="flex-1">
+                    <Input type="number" placeholder="0" value={formData.reorderLevel}
+                      onChange={(e) => handleInputChange("reorderLevel", e.target.value)}
+                      className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+                  </FormField>
+                  <FormField label="Cost Price" fieldName="costPrice" error={errors.costPrice} className="flex-1">
+                    <Input type="number" step="0.01" placeholder="0.00" value={formData.costPrice}
+                      onChange={(e) => handleInputChange("costPrice", e.target.value)}
+                      className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+                  </FormField>
+                  <FormField label="Quantity Alert" className="flex-1">
+                    <Input type="number" placeholder="0" value={formData.alertQuantity}
+                      onChange={(e) => handleInputChange("alertQuantity", e.target.value)}
+                      className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+                  </FormField>
+                </div>
+              </>
+            ) : (
+              <VariantManager
+                mode={isEdit ? "edit" : "create"}
+                parentId={isEdit ? productId : undefined}
+                parentName={formData.name}
+                parentSku={formData.sku}
+                parentCategory={showCustomCategory ? formData.customCategory : formData.category}
+                warehouseId={selectedWarehouseId}
+                warehouses={warehouses}
+                defaultSalePrice={formData.salePrice}
+                defaultCostPrice={formData.costPrice}
+                defaultReorderLevel={formData.reorderLevel}
+                defaultTaxRate={formData.taxRate}
+                initialAttributes={formData.attributes}
+                onVariantsChange={setVariantsPayload}
+                onAttributesChange={setParentAttributes}
+              />
+            )}
 
             <div className="flex gap-4 pt-2">
               <FormField label="Status" className="flex-1">
@@ -890,24 +919,6 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
           </CardSection>
         )}
 
-        {/* Variants */}
-        {formData.hasVariants && (
-          <CardSection icon={<List className="h-4 w-4" />} title="Variants">
-            <VariantManager
-              mode={isEdit ? "edit" : "create"}
-              parentId={isEdit ? productId : undefined}
-              parentName={formData.name}
-              parentSku={formData.sku}
-              parentCategory={showCustomCategory ? formData.customCategory : formData.category}
-              warehouseId={selectedWarehouseId}
-              defaultSalePrice={formData.salePrice}
-              defaultCostPrice={formData.costPrice}
-              initialAttributes={formData.attributes}
-              onVariantsChange={setVariantsPayload}
-              onAttributesChange={setParentAttributes}
-            />
-          </CardSection>
-        )}
         {showSubmit && (
           <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
             <Button

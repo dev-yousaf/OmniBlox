@@ -20,6 +20,9 @@ export interface VariantDraft {
   salePrice: string;
   costPrice: string;
   stock: string;
+  reorderLevel: string;
+  taxRate: string;
+  warehouseId?: string;
 }
 
 export interface VariantPayload {
@@ -28,6 +31,9 @@ export interface VariantPayload {
   salePrice: number;
   costPrice: number;
   stock: number;
+  reorderLevel?: number;
+  taxRate?: number;
+  warehouseId?: string;
   attributes?: Record<string, string>;
 }
 
@@ -41,6 +47,8 @@ export interface ExistingVariantRow {
   product: Product;
   salePrice: string;
   costPrice: string;
+  reorderLevel: string;
+  taxRate: string;
   stocks: VariantStockInput[];
   initialStocks: Record<string, number>;
   dirty: boolean;
@@ -52,8 +60,11 @@ export interface UseProductVariantsOptions {
   parentSku: string;
   parentCategory?: string;
   warehouseId?: string;
+  warehouses?: { id: string; name: string }[];
   defaultSalePrice?: string;
   defaultCostPrice?: string;
+  defaultReorderLevel?: string;
+  defaultTaxRate?: string;
   initialAttributes?: Record<string, string> | null;
 }
 
@@ -69,8 +80,11 @@ export function useProductVariants({
   parentSku,
   parentCategory,
   warehouseId,
+  warehouses,
   defaultSalePrice = "",
   defaultCostPrice = "",
+  defaultReorderLevel = "",
+  defaultTaxRate = "",
   initialAttributes,
 }: UseProductVariantsOptions) {
   const {
@@ -157,6 +171,8 @@ export function useProductVariants({
             product: v,
             salePrice: String(v.salePrice ?? ""),
             costPrice: String(v.costPrice ?? ""),
+            reorderLevel: String(v.reorderLevel ?? ""),
+            taxRate: String(v.taxRate ?? ""),
             stocks,
             initialStocks,
             dirty: false,
@@ -240,6 +256,9 @@ export function useProductVariants({
         salePrice: defaultSalePrice,
         costPrice: defaultCostPrice,
         stock: "0",
+        reorderLevel: defaultReorderLevel,
+        taxRate: defaultTaxRate,
+        warehouseId: warehouseId || "",
       };
     });
 
@@ -247,7 +266,11 @@ export function useProductVariants({
     return true;
   };
 
-  const updateDraft = (index: number, field: keyof VariantDraft, value: string) => {
+  const updateDraft = (
+    index: number,
+    field: keyof VariantDraft,
+    value: string,
+  ) => {
     setDrafts((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], [field]: value };
@@ -272,9 +295,11 @@ export function useProductVariants({
         salePrice: payload.salePrice,
         costPrice: payload.costPrice,
         stock: payload.stock,
+        reorderLevel: payload.reorderLevel,
+        taxRate: payload.taxRate,
         attributes: payload.attributes,
         parentId,
-        warehouseId,
+        warehouseId: payload.warehouseId || warehouseId,
         status: "ACTIVE",
       });
       created.push(p);
@@ -282,7 +307,11 @@ export function useProductVariants({
     return created;
   };
 
-  const updateRowPrice = (index: number, field: "salePrice" | "costPrice", value: string) => {
+  const updateRowField = (
+    index: number,
+    field: "salePrice" | "costPrice" | "reorderLevel" | "taxRate",
+    value: string,
+  ) => {
     setRows((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], [field]: value, dirty: true };
@@ -321,11 +350,15 @@ export function useProductVariants({
     try {
       const salePrice = parseFloat(row.salePrice);
       const costPrice = parseFloat(row.costPrice);
-      if (!isNaN(salePrice)) {
-        await updateProduct(row.product.id, {
-          salePrice,
-          ...(!isNaN(costPrice) ? { costPrice } : {}),
-        });
+      const reorderLevel = parseInt(row.reorderLevel);
+      const taxRate = parseFloat(row.taxRate);
+      const patch: Record<string, number> = {};
+      if (!isNaN(salePrice)) patch.salePrice = salePrice;
+      if (!isNaN(costPrice)) patch.costPrice = costPrice;
+      if (!isNaN(reorderLevel)) patch.reorderLevel = reorderLevel;
+      if (!isNaN(taxRate)) patch.taxRate = taxRate;
+      if (Object.keys(patch).length > 0) {
+        await updateProduct(row.product.id, patch);
       }
       for (const stock of row.stocks) {
         const prev = row.initialStocks[stock.warehouseId] ?? 0;
@@ -398,7 +431,7 @@ export function useProductVariants({
     updateDraft,
     removeDraft,
     createVariants,
-    updateRowPrice,
+    updateRowField,
     updateRowStock,
     saveRow,
     deleteRow,

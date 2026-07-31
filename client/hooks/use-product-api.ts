@@ -14,6 +14,7 @@ interface CreateProductData {
   costPrice: number;
   stock?: number;
   reorderLevel?: number;
+  taxRate?: number;
   status?: "ACTIVE" | "INACTIVE" | "DISCONTINUED";
   type?: "STANDARD" | "DIGITAL" | "SERVICE" | "COMBO";
   hasVariants?: boolean;

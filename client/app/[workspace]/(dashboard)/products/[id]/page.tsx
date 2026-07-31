@@ -528,6 +528,7 @@ export default function ProductDetailPage({
 					inventoryLoading={inventoryLoading}
 					ledger={ledger}
 					canManage={canManage}
+					warehouses={warehouses}
 				/>
 			)}
 

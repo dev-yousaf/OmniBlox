@@ -31,6 +31,14 @@ export class PrismaService
           },
         },
         log: ['error', 'warn'],
+        // Interactive transactions default to a 5s timeout and 2s maxWait,
+        // which is too tight for multi-query mutations (variant batch create,
+        // purchase returns, ...) on slower connections — the transaction dies
+        // mid-flight with "Transaction already closed / timeout was 5000 ms".
+        transactionOptions: {
+          maxWait: 20_000,
+          timeout: 60_000,
+        },
         // Add connection timeout and pool settings for Neon
         // This helps with auto-suspend/wake scenarios
         __internal: {

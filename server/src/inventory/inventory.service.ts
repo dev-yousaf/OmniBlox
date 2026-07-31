@@ -386,8 +386,10 @@ export class InventoryService {
       updatedAt: item.updatedAt.toISOString(),
     }));
 
-    // Combos hold no Inventory rows of their own — synthesize a row per
-    // combo whose derived availability in this warehouse is > 0.
+    // Combos with no Inventory rows of their own (legacy) don't appear in the
+    // warehouse query — synthesize a row per combo whose derived availability
+    // in this warehouse is > 0. Combos holding their own rows show naturally.
+    const rowIds = new Set(inventory.map((i) => i.productId));
     const combos = await this.prisma.product.findMany({
       where: { companyId, type: 'COMBO' },
       select: {
@@ -408,7 +410,19 @@ export class InventoryService {
         combos.map((c) => c.id),
         warehouseId,
       );
+      // Combos holding their own rows: override raw quantity with the
+      // sellable (component-capped) count.
+      for (const item of inventory) {
+        const sellable = derived.get(item.productId);
+        if (sellable !== undefined) {
+          item.quantity = sellable;
+          item.stockValue = sellable * item.costPrice;
+          item.status = this.getStockStatus(sellable, item.reorderLevel);
+          item.updatedAt = new Date().toISOString();
+        }
+      }
       for (const c of combos) {
+        if (rowIds.has(c.id)) continue;
         const quantity = derived.get(c.id) ?? 0;
         if (quantity <= 0) continue;
         inventory.push({
