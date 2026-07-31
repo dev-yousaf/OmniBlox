@@ -619,34 +619,35 @@ export class InventoryService {
     // Create stock adjustment for transfer
     const referenceNumber = `TRF-${Date.now()}`;
 
-    const stockAdjustment = await this.prisma.$transaction(async (prisma) => {
-      // Create stock adjustment record
-      const sa = await prisma.stockAdjustment.create({
-        data: {
-          referenceNumber,
-          adjustmentDate: new Date(),
-          notes:
-            notes ||
-            `Transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
-          totalItems: 2, // From and To entries
-          netChange: 0, // Net change is 0 for transfers
-          companyId,
-          userId,
-        },
-      });
+    const stockAdjustment = await this.prisma.$transaction(
+      async (prisma) => {
+        // Create stock adjustment record
+        const sa = await prisma.stockAdjustment.create({
+          data: {
+            referenceNumber,
+            adjustmentDate: new Date(),
+            notes:
+              notes ||
+              `Transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
+            totalItems: 2, // From and To entries
+            netChange: 0, // Net change is 0 for transfers
+            companyId,
+            userId,
+          },
+        });
 
-      // Move stock via StockService (writes Inventory + ledger for both sides)
-      await this.stockService.transferStock(prisma, {
-        companyId,
-        productId,
-        fromWarehouseId,
-        toWarehouseId,
-        quantity,
-        reference: referenceNumber,
-        type: 'TRANSFER',
-        note: `Transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
-        userId,
-      });
+        // Move stock via StockService (writes Inventory + ledger for both sides)
+        await this.stockService.transferStock(prisma, {
+          companyId,
+          productId,
+          fromWarehouseId,
+          toWarehouseId,
+          quantity,
+          reference: referenceNumber,
+          type: 'TRANSFER',
+          note: `Transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
+          userId,
+        });
 
       // Create adjustment items
       await prisma.stockAdjustmentItem.createMany({
@@ -671,7 +672,9 @@ export class InventoryService {
       });
 
       return sa;
-    });
+      },
+      { timeout: 20000 },
+    );
 
     await this.invalidateInventoryListCache(companyId);
     await Promise.all([
@@ -720,21 +723,22 @@ export class InventoryService {
 
     const referenceNumber = `TRF-${Date.now()}`;
 
-    const bulkResult = await this.prisma.$transaction(async (prisma) => {
-      // Create stock adjustment record
-      const sa = await prisma.stockAdjustment.create({
-        data: {
-          referenceNumber,
-          adjustmentDate: new Date(),
-          notes:
-            notes ||
-            `Bulk transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
-          totalItems: items.length * 2,
-          netChange: 0,
-          companyId,
-          userId,
-        },
-      });
+    const bulkResult = await this.prisma.$transaction(
+      async (prisma) => {
+        // Create stock adjustment record
+        const sa = await prisma.stockAdjustment.create({
+          data: {
+            referenceNumber,
+            adjustmentDate: new Date(),
+            notes:
+              notes ||
+              `Bulk transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
+            totalItems: items.length * 2,
+            netChange: 0,
+            companyId,
+            userId,
+          },
+        });
 
       const adjustmentItems: any[] = [];
 
@@ -809,7 +813,9 @@ export class InventoryService {
           },
         },
       });
-    });
+      },
+      { timeout: 20000 },
+    );
 
     await this.invalidateInventoryListCache(companyId);
     await Promise.all([

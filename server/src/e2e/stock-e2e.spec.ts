@@ -132,12 +132,6 @@ describe('Stock E2E on live DB', () => {
     });
     wh1 = (w1 as any).id;
     wh2 = (w2 as any).id;
-    // Pre-seed category: productService.create() crashes when creating a NEW
-    // category because ProductCategory.slug is required but never set
-    // (pre-existing bug in product.service.ts:93 - noted in report).
-    await prisma.productCategory.create({
-      data: { name: 'E2E', slug: `e2e-${Date.now()}`, companyId },
-    });
     log(
       `setup: company=${companyId} user=${userId} wh1=${wh1} wh2=${wh2}`,
     );

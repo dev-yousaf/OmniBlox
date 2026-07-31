@@ -93,6 +93,7 @@ export class ProductService {
         categoryRecord = await this.prisma.productCategory.create({
           data: {
             name: category,
+            slug: await this.uniqueCategorySlug(companyId, category),
             companyId,
           },
         });
@@ -545,7 +546,11 @@ export class ProductService {
         });
         if (!categoryRecord) {
           categoryRecord = await this.prisma.productCategory.create({
-            data: { name: category, companyId },
+            data: {
+              name: category,
+              slug: await this.uniqueCategorySlug(companyId, category),
+              companyId,
+            },
           });
         }
         updateData.categoryId = categoryRecord.id;
@@ -1118,6 +1123,28 @@ export class ProductService {
       totalValue,
       categoriesCount,
     };
+  }
+
+  /**
+   * ProductCategory.slug is required and unique per company. Derive it from
+   * the category name (mirrors product-categories.service) and make it unique
+   * when two names slugify to the same value.
+   */
+  private async uniqueCategorySlug(
+    companyId: string,
+    name: string,
+  ): Promise<string> {
+    const base = name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/[\s_]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+    const existing = await this.prisma.productCategory.findUnique({
+      where: { companyId_slug: { companyId, slug: base } },
+      select: { id: true },
+    });
+    return existing ? `${base}-${Date.now().toString(36)}` : base;
   }
 
   private transformToDto(product: any, stock?: number): ProductResponseDto {
