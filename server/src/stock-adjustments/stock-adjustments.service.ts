@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CacheService } from '../cache/cache.service';
+import { StockService } from '../inventory/stock.service';
 import { CreateStockAdjustmentDto } from './dto/create-stock-adjustment.dto';
 
 @Injectable()
@@ -12,6 +13,7 @@ export class StockAdjustmentsService {
   constructor(
     private readonly prisma: PrismaService,
     private cache: CacheService,
+    private readonly stockService: StockService,
   ) {}
 
   async create(
@@ -98,24 +100,18 @@ export class StockAdjustmentsService {
           ),
         );
 
-        // Upsert inventory records to update quantities
+        // Adjust inventory records to the new quantities
         await Promise.all(
           itemsWithPreviousQuantities.map((item) =>
-            tx.inventory.upsert({
-              where: {
-                productId_warehouseId: {
-                  productId: item.productId,
-                  warehouseId: dto.warehouseId,
-                },
-              },
-              create: {
-                productId: item.productId,
-                warehouseId: dto.warehouseId,
-                quantity: item.newQuantity,
-              },
-              update: {
-                quantity: item.newQuantity,
-              },
+            this.stockService.adjustStock(tx, {
+              companyId,
+              productId: item.productId,
+              warehouseId: dto.warehouseId,
+              newQuantity: item.newQuantity,
+              reference: referenceNumber,
+              type: 'ADJUSTMENT',
+              note: `Stock adjustment #${referenceNumber}`,
+              userId,
             }),
           ),
         );
@@ -155,6 +151,12 @@ export class StockAdjustmentsService {
     );
 
     await this.cache.del(this.LIST_KEY(companyId));
+    await this.cache.del(this.ITEM_KEY(companyId, result.id));
+    await this.stockService.invalidateStockCaches(
+      companyId,
+      dto.items.map((item) => item.productId),
+      [dto.warehouseId],
+    );
     return result;
   }
 

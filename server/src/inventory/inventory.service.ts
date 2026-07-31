@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CacheService } from '../cache/cache.service';
+import { StockService } from './stock.service';
 import {
   CreateWarehouseDto,
   UpdateWarehouseDto,
@@ -39,6 +40,7 @@ export class InventoryService {
   constructor(
     private prisma: PrismaService,
     private cache: CacheService,
+    private readonly stockService: StockService,
   ) {}
 
   // === WAREHOUSE MANAGEMENT ===
@@ -384,6 +386,51 @@ export class InventoryService {
       updatedAt: item.updatedAt.toISOString(),
     }));
 
+    // Combos hold no Inventory rows of their own — synthesize a row per
+    // combo whose derived availability in this warehouse is > 0.
+    const combos = await this.prisma.product.findMany({
+      where: { companyId, type: 'COMBO' },
+      select: {
+        id: true,
+        name: true,
+        sku: true,
+        imageUrl: true,
+        salePrice: true,
+        costPrice: true,
+        reorderLevel: true,
+        category: { select: { name: true } },
+        brand: { select: { name: true } },
+      },
+    });
+    if (combos.length) {
+      const derived = await this.stockService.getAvailableStockMap(
+        companyId,
+        combos.map((c) => c.id),
+        warehouseId,
+      );
+      for (const c of combos) {
+        const quantity = derived.get(c.id) ?? 0;
+        if (quantity <= 0) continue;
+        inventory.push({
+          productId: c.id,
+          productName: c.name,
+          productSku: c.sku,
+          imageUrl: c.imageUrl,
+          warehouseId,
+          warehouseName: warehouse.name,
+          quantity,
+          salePrice: Number(c.salePrice),
+          costPrice: Number(c.costPrice),
+          reorderLevel: c.reorderLevel,
+          stockValue: quantity * Number(c.costPrice),
+          status: this.getStockStatus(quantity, c.reorderLevel),
+          category: c.category?.name,
+          brand: c.brand?.name,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    }
+
     const totalStockValue = inventory.reduce(
       (sum, item) => sum + item.stockValue,
       0,
@@ -451,23 +498,20 @@ export class InventoryService {
       const previousQuantity = currentInventory?.quantity ?? 0;
       const difference = dto.quantity - previousQuantity;
 
-      // Update or create inventory
-      const inv = await prisma.inventory.upsert({
-        where: {
-          productId_warehouseId: {
-            productId,
-            warehouseId,
-          },
-        },
-        update: {
-          quantity: dto.quantity,
-        },
-        create: {
+      // Update or create inventory via StockService (writes Inventory + ledger)
+      await this.stockService.adjustStock(
+        prisma,
+        {
+          companyId,
           productId,
           warehouseId,
-          quantity: dto.quantity,
+          newQuantity: dto.quantity,
+          reference: referenceNumber,
+          type: 'ADJUSTMENT',
+          note: dto.notes || 'Manual update from inventory page',
+          userId,
         },
-      });
+      );
 
       // Determine adjustment type from delta
       const adjType =
@@ -499,21 +543,17 @@ export class InventoryService {
             difference,
           },
         });
+      }
 
-        // Create stock ledger entry
-        await prisma.stockLedger.create({
-          data: {
+      // Return the updated inventory row
+      const inv = await prisma.inventory.findUnique({
+        where: {
+          productId_warehouseId: {
             productId,
             warehouseId,
-            userId,
-            quantity: difference,
-            balance: dto.quantity,
-            type: 'ADJUSTMENT',
-            reference: referenceNumber,
-            note: dto.notes || 'Manual update from inventory page',
           },
-        });
-      }
+        },
+      });
 
       return inv;
     });
@@ -524,6 +564,11 @@ export class InventoryService {
       this.cache.del(WH_INV_KEY(companyId, warehouseId)),
       this.cache.del(WH_ITEM_KEY(companyId, warehouseId)),
     ]);
+    await this.stockService.invalidateStockCaches(
+      companyId,
+      [productId],
+      [warehouseId],
+    );
 
     return invResult;
   }
@@ -590,82 +635,17 @@ export class InventoryService {
         },
       });
 
-      // Update source inventory (decrease)
-      await prisma.inventory.update({
-        where: {
-          productId_warehouseId: {
-            productId,
-            warehouseId: fromWarehouseId,
-          },
-        },
-        data: {
-          quantity: {
-            decrement: quantity,
-          },
-        },
-      });
-
-      // Update destination inventory (increase or create)
-      await prisma.inventory.upsert({
-        where: {
-          productId_warehouseId: {
-            productId,
-            warehouseId: toWarehouseId,
-          },
-        },
-        update: {
-          quantity: {
-            increment: quantity,
-          },
-        },
-        create: {
-          productId,
-          warehouseId: toWarehouseId,
-          quantity,
-        },
-      });
-
-      // Create stock ledger entries for transfer
-      const srcInv = await prisma.inventory.findUnique({
-        where: {
-          productId_warehouseId: {
-            productId,
-            warehouseId: fromWarehouseId,
-          },
-        },
-      });
-      const dstInv = await prisma.inventory.findUnique({
-        where: {
-          productId_warehouseId: {
-            productId,
-            warehouseId: toWarehouseId,
-          },
-        },
-      });
-
-      await prisma.stockLedger.createMany({
-        data: [
-          {
-            productId,
-            warehouseId: fromWarehouseId,
-            userId,
-            quantity: -quantity,
-            balance: srcInv?.quantity ?? 0,
-            type: 'TRANSFER',
-            reference: referenceNumber,
-            note: `Transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
-          },
-          {
-            productId,
-            warehouseId: toWarehouseId,
-            userId,
-            quantity,
-            balance: dstInv?.quantity ?? quantity,
-            type: 'TRANSFER',
-            reference: referenceNumber,
-            note: `Transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
-          },
-        ],
+      // Move stock via StockService (writes Inventory + ledger for both sides)
+      await this.stockService.transferStock(prisma, {
+        companyId,
+        productId,
+        fromWarehouseId,
+        toWarehouseId,
+        quantity,
+        reference: referenceNumber,
+        type: 'TRANSFER',
+        note: `Transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
+        userId,
       });
 
       // Create adjustment items
@@ -702,6 +682,11 @@ export class InventoryService {
       this.cache.del(WH_ITEM_KEY(companyId, toWarehouseId)),
     ]);
     await this.invalidateTransferCache(companyId);
+    await this.stockService.invalidateStockCaches(
+      companyId,
+      [productId],
+      [fromWarehouseId, toWarehouseId],
+    );
 
     return stockAdjustment;
   }
@@ -777,49 +762,17 @@ export class InventoryService {
           );
         }
 
-        // Decrement source
-        await prisma.inventory.update({
-          where: {
-            productId_warehouseId: {
-              productId: item.productId,
-              warehouseId: fromWarehouseId,
-            },
-          },
-          data: { quantity: { decrement: item.quantity } },
-        });
-
-        // Increment destination
-        await prisma.inventory.upsert({
-          where: {
-            productId_warehouseId: {
-              productId: item.productId,
-              warehouseId: toWarehouseId,
-            },
-          },
-          update: { quantity: { increment: item.quantity } },
-          create: {
-            productId: item.productId,
-            warehouseId: toWarehouseId,
-            quantity: item.quantity,
-          },
-        });
-
-        // Create stock ledger entries for this transfer item
-        const srcInv = await prisma.inventory.findUnique({
-          where: {
-            productId_warehouseId: {
-              productId: item.productId,
-              warehouseId: fromWarehouseId,
-            },
-          },
-        });
-        const dstInv = await prisma.inventory.findUnique({
-          where: {
-            productId_warehouseId: {
-              productId: item.productId,
-              warehouseId: toWarehouseId,
-            },
-          },
+        // Move stock via StockService (writes Inventory + ledger for both sides)
+        await this.stockService.transferStock(prisma, {
+          companyId,
+          productId: item.productId,
+          fromWarehouseId,
+          toWarehouseId,
+          quantity: item.quantity,
+          reference: referenceNumber,
+          type: 'TRANSFER',
+          note: `Bulk transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
+          userId,
         });
 
         adjustmentItems.push(
@@ -840,32 +793,6 @@ export class InventoryService {
             difference: item.quantity,
           },
         );
-
-        // Add stock ledger entries
-        await prisma.stockLedger.createMany({
-          data: [
-            {
-              productId: item.productId,
-              warehouseId: fromWarehouseId,
-              userId,
-              quantity: -item.quantity,
-              balance: srcInv?.quantity ?? 0,
-              type: 'TRANSFER',
-              reference: referenceNumber,
-              note: `Bulk transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
-            },
-            {
-              productId: item.productId,
-              warehouseId: toWarehouseId,
-              userId,
-              quantity: item.quantity,
-              balance: dstInv?.quantity ?? item.quantity,
-              type: 'TRANSFER',
-              reference: referenceNumber,
-              note: `Bulk transfer from ${fromWarehouse.name} to ${toWarehouse.name}`,
-            },
-          ],
-        });
       }
 
       await prisma.stockAdjustmentItem.createMany({ data: adjustmentItems });
@@ -895,6 +822,11 @@ export class InventoryService {
       ),
     ]);
     await this.invalidateTransferCache(companyId);
+    await this.stockService.invalidateStockCaches(
+      companyId,
+      items.map((item) => item.productId),
+      [fromWarehouseId, toWarehouseId],
+    );
 
     return bulkResult;
   }
@@ -959,37 +891,20 @@ export class InventoryService {
         const difference = item.newQuantity - previousQuantity;
         netChange += difference;
 
-        // Update or create inventory
-        await prisma.inventory.upsert({
-          where: {
-            productId_warehouseId: {
-              productId: item.productId,
-              warehouseId: item.warehouseId,
-            },
-          },
-          update: {
-            quantity: item.newQuantity,
-          },
-          create: {
+        // Update or create inventory via StockService (writes Inventory + ledger)
+        await this.stockService.adjustStock(
+          prisma,
+          {
+            companyId,
             productId: item.productId,
             warehouseId: item.warehouseId,
-            quantity: item.newQuantity,
-          },
-        });
-
-        // Create stock ledger entry for this adjustment
-        await prisma.stockLedger.create({
-          data: {
-            productId: item.productId,
-            warehouseId: item.warehouseId,
-            userId,
-            quantity: difference,
-            balance: item.newQuantity,
-            type: 'ADJUSTMENT',
+            newQuantity: item.newQuantity,
             reference: referenceNumber,
+            type: 'ADJUSTMENT',
             note: dto.notes || 'Stock adjustment',
+            userId,
           },
-        });
+        );
 
         // Create adjustment item record
         await prisma.stockAdjustmentItem.create({
@@ -1015,6 +930,11 @@ export class InventoryService {
 
     await this.invalidateInventoryListCache(companyId);
     await this.invalidateAdjustmentCache(companyId);
+    await this.stockService.invalidateStockCaches(
+      companyId,
+      dto.adjustmentItems.map((item) => item.productId),
+      [...new Set(dto.adjustmentItems.map((item) => item.warehouseId))],
+    );
 
     return result;
   }

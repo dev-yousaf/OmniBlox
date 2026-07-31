@@ -7,6 +7,7 @@ import {
 import { OrderStatus, PaymentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CacheService } from '../cache/cache.service';
+import { StockService } from '../inventory/stock.service';
 import { AuditLogService } from '../audit-logs/audit-logs.service';
 import { CreateSaleDto, CreateSaleItemDto } from './dto/create-sale.dto';
 import { UpdateSaleDto } from './dto/update-sale.dto';
@@ -40,6 +41,7 @@ export class SalesService {
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
     private readonly auditLogService: AuditLogService,
+    private readonly stockService: StockService,
   ) {}
 
   /**
@@ -206,6 +208,7 @@ export class SalesService {
           dto.items,
           productMap,
           dto.warehouseId,
+          companyId,
         );
 
         const customer = await this.resolveCustomer(
@@ -284,21 +287,18 @@ export class SalesService {
         // Decrement inventory from the specific warehouse only if sale is completed
         const saleStatus = (dto.status ?? OrderStatus.PENDING) as OrderStatus;
         if (saleStatus === OrderStatus.COMPLETED) {
-          await this.decrementInventoryFromWarehouse(
-            tx,
-            dto.items,
-            dto.warehouseId,
-          );
-          await this.createStockLedgerEntries(
-            tx,
-            dto.items,
-            dto.warehouseId,
-            sale.userId,
-            sale.invoiceNumber,
-            'SALE',
-            `Sale #${sale.invoiceNumber}`,
-            -1,
-          );
+          for (const item of dto.items) {
+            await this.stockService.issueStock(tx, {
+              productId: item.productId,
+              warehouseId: dto.warehouseId,
+              quantity: item.quantity,
+              reference: sale.invoiceNumber,
+              type: 'SALE',
+              note: `Sale #${sale.invoiceNumber}`,
+              userId: sale.userId,
+              companyId,
+            });
+          }
         }
 
         saleCompleted = saleStatus === OrderStatus.COMPLETED;
@@ -387,6 +387,14 @@ export class SalesService {
       this.cache.del(STATS_KEY(companyId)),
       this.cache.del(DASHBOARD_KEY(companyId)),
     ]);
+
+    if (saleCompleted) {
+      await this.stockService.invalidateStockCaches(
+        companyId,
+        dto.items.map((item) => item.productId),
+        [dto.warehouseId],
+      );
+    }
 
     return result;
   }
@@ -584,15 +592,6 @@ export class SalesService {
           ? await this.fetchProducts(tx, dto.items, companyId)
           : null;
         if (dto.items) {
-          await this.adjustInventory(
-            tx,
-            existing.items.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-            })),
-            'increment',
-            companyId,
-          );
           await this.ensureStock(tx, dto.items, productMap!, companyId);
         }
 
@@ -686,78 +685,51 @@ export class SalesService {
 
         const newStatus = (dto.status ?? existing.status) as OrderStatus;
 
-        if (dto.items) {
-          await this.adjustInventory(tx, dto.items, 'decrement', companyId);
-          await this.createStockLedgerEntries(
-            tx,
-            dto.items,
-            dto.warehouseId ?? existing.warehouseId ?? '',
-            updated.userId,
-            updated.invoiceNumber,
-            'SALE',
-            `Sale #${updated.invoiceNumber} item update`,
-            -1,
-          );
+        // Stock position after update: a COMPLETED sale holds its items' stock
+        // in its warehouse; any other status holds nothing. Reverse what was
+        // issued before, then issue what should now be held.
+        const oldWarehouseId = existing.warehouseId ?? undefined;
+        const newWarehouseId = dto.warehouseId ?? existing.warehouseId ?? undefined;
+        const movedProductIds = new Set<string>();
+
+        if (oldWarehouseId && existing.status === OrderStatus.COMPLETED) {
+          for (const item of existing.items) {
+            await this.stockService.reverseIssue(tx, {
+              productId: item.productId,
+              warehouseId: oldWarehouseId,
+              quantity: item.quantity,
+              reference: updated.invoiceNumber,
+              type: 'SALE',
+              note: `Sale #${updated.invoiceNumber} reversal`,
+              userId: updated.userId,
+              companyId,
+            });
+            movedProductIds.add(item.productId);
+          }
         }
 
-        // Handle inventory adjustments based on status changes
-        if (newStatus !== existing.status) {
-          if (
-            newStatus === OrderStatus.COMPLETED &&
-            existing.status !== OrderStatus.COMPLETED
-          ) {
-            // Sale completed - decrement inventory
-            await this.adjustInventory(
-              tx,
-              updated.items.map((item) => ({
+        if (newWarehouseId && newStatus === OrderStatus.COMPLETED) {
+          const currentItems = dto.items
+            ? dto.items.map((item) => ({
                 productId: item.productId,
                 quantity: item.quantity,
-              })),
-              'decrement',
+              }))
+            : updated.items.map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+              }));
+          for (const item of currentItems) {
+            await this.stockService.issueStock(tx, {
+              productId: item.productId,
+              warehouseId: newWarehouseId,
+              quantity: item.quantity,
+              reference: updated.invoiceNumber,
+              type: 'SALE',
+              note: `Sale #${updated.invoiceNumber}`,
+              userId: updated.userId,
               companyId,
-            );
-            await this.createStockLedgerEntries(
-              tx,
-              updated.items.map((item) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-                unitPrice: Number(item.unitPrice),
-              })),
-              dto.warehouseId ?? existing.warehouseId ?? '',
-              updated.userId,
-              updated.invoiceNumber,
-              'SALE',
-              `Sale #${updated.invoiceNumber} completed`,
-              -1,
-            );
-          } else if (
-            newStatus === OrderStatus.CANCELLED &&
-            existing.status === OrderStatus.COMPLETED
-          ) {
-            // Sale cancelled after being completed - increment inventory back
-            await this.adjustInventory(
-              tx,
-              updated.items.map((item) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-              })),
-              'increment',
-              companyId,
-            );
-            await this.createStockLedgerEntries(
-              tx,
-              updated.items.map((item) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-                unitPrice: Number(item.unitPrice),
-              })),
-              dto.warehouseId ?? existing.warehouseId ?? '',
-              updated.userId,
-              updated.invoiceNumber,
-              'SALE',
-              `Sale #${updated.invoiceNumber} cancelled`,
-              1,
-            );
+            });
+            movedProductIds.add(item.productId);
           }
         }
 
@@ -767,6 +739,15 @@ export class SalesService {
           this.cache.del(STATS_KEY(companyId)),
           this.cache.del(DASHBOARD_KEY(companyId)),
         ]);
+        if (movedProductIds.size > 0) {
+          await this.stockService.invalidateStockCaches(
+            companyId,
+            Array.from(movedProductIds),
+            [oldWarehouseId, newWarehouseId].filter(
+              (w): w is string => Boolean(w),
+            ),
+          );
+        }
         return this.transformSale(updated);
       },
       { timeout: 20000 },
@@ -774,6 +755,8 @@ export class SalesService {
   }
 
   async remove(id: string, companyId: string): Promise<void> {
+    const removedProductIds: string[] = [];
+    const removedWarehouseIds: string[] = [];
     await this.prisma.$transaction(
       async (tx) => {
         const sale = await tx.sale.findUnique({
@@ -785,30 +768,25 @@ export class SalesService {
           throw new NotFoundException('Sale not found');
         }
 
-        await this.adjustInventory(
-          tx,
-          sale.items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-          })),
-          'increment',
-          companyId,
-        );
-
-        await this.createStockLedgerEntries(
-          tx,
-          sale.items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            unitPrice: Number(item.unitPrice),
-          })),
-          sale.warehouseId ?? '',
-          sale.userId,
-          sale.invoiceNumber,
-          'SALE',
-          `Sale #${sale.invoiceNumber} deleted`,
-          1,
-        );
+        // Only restore stock for sales that actually decremented it. Pending or
+        // cancelled sales never moved stock, so reversing them would inflate
+        // quantities (the old double-increment bug).
+        if (sale.status === OrderStatus.COMPLETED && sale.warehouseId) {
+          for (const item of sale.items) {
+            await this.stockService.reverseIssue(tx, {
+              productId: item.productId,
+              warehouseId: sale.warehouseId,
+              quantity: item.quantity,
+              reference: sale.invoiceNumber,
+              type: 'SALE',
+              note: `Sale #${sale.invoiceNumber} deleted`,
+              userId: sale.userId,
+              companyId,
+            });
+          }
+          removedProductIds.push(...sale.items.map((item) => item.productId));
+          removedWarehouseIds.push(sale.warehouseId);
+        }
 
         await tx.sale.delete({ where: { id } });
       },
@@ -821,6 +799,13 @@ export class SalesService {
       this.cache.del(STATS_KEY(companyId)),
       this.cache.del(DASHBOARD_KEY(companyId)),
     ]);
+    if (removedProductIds.length > 0) {
+      await this.stockService.invalidateStockCaches(
+        companyId,
+        removedProductIds,
+        removedWarehouseIds,
+      );
+    }
   }
 
   async markAsPaid(
@@ -828,6 +813,8 @@ export class SalesService {
     userId: string,
     companyId: string,
   ): Promise<SaleResponseDto> {
+    const movedProductIds: string[] = [];
+    const movedWarehouseIds: string[] = [];
     const result = await this.prisma.$transaction(
       async (tx) => {
         const existing = await tx.sale.findUnique({
@@ -854,30 +841,21 @@ export class SalesService {
         });
 
         // If sale was not already completed, decrement inventory
-        if (wasPending) {
-          await this.decrementInventoryFromWarehouse(
-            tx,
-            sale.items.map((item) => ({
+        if (wasPending && sale.warehouseId) {
+          for (const item of sale.items) {
+            await this.stockService.issueStock(tx, {
               productId: item.productId,
+              warehouseId: sale.warehouseId,
               quantity: item.quantity,
-              unitPrice: Number(item.unitPrice),
-            })),
-            sale.warehouseId ?? '',
-          );
-          await this.createStockLedgerEntries(
-            tx,
-            sale.items.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              unitPrice: Number(item.unitPrice),
-            })),
-            sale.warehouseId ?? '',
-            sale.userId,
-            sale.invoiceNumber,
-            'SALE',
-            `Sale #${sale.invoiceNumber} marked as paid`,
-            -1,
-          );
+              reference: sale.invoiceNumber,
+              type: 'SALE',
+              note: `Sale #${sale.invoiceNumber} marked as paid`,
+              userId: sale.userId,
+              companyId,
+            });
+          }
+          movedProductIds.push(...sale.items.map((item) => item.productId));
+          movedWarehouseIds.push(sale.warehouseId);
         }
 
         return this.transformSale(sale);
@@ -915,6 +893,14 @@ export class SalesService {
       this.cache.del(STATS_KEY(companyId)),
       this.cache.del(DASHBOARD_KEY(companyId)),
     ]);
+
+    if (movedProductIds.length > 0) {
+      await this.stockService.invalidateStockCaches(
+        companyId,
+        movedProductIds,
+        movedWarehouseIds,
+      );
+    }
 
     return result;
   }
@@ -1317,142 +1303,6 @@ export class SalesService {
     };
   }
 
-  private async adjustInventory(
-    tx: any,
-    items: { productId: string; quantity: number }[],
-    direction: 'increment' | 'decrement',
-    companyId: string,
-  ): Promise<void> {
-    for (const item of items) {
-      if (direction === 'decrement') {
-        await this.decrementInventory(
-          tx,
-          item.productId,
-          item.quantity,
-          companyId,
-        );
-      } else {
-        await this.incrementInventory(
-          tx,
-          item.productId,
-          item.quantity,
-          companyId,
-        );
-      }
-    }
-  }
-
-  private async decrementInventory(
-    tx: any,
-    productId: string,
-    quantity: number,
-    companyId: string,
-  ) {
-    if (quantity <= 0) {
-      return;
-    }
-
-    const inventoryRecords = await tx.inventory.findMany({
-      where: {
-        productId,
-        warehouse: { companyId },
-      },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    if (!inventoryRecords.length) {
-      throw new BadRequestException(
-        'No inventory found for the requested product',
-      );
-    }
-
-    let remaining = quantity;
-
-    for (const record of inventoryRecords) {
-      if (remaining <= 0) {
-        break;
-      }
-
-      if (record.quantity <= 0) {
-        continue;
-      }
-
-      const deduction = Math.min(record.quantity, remaining);
-      await tx.inventory.update({
-        where: {
-          productId_warehouseId: {
-            productId: record.productId,
-            warehouseId: record.warehouseId,
-          },
-        },
-        data: {
-          quantity: { decrement: deduction },
-        },
-      });
-      remaining -= deduction;
-    }
-
-    if (remaining > 0) {
-      throw new BadRequestException('Insufficient stock to complete this sale');
-    }
-  }
-
-  private async incrementInventory(
-    tx: any,
-    productId: string,
-    quantity: number,
-    companyId: string,
-  ) {
-    if (quantity <= 0) {
-      return;
-    }
-
-    const existing = await tx.inventory.findMany({
-      where: {
-        productId,
-        warehouse: { companyId },
-      },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    if (existing.length) {
-      const target = existing[0];
-      await tx.inventory.update({
-        where: {
-          productId_warehouseId: {
-            productId: target.productId,
-            warehouseId: target.warehouseId,
-          },
-        },
-        data: {
-          quantity: { increment: quantity },
-        },
-      });
-      return;
-    }
-
-    const warehouse =
-      (await tx.warehouse.findFirst({
-        where: { companyId },
-        orderBy: { createdAt: 'asc' },
-      })) ??
-      (await tx.warehouse.create({
-        data: {
-          name: 'Default Warehouse',
-          location: 'Default Location',
-          companyId,
-        },
-      }));
-
-    await tx.inventory.create({
-      data: {
-        productId,
-        warehouseId: warehouse.id,
-        quantity,
-      },
-    });
-  }
-
   /**
    * Verify that sufficient stock exists in the specific warehouse for all sale items.
    * This is called before creating the sale to prevent overselling.
@@ -1462,24 +1312,34 @@ export class SalesService {
     items: CreateSaleItemDto[],
     productMap: Map<string, any>,
     warehouseId: string,
+    companyId: string,
   ): Promise<void> {
     const aggregated = this.aggregateQuantities(items);
 
     const checks = Array.from(aggregated.entries()).map(
       async ([productId, quantityNeeded]) => {
-        const inventoryRecord = await tx.inventory.findUnique({
-          where: {
-            productId_warehouseId: {
-              productId,
-              warehouseId,
-            },
-          },
-        });
-
-        const available = inventoryRecord?.quantity ?? 0;
+        const product = productMap.get(productId);
+        const available =
+          product?.type === 'COMBO'
+            ? (await this.stockService.getAvailableStockMap(
+                companyId,
+                [productId],
+                warehouseId,
+                tx,
+              )).get(productId) ?? 0
+            : (
+                await tx.inventory.findUnique({
+                  where: {
+                    productId_warehouseId: {
+                      productId,
+                      warehouseId,
+                    },
+                  },
+                })
+              )?.quantity ?? 0;
 
         if (available < quantityNeeded) {
-          const productName = productMap.get(productId)?.name ?? productId;
+          const productName = product?.name ?? productId;
           throw new BadRequestException(
             `Insufficient stock for product "${productName}" in selected warehouse. Available: ${available}, Needed: ${quantityNeeded}`,
           );
@@ -1488,70 +1348,5 @@ export class SalesService {
     );
 
     await Promise.all(checks);
-  }
-
-  /**
-   * Atomically decrement inventory quantities from the specific warehouse.
-   * Uses Prisma's atomic decrement to ensure thread-safe stock updates.
-   * This is called within the sale creation transaction.
-   */
-  private async decrementInventoryFromWarehouse(
-    tx: any,
-    items: CreateSaleItemDto[],
-    warehouseId: string,
-  ): Promise<void> {
-    for (const item of items) {
-      await tx.inventory.update({
-        where: {
-          productId_warehouseId: {
-            productId: item.productId,
-            warehouseId: warehouseId,
-          },
-        },
-        data: {
-          quantity: {
-            decrement: item.quantity,
-          },
-        },
-      });
-    }
-  }
-
-  private async createStockLedgerEntries(
-    tx: any,
-    items: { productId: string; quantity: number; unitPrice?: number }[],
-    warehouseId: string,
-    userId: string,
-    reference: string,
-    type: string,
-    note: string,
-    sign: 1 | -1,
-  ): Promise<void> {
-    for (const item of items) {
-      const inventory = await tx.inventory.findUnique({
-        where: {
-          productId_warehouseId: {
-            productId: item.productId,
-            warehouseId: warehouseId,
-          },
-        },
-      });
-
-      const quantityChange = item.quantity * sign;
-      const currentBalance = inventory?.quantity ?? 0;
-
-      await tx.stockLedger.create({
-        data: {
-          productId: item.productId,
-          warehouseId,
-          userId,
-          quantity: quantityChange,
-          balance: currentBalance,
-          type,
-          reference,
-          note,
-        },
-      });
-    }
   }
 }

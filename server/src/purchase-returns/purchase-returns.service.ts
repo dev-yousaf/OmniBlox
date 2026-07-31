@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CacheService } from '../cache/cache.service';
+import { StockService } from '../inventory/stock.service';
 import { CreatePurchaseReturnDto } from './dto/create-purchase-return.dto';
 import { UpdatePurchaseReturnDto } from './dto/update-purchase-return.dto';
 
@@ -17,6 +18,7 @@ export class PurchaseReturnsService {
   constructor(
     private readonly prisma: PrismaService,
     private cache: CacheService,
+    private readonly stockService: StockService,
   ) {}
 
   /**
@@ -296,19 +298,19 @@ export class PurchaseReturnsService {
         if (newStatus === 'COMPLETED' && existing.status !== 'COMPLETED') {
           // Purchase return completed - decrement inventory
           for (const item of updated.items) {
-            await tx.inventory.update({
-              where: {
-                productId_warehouseId: {
-                  productId: item.productId,
-                  warehouseId: updated.warehouseId,
-                },
+            await this.stockService.issueStock(
+              tx,
+              {
+                companyId,
+                productId: item.productId,
+                warehouseId: updated.warehouseId,
+                quantity: item.quantity,
+                userId: updated.userId,
+                reference: updated.referenceNumber,
+                type: 'RETURN',
+                note: `Purchase return #${updated.referenceNumber} completed`,
               },
-              data: {
-                quantity: {
-                  decrement: item.quantity, // Atomic decrement
-                },
-              },
-            });
+            );
 
             // Update returned quantity on original purchase item if linked
             if (item.purchaseOrderItemId) {
@@ -335,28 +337,6 @@ export class PurchaseReturnsService {
                 },
               });
             }
-
-            const inv = await tx.inventory.findUnique({
-              where: {
-                productId_warehouseId: {
-                  productId: item.productId,
-                  warehouseId: updated.warehouseId,
-                },
-              },
-            });
-
-            await tx.stockLedger.create({
-              data: {
-                productId: item.productId,
-                warehouseId: updated.warehouseId,
-                userId: updated.userId,
-                quantity: -item.quantity,
-                balance: inv?.quantity ?? 0,
-                type: 'RETURN',
-                reference: updated.referenceNumber,
-                note: `Purchase return #${updated.referenceNumber} completed`,
-              },
-            });
           }
 
           // Mark the purchase order as having returns if linked
@@ -372,19 +352,19 @@ export class PurchaseReturnsService {
         ) {
           // Purchase return cancelled after being completed - increment inventory back
           for (const item of updated.items) {
-            await tx.inventory.update({
-              where: {
-                productId_warehouseId: {
-                  productId: item.productId,
-                  warehouseId: updated.warehouseId,
-                },
+            await this.stockService.reverseIssue(
+              tx,
+              {
+                companyId,
+                productId: item.productId,
+                warehouseId: updated.warehouseId,
+                quantity: item.quantity,
+                userId: updated.userId,
+                reference: updated.referenceNumber,
+                type: 'RETURN',
+                note: `Purchase return #${updated.referenceNumber} cancelled`,
               },
-              data: {
-                quantity: {
-                  increment: item.quantity,
-                },
-              },
-            });
+            );
 
             // Reverse returned quantity on original purchase item if linked
             if (item.purchaseOrderItemId) {
@@ -397,28 +377,6 @@ export class PurchaseReturnsService {
                 },
               });
             }
-
-            const inv = await tx.inventory.findUnique({
-              where: {
-                productId_warehouseId: {
-                  productId: item.productId,
-                  warehouseId: updated.warehouseId,
-                },
-              },
-            });
-
-            await tx.stockLedger.create({
-              data: {
-                productId: item.productId,
-                warehouseId: updated.warehouseId,
-                userId: updated.userId,
-                quantity: item.quantity,
-                balance: inv?.quantity ?? 0,
-                type: 'RETURN',
-                reference: updated.referenceNumber,
-                note: `Purchase return #${updated.referenceNumber} cancelled`,
-              },
-            });
           }
 
           // Check if purchase order still has any returns
@@ -439,19 +397,19 @@ export class PurchaseReturnsService {
         } else if (newStatus === 'PENDING' && existing.status === 'COMPLETED') {
           // Purchase return reset to pending after being completed - increment inventory back
           for (const item of updated.items) {
-            await tx.inventory.update({
-              where: {
-                productId_warehouseId: {
-                  productId: item.productId,
-                  warehouseId: updated.warehouseId,
-                },
+            await this.stockService.reverseIssue(
+              tx,
+              {
+                companyId,
+                productId: item.productId,
+                warehouseId: updated.warehouseId,
+                quantity: item.quantity,
+                userId: updated.userId,
+                reference: updated.referenceNumber,
+                type: 'RETURN',
+                note: `Purchase return #${updated.referenceNumber} reset to pending`,
               },
-              data: {
-                quantity: {
-                  increment: item.quantity,
-                },
-              },
-            });
+            );
 
             // Reverse returned quantity on original purchase item if linked
             if (item.purchaseOrderItemId) {
@@ -464,28 +422,6 @@ export class PurchaseReturnsService {
                 },
               });
             }
-
-            const inv = await tx.inventory.findUnique({
-              where: {
-                productId_warehouseId: {
-                  productId: item.productId,
-                  warehouseId: updated.warehouseId,
-                },
-              },
-            });
-
-            await tx.stockLedger.create({
-              data: {
-                productId: item.productId,
-                warehouseId: updated.warehouseId,
-                userId: updated.userId,
-                quantity: item.quantity,
-                balance: inv?.quantity ?? 0,
-                type: 'RETURN',
-                reference: updated.referenceNumber,
-                note: `Purchase return #${updated.referenceNumber} reset to pending`,
-              },
-            });
           }
 
           // Check if purchase order still has any returns
@@ -511,6 +447,16 @@ export class PurchaseReturnsService {
 
     await this.cache.del(this.LIST_KEY(companyId));
     await this.cache.del(this.ITEM_KEY(companyId, id));
+
+    if (dto.status && dto.status !== existing.status) {
+      const warehouseIds = updated.warehouseId ? [updated.warehouseId] : [];
+      await this.stockService.invalidateStockCaches(
+        companyId,
+        updated.items.map((item) => item.productId),
+        warehouseIds,
+      );
+    }
+
     return updated;
   }
 
@@ -526,27 +472,33 @@ export class PurchaseReturnsService {
 
     // If completed, we need to reverse inventory changes
     if (purchaseReturn.status === 'COMPLETED') {
-      return await this.prisma.$transaction(async (tx) => {
+      const removedProductIds = purchaseReturn.items.map(
+        (item) => item.productId,
+      );
+      const removedWarehouseIds = purchaseReturn.warehouseId
+        ? [purchaseReturn.warehouseId]
+        : [];
+
+      const result = await this.prisma.$transaction(async (tx) => {
         // Reverse inventory changes (add back what was removed)
         for (const item of purchaseReturn.items) {
-          await tx.inventory.upsert({
-            where: {
-              productId_warehouseId: {
-                productId: item.productId,
-                warehouseId: purchaseReturn.warehouseId,
-              },
-            },
-            update: {
-              quantity: {
-                increment: item.quantity,
-              },
-            },
-            create: {
+          if (!purchaseReturn.warehouseId) {
+            continue;
+          }
+
+          await this.stockService.reverseIssue(
+            tx,
+            {
+              companyId,
               productId: item.productId,
               warehouseId: purchaseReturn.warehouseId,
               quantity: item.quantity,
+              userId: purchaseReturn.userId,
+              reference: purchaseReturn.referenceNumber,
+              type: 'RETURN',
+              note: `Purchase return #${purchaseReturn.referenceNumber} deleted`,
             },
-          });
+          );
         }
 
         // Revert returned quantity on original purchase items
@@ -578,36 +530,18 @@ export class PurchaseReturnsService {
           });
         }
 
-        // Create stock ledger entries
-        for (const item of purchaseReturn.items) {
-          const inv = await tx.inventory.findUnique({
-            where: {
-              productId_warehouseId: {
-                productId: item.productId,
-                warehouseId: purchaseReturn.warehouseId,
-              },
-            },
-          });
-
-          await tx.stockLedger.create({
-            data: {
-              productId: item.productId,
-              warehouseId: purchaseReturn.warehouseId,
-              userId: purchaseReturn.userId,
-              quantity: item.quantity,
-              balance: inv?.quantity ?? 0,
-              type: 'RETURN',
-              reference: purchaseReturn.referenceNumber,
-              note: `Purchase return #${purchaseReturn.referenceNumber} deleted`,
-            },
-          });
-        }
-
         // Delete the return
         await tx.purchaseReturn.delete({ where: { id } });
 
         return { message: 'Purchase return deleted successfully' };
       });
+
+      await this.stockService.invalidateStockCaches(
+        companyId,
+        removedProductIds,
+        removedWarehouseIds,
+      );
+      return result;
     }
 
     // If not completed, just delete but revert purchase order item quantities if linked

@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   ConflictException,
@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CacheService } from '../cache/cache.service';
+import { StockService, StockMutationParams } from '../inventory/stock.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
@@ -43,6 +44,7 @@ export class ProductService {
   constructor(
     private prisma: PrismaService,
     private cache: CacheService,
+    private stockService: StockService,
   ) {}
 
   async create(
@@ -212,6 +214,7 @@ export class ProductService {
       });
 
       // Only create inventory for physical products (STANDARD or COMBO)
+      let initialStockWarehouseId: string | undefined;
       if (
         createProductDto.type !== 'DIGITAL' &&
         createProductDto.type !== 'SERVICE'
@@ -219,33 +222,52 @@ export class ProductService {
         let targetWarehouseId = createProductDto.warehouseId;
 
         if (!targetWarehouseId) {
-          const firstWarehouse = await this.prisma.warehouse.findFirst({
-            where: { companyId },
-          });
+          const firstWarehouse: { id: string } | null =
+            await this.prisma.warehouse.findFirst({
+              where: { companyId },
+            });
           targetWarehouseId = firstWarehouse?.id;
         }
 
         if (!targetWarehouseId) {
-          const warehouse = await this.prisma.warehouse.create({
-            data: {
-              name: 'Default Warehouse',
-              location: 'Default Location',
-              companyId,
-            },
-          });
+          const warehouse: { id: string } =
+            await this.prisma.warehouse.create({
+              data: {
+                name: 'Default Warehouse',
+                location: 'Default Location',
+                companyId,
+              },
+            });
           targetWarehouseId = warehouse.id;
         }
 
-        await this.prisma.inventory.create({
-          data: {
+        const resolvedWarehouseId = targetWarehouseId;
+        initialStockWarehouseId = resolvedWarehouseId;
+
+        if (stock > 0) {
+          const mutation: StockMutationParams = {
             productId: product.id,
-            warehouseId: targetWarehouseId,
+            warehouseId: resolvedWarehouseId,
             quantity: stock,
-          },
-        });
+            reference: product.sku,
+            type: 'INITIAL',
+            note: 'Initial stock',
+            companyId,
+          };
+          await this.prisma.$transaction(async (tx) => {
+            await this.stockService.receiveStock(tx, mutation);
+          });
+        }
       }
 
       await this.cache.del(LIST_KEY(companyId));
+      if (stock > 0 && initialStockWarehouseId) {
+        await this.stockService.invalidateStockCaches(
+          companyId,
+          [product.id],
+          [initialStockWarehouseId],
+        );
+      }
 
       return this.transformToDto(product, stock);
     } catch (error: any) {
@@ -285,21 +307,26 @@ export class ProductService {
       companyId, // Golden Rule: always filter by companyId
     };
 
-    if (warehouseId) {
-      where.inventory = {
-        some: {
-          warehouseId,
-        },
-      };
-    }
+    // Combos hold no inventory rows of their own; include them in
+    // warehouse-filtered lists too (derived availability resolved below).
+    const whClauses = warehouseId
+      ? [{ inventory: { some: { warehouseId } } }, { type: 'COMBO' }]
+      : null;
+    const searchClauses = search
+      ? [
+          { name: { contains: search, mode: 'insensitive' } },
+          { sku: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+          { itemCode: { contains: search, mode: 'insensitive' } },
+        ]
+      : null;
 
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { sku: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { itemCode: { contains: search, mode: 'insensitive' } },
-      ];
+    if (searchClauses && whClauses) {
+      where.AND = [{ OR: searchClauses }, { OR: whClauses }];
+    } else if (searchClauses) {
+      where.OR = searchClauses;
+    } else if (whClauses) {
+      where.OR = whClauses;
     }
 
     if (category) {
@@ -349,10 +376,23 @@ export class ProductService {
       this.prisma.product.count({ where }),
     ]);
 
+    const comboIds = products
+      .filter((product) => product.type === 'COMBO')
+      .map((product) => product.id);
+    const derivedStock = comboIds.length
+      ? await this.stockService.getAvailableStockMap(
+          companyId,
+          comboIds,
+          warehouseId,
+        )
+      : new Map<string, number>();
+
     const result = {
       products: products.map((product) => {
         let stock: number;
-        if (warehouseId) {
+        if (product.type === 'COMBO') {
+          stock = derivedStock.get(product.id) ?? 0;
+        } else if (warehouseId) {
           const warehouseInv = product.inventory.find(
             (inv) => inv.warehouseId === warehouseId,
           );
@@ -395,10 +435,10 @@ export class ProductService {
       throw new NotFoundException('Product not found');
     }
 
-    const totalStock = product.inventory.reduce(
-      (sum, inv) => sum + inv.quantity,
-      0,
-    );
+    const totalStock =
+      product.type === 'COMBO'
+        ? await this.stockService.getAvailableStock(companyId, product.id)
+        : product.inventory.reduce((sum, inv) => sum + inv.quantity, 0);
     const data = this.transformToDto(product, totalStock);
     await this.cache.set(cacheKey, data, 60 * 2);
     return data;
@@ -422,10 +462,10 @@ export class ProductService {
       throw new NotFoundException('Product not found');
     }
 
-    const totalStock = product.inventory.reduce(
-      (sum, inv) => sum + inv.quantity,
-      0,
-    );
+    const totalStock =
+      product.type === 'COMBO'
+        ? await this.stockService.getAvailableStock(companyId, product.id)
+        : product.inventory.reduce((sum, inv) => sum + inv.quantity, 0);
     const data = this.transformToDto(product, totalStock);
     await this.cache.set(cacheKey, data, 60 * 2);
     return data;
@@ -599,33 +639,55 @@ export class ProductService {
         },
       });
 
-      if (stock !== undefined) {
-        const defaultWarehouse = await this.prisma.warehouse.findFirst({
-          where: { companyId },
-        });
+      let stockAdjusted = false;
+      if (stock !== undefined && product.type !== 'COMBO') {
+        const defaultWarehouse: { id: string } | null =
+          await this.prisma.warehouse.findFirst({
+            where: { companyId },
+          });
         if (defaultWarehouse) {
-          await this.prisma.inventory.upsert({
-            where: {
-              productId_warehouseId: {
-                productId: product.id,
-                warehouseId: defaultWarehouse.id,
-              },
-            },
-            update: { quantity: stock },
-            create: {
+          await this.prisma.$transaction((tx) =>
+            this.stockService.adjustStock(tx, {
               productId: product.id,
               warehouseId: defaultWarehouse.id,
-              quantity: stock,
-            },
-          });
+              quantity: 0,
+              newQuantity: stock,
+              reference: product.sku,
+              type: 'ADJUSTMENT',
+              note: 'Stock updated from product edit',
+              companyId,
+            }),
+          );
+          stockAdjusted = true;
+          await this.stockService.invalidateStockCaches(
+            companyId,
+            [product.id],
+            [defaultWarehouse.id],
+          );
         }
       }
 
-      const totalStock = product.inventory.reduce(
+      const updatedProduct = stockAdjusted
+        ? await this.prisma.product.findUnique({
+            where: { id },
+            include: {
+              category: true,
+              brand: true,
+              inventory: { include: { warehouse: true } },
+              comboComponents: {
+                include: {
+                  product: { select: { id: true, name: true, sku: true } },
+                },
+              },
+            },
+          })
+        : product;
+
+      const totalStock = updatedProduct.inventory.reduce(
         (sum, inv) => sum + inv.quantity,
         0,
       );
-      return this.transformToDto(product, totalStock);
+      return this.transformToDto(updatedProduct, totalStock);
     } catch (error: any) {
       throw new BadRequestException(error?.message || 'Failed to update product');
     }
@@ -787,6 +849,7 @@ export class ProductService {
     quantity: number,
     operation: 'add' | 'subtract',
     companyId: string,
+    warehouseId?: string,
   ): Promise<ProductResponseDto> {
     const product = await this.prisma.product.findFirst({
       where: {
@@ -808,43 +871,41 @@ export class ProductService {
       throw new NotFoundException('Product not found');
     }
 
-    // Find warehouse for this company
-    const defaultWarehouse = await this.prisma.warehouse.findFirst({
-      where: { companyId }, // Golden Rule: filter by companyId
-    });
+    // Resolve the target warehouse: explicit warehouseId wins, then the first
+    // warehouse this product already has stock in, then any company warehouse.
+    let targetWarehouseId = warehouseId;
+    if (!targetWarehouseId) {
+      targetWarehouseId = product.inventory[0]?.warehouseId;
+    }
+    if (!targetWarehouseId) {
+      const defaultWarehouse = await this.prisma.warehouse.findFirst({
+        where: { companyId }, // Golden Rule: filter by companyId
+      });
+      targetWarehouseId = defaultWarehouse?.id;
+    }
 
-    if (!defaultWarehouse) {
+    if (!targetWarehouseId) {
       throw new BadRequestException('No warehouse configured for your company');
     }
 
-    const existingInventory = product.inventory.find(
-      (inv) => inv.warehouseId === defaultWarehouse.id,
-    );
-    const currentStock = existingInventory?.quantity || 0;
-    const newStock =
-      operation === 'add' ? currentStock + quantity : currentStock - quantity;
-
-    if (newStock < 0) {
-      throw new BadRequestException('Insufficient stock');
-    }
-
-    // Upsert inventory
-    await this.prisma.inventory.upsert({
-      where: {
-        productId_warehouseId: {
-          productId: product.id,
-          warehouseId: defaultWarehouse.id,
-        },
-      },
-      update: {
-        quantity: newStock,
-      },
-      create: {
+    await this.prisma.$transaction((tx) =>
+      this.stockService.adjustStock(tx, {
         productId: product.id,
-        warehouseId: defaultWarehouse.id,
-        quantity: newStock,
-      },
-    });
+        warehouseId: targetWarehouseId,
+        quantity: 0,
+        delta: operation === 'add' ? quantity : -quantity,
+        reference: product.sku,
+        type: 'ADJUSTMENT',
+        note: `Manual stock ${operation === 'add' ? 'increase' : 'decrease'}`,
+        companyId,
+      }),
+    );
+
+    await this.stockService.invalidateStockCaches(
+      companyId,
+      [product.id],
+      [targetWarehouseId],
+    );
 
     // Return updated product
     const updatedProduct = await this.prisma.product.findUnique({
@@ -1042,7 +1103,7 @@ export class ProductService {
         lowStockCount += 1;
       }
 
-      // Calculate inventory value at retail price (salePrice × total stock)
+      // Calculate inventory value at retail price (salePrice Ã— total stock)
       const productValue = Number(product.salePrice) * totalStock;
       totalValue += productValue;
     }
@@ -1210,7 +1271,7 @@ export class ProductService {
       netChange > 0 ? 'ADDITION' : netChange < 0 ? 'REMOVAL' : 'ADDITION';
 
     try {
-      return await this.prisma.$transaction(async (prisma) => {
+      const result = await this.prisma.$transaction(async (prisma) => {
         // Create stock adjustment with companyId (Golden Rule)
         const adjustment = await prisma.stockAdjustment.create({
           data: {
@@ -1245,44 +1306,16 @@ export class ProductService {
 
         // Update inventory for each item
         for (const item of items) {
-          await prisma.inventory.upsert({
-            where: {
-              productId_warehouseId: {
-                productId: item.productId,
-                warehouseId: item.warehouseId,
-              },
-            },
-            update: {
-              quantity: item.newQuantity,
-            },
-            create: {
-              productId: item.productId,
-              warehouseId: item.warehouseId,
-              quantity: item.newQuantity,
-            },
-          });
-
-          // Create stock ledger entry
-          const inv = await prisma.inventory.findUnique({
-            where: {
-              productId_warehouseId: {
-                productId: item.productId,
-                warehouseId: item.warehouseId,
-              },
-            },
-          });
-
-          await prisma.stockLedger.create({
-            data: {
-              productId: item.productId,
-              warehouseId: item.warehouseId,
-              userId,
-              quantity: item.newQuantity - item.previousQuantity,
-              balance: inv?.quantity ?? item.newQuantity,
-              type: 'ADJUSTMENT',
-              reference: referenceNumber,
-              note: notes || 'Stock adjustment',
-            },
+          await this.stockService.adjustStock(prisma, {
+            productId: item.productId,
+            warehouseId: item.warehouseId,
+            quantity: 0,
+            newQuantity: item.newQuantity,
+            reference: referenceNumber,
+            type: 'ADJUSTMENT',
+            note: notes || 'Stock adjustment',
+            userId,
+            companyId,
           });
         }
 
@@ -1312,6 +1345,13 @@ export class ProductService {
           })),
         };
       });
+
+      await this.stockService.invalidateStockCaches(
+        companyId,
+        items.map((item) => item.productId),
+        items.map((item) => item.warehouseId),
+      );
+      return result;
     } catch {
       throw new BadRequestException('Failed to create stock adjustment');
     }
@@ -1794,3 +1834,5 @@ export class ProductService {
     }));
   }
 }
+
+

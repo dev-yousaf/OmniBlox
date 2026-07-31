@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CacheService } from '../cache/cache.service';
+import { StockService } from '../inventory/stock.service';
 import { CreateSalesReturnDto } from './dto/create-sales-return.dto';
 import { UpdateSalesReturnDto } from './dto/update-sales-return.dto';
 
@@ -17,6 +18,7 @@ export class SalesReturnsService {
   constructor(
     private readonly prisma: PrismaService,
     private cache: CacheService,
+    private readonly stockService: StockService,
   ) {}
 
   /**
@@ -239,52 +241,23 @@ export class SalesReturnsService {
 
       // Handle inventory adjustments based on status changes
       const newStatus = dto.status;
+      const movedProductIds = new Set<string>();
       if (newStatus && newStatus !== existing.status) {
         if (newStatus === 'COMPLETED' && existing.status !== 'COMPLETED') {
-          // Sales return completed - increment inventory
+          // Sales return completed - restock the returned goods
           for (const item of updated.items) {
-            await tx.inventory.upsert({
-              where: {
-                productId_warehouseId: {
-                  productId: item.productId,
-                  warehouseId: updated.warehouseId,
-                },
-              },
-              update: {
-                quantity: {
-                  increment: item.quantity, // Atomic increment
-                },
-              },
-              create: {
-                productId: item.productId,
-                warehouseId: updated.warehouseId,
-                quantity: item.quantity,
-              },
+            if (!updated.warehouseId) continue;
+            await this.stockService.reverseIssue(tx, {
+              productId: item.productId,
+              warehouseId: updated.warehouseId,
+              quantity: item.quantity,
+              reference: updated.referenceNumber,
+              type: 'RETURN',
+              note: `Sales return #${updated.referenceNumber}`,
+              userId: updated.userId,
+              companyId,
             });
-
-            // Get updated inventory for ledger balance
-            const inv = await tx.inventory.findUnique({
-              where: {
-                productId_warehouseId: {
-                  productId: item.productId,
-                  warehouseId: updated.warehouseId,
-                },
-              },
-            });
-
-            // Create stock ledger entry
-            await tx.stockLedger.create({
-              data: {
-                productId: item.productId,
-                warehouseId: updated.warehouseId,
-                userId: updated.userId,
-                quantity: item.quantity,
-                balance: inv?.quantity ?? item.quantity,
-                type: 'RETURN',
-                reference: updated.referenceNumber,
-                note: `Sales return #${updated.referenceNumber}`,
-              },
-            });
+            movedProductIds.add(item.productId);
 
             // Update returned quantity on original sale item if linked
             if (item.saleItemId) {
@@ -324,45 +297,20 @@ export class SalesReturnsService {
           newStatus === 'CANCELLED' &&
           existing.status === 'COMPLETED'
         ) {
-          // Sales return cancelled after being completed - decrement inventory back
+          // Sales return cancelled after being completed - remove restocked goods
           for (const item of updated.items) {
-            await tx.inventory.update({
-              where: {
-                productId_warehouseId: {
-                  productId: item.productId,
-                  warehouseId: updated.warehouseId,
-                },
-              },
-              data: {
-                quantity: {
-                  decrement: item.quantity,
-                },
-              },
+            if (!updated.warehouseId) continue;
+            await this.stockService.issueStock(tx, {
+              productId: item.productId,
+              warehouseId: updated.warehouseId,
+              quantity: item.quantity,
+              reference: updated.referenceNumber,
+              type: 'RETURN',
+              note: `Sales return #${updated.referenceNumber} cancelled`,
+              userId: updated.userId,
+              companyId,
             });
-
-            // Get updated inventory for ledger balance
-            const inv = await tx.inventory.findUnique({
-              where: {
-                productId_warehouseId: {
-                  productId: item.productId,
-                  warehouseId: updated.warehouseId,
-                },
-              },
-            });
-
-            // Create stock ledger entry (negative for reversal)
-            await tx.stockLedger.create({
-              data: {
-                productId: item.productId,
-                warehouseId: updated.warehouseId,
-                userId: updated.userId,
-                quantity: -item.quantity,
-                balance: inv?.quantity ?? 0,
-                type: 'RETURN',
-                reference: updated.referenceNumber,
-                note: `Sales return #${updated.referenceNumber} cancelled`,
-              },
-            });
+            movedProductIds.add(item.productId);
 
             // Reverse returned quantity on original sale item if linked
             if (item.saleItemId) {
@@ -393,43 +341,20 @@ export class SalesReturnsService {
             });
           }
         } else if (newStatus === 'PENDING' && existing.status === 'COMPLETED') {
-          // Sales return reset to pending after being completed - decrement inventory back
+          // Sales return reset to pending after being completed - remove restocked goods
           for (const item of updated.items) {
-            await tx.inventory.update({
-              where: {
-                productId_warehouseId: {
-                  productId: item.productId,
-                  warehouseId: updated.warehouseId,
-                },
-              },
-              data: {
-                quantity: {
-                  decrement: item.quantity,
-                },
-              },
+            if (!updated.warehouseId) continue;
+            await this.stockService.issueStock(tx, {
+              productId: item.productId,
+              warehouseId: updated.warehouseId,
+              quantity: item.quantity,
+              reference: updated.referenceNumber,
+              type: 'RETURN',
+              note: `Sales return #${updated.referenceNumber} reset to pending`,
+              userId: updated.userId,
+              companyId,
             });
-
-            const inv = await tx.inventory.findUnique({
-              where: {
-                productId_warehouseId: {
-                  productId: item.productId,
-                  warehouseId: updated.warehouseId,
-                },
-              },
-            });
-
-            await tx.stockLedger.create({
-              data: {
-                productId: item.productId,
-                warehouseId: updated.warehouseId,
-                userId: updated.userId,
-                quantity: -item.quantity,
-                balance: inv?.quantity ?? 0,
-                type: 'RETURN',
-                reference: updated.referenceNumber,
-                note: `Sales return #${updated.referenceNumber} reset to pending`,
-              },
-            });
+            movedProductIds.add(item.productId);
 
             // Reverse returned quantity on original sale item if linked
             if (item.saleItemId) {
@@ -462,12 +387,19 @@ export class SalesReturnsService {
         }
       }
 
-      return updated;
+      return { updated, movedProductIds: Array.from(movedProductIds) };
     });
 
     await this.cache.del(this.LIST_KEY(companyId));
     await this.cache.del(this.ITEM_KEY(companyId, id));
-    return updated;
+    if (updated.movedProductIds.length > 0) {
+      await this.stockService.invalidateStockCaches(
+        companyId,
+        updated.movedProductIds,
+        updated.updated.warehouseId ? [updated.updated.warehouseId] : [],
+      );
+    }
+    return updated.updated;
   }
 
   /**
@@ -480,45 +412,23 @@ export class SalesReturnsService {
     await this.cache.del(this.LIST_KEY(companyId));
     await this.cache.del(this.ITEM_KEY(companyId, id));
 
-    return await this.prisma.$transaction(async (tx) => {
-      // If completed, reverse inventory changes
+    const removedProductIds: string[] = [];
+    const result = await this.prisma.$transaction(async (tx) => {
+      // If completed, remove the restocked goods again
       if (salesReturn.status === 'COMPLETED') {
         for (const item of salesReturn.items) {
-          await tx.inventory.update({
-            where: {
-              productId_warehouseId: {
-                productId: item.productId,
-                warehouseId: salesReturn.warehouseId,
-              },
-            },
-            data: {
-              quantity: {
-                decrement: item.quantity,
-              },
-            },
+          if (!salesReturn.warehouseId) continue;
+          await this.stockService.issueStock(tx, {
+            productId: item.productId,
+            warehouseId: salesReturn.warehouseId,
+            quantity: item.quantity,
+            reference: salesReturn.referenceNumber,
+            type: 'RETURN',
+            note: `Sales return #${salesReturn.referenceNumber} deleted`,
+            userId: salesReturn.userId,
+            companyId,
           });
-
-          const inv = await tx.inventory.findUnique({
-            where: {
-              productId_warehouseId: {
-                productId: item.productId,
-                warehouseId: salesReturn.warehouseId,
-              },
-            },
-          });
-
-          await tx.stockLedger.create({
-            data: {
-              productId: item.productId,
-              warehouseId: salesReturn.warehouseId,
-              userId: salesReturn.userId,
-              quantity: -item.quantity,
-              balance: inv?.quantity ?? 0,
-              type: 'RETURN',
-              reference: salesReturn.referenceNumber,
-              note: `Sales return #${salesReturn.referenceNumber} deleted`,
-            },
-          });
+          removedProductIds.push(item.productId);
         }
       }
 
@@ -554,5 +464,14 @@ export class SalesReturnsService {
 
       return { message: 'Sales return deleted successfully' };
     });
+
+    if (removedProductIds.length > 0) {
+      await this.stockService.invalidateStockCaches(
+        companyId,
+        removedProductIds,
+        salesReturn.warehouseId ? [salesReturn.warehouseId] : [],
+      );
+    }
+    return result;
   }
 }

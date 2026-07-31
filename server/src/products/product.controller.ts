@@ -205,7 +205,12 @@ export class ProductController {
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
   async updateStock(
     @Param('id') id: string,
-    @Body() body: { quantity: number; operation: 'add' | 'subtract' },
+    @Body()
+    body: {
+      quantity: number;
+      operation: 'add' | 'subtract';
+      warehouseId?: string;
+    },
     @CompanyId() companyId: string,
   ) {
     return this.productService.updateStock(
@@ -213,6 +218,7 @@ export class ProductController {
       body.quantity,
       body.operation,
       companyId,
+      body.warehouseId,
     );
   }
 

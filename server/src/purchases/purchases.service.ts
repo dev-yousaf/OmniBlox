@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-logs/audit-logs.service';
 import { CacheService } from '../cache/cache.service';
+import { StockService } from '../inventory/stock.service';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
@@ -21,6 +22,7 @@ export class PurchasesService {
     private readonly prisma: PrismaService,
     private readonly auditLogService: AuditLogService,
     private cache: CacheService,
+    private readonly stockService: StockService,
   ) {}
 
   /**
@@ -392,52 +394,17 @@ export class PurchasesService {
           },
         });
 
-        // 3. Update inventory for each item using atomic increment
-        await Promise.all(
-          purchaseOrder.items.map((item) =>
-            tx.inventory.upsert({
-              where: {
-                productId_warehouseId: {
-                  productId: item.productId,
-                  warehouseId: warehouseId,
-                },
-              },
-              create: {
-                productId: item.productId,
-                warehouseId: warehouseId,
-                quantity: item.quantity,
-              },
-              update: {
-                quantity: {
-                  increment: item.quantity,
-                },
-              },
-            }),
-          ),
-        );
-
-        // Create stock ledger entries for each received item
+        // 3. Update inventory for each item using the central stock service
         for (const item of purchaseOrder.items) {
-          const inv = await tx.inventory.findUnique({
-            where: {
-              productId_warehouseId: {
-                productId: item.productId,
-                warehouseId,
-              },
-            },
-          });
-
-          await tx.stockLedger.create({
-            data: {
-              productId: item.productId,
-              warehouseId,
-              userId: purchaseOrder.userId,
-              quantity: item.quantity,
-              balance: inv?.quantity ?? item.quantity,
-              type: 'PURCHASE',
-              reference: purchaseOrder.referenceNumber,
-              note: `Purchase order #${purchaseOrder.referenceNumber} received`,
-            },
+          await this.stockService.receiveStock(tx, {
+            productId: item.productId,
+            warehouseId: warehouseId,
+            quantity: item.quantity,
+            reference: purchaseOrder.referenceNumber,
+            type: 'PURCHASE',
+            note: `Purchase order #${purchaseOrder.referenceNumber} received`,
+            userId: purchaseOrder.userId,
+            companyId,
           });
         }
 
@@ -506,6 +473,11 @@ export class PurchasesService {
     this.cache.del(LIST_KEY(companyId));
     this.cache.del(DASHBOARD_KEY(companyId));
     this.cache.del(STATS_KEY(companyId));
+    await this.stockService.invalidateStockCaches(
+      companyId,
+      result.items.map((item) => item.productId),
+      [warehouseId],
+    );
 
     try {
       const user = await this.prisma.user.findUnique({
