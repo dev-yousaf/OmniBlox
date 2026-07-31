@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://omniblox.onrender.com/:path*"
+      "destination": "https://omniblox-iom7.onrender.com/:path*"
     }
   ]
 }
