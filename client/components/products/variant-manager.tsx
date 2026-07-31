@@ -88,7 +88,7 @@ function AttributeEditor({
               }}
               disabled={disabled}
                 >                  <SelectTrigger className="h-8 w-32 text-xs rounded-[5px]">
-                    <SelectValue placeholder="Warehouse" />
+                    <SelectValue placeholder="Preset" />
                   </SelectTrigger>
               <SelectContent>
                 {presets.map((a) => (

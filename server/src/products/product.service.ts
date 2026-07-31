@@ -649,6 +649,12 @@ export class ProductService {
           updateData[key] = value;
         }
       }
+      // Some deployed Prisma clients require reorderLevel on every update;
+      // echo the stored value so combo/DIGITAL/SERVICE edits never fail with
+      // "Argument `reorderLevel` is missing".
+      if (updateData.reorderLevel === undefined) {
+        updateData.reorderLevel = existingProduct.reorderLevel ?? 0;
+      }
       // Remove fields from DTO that don't exist on Product model
       for (const key of ['warehouseId', 'itemCode', 'manufacturer', 'warranty']) {
         delete updateData[key];
