@@ -90,7 +90,9 @@ interface FormErrors {
 }
 
 interface ProductFormProps {
-  initialData?: Partial<ProductFormData>;
+  initialData?: Partial<ProductFormData> & {
+    inventory?: { warehouseId: string; warehouseName: string; quantity: number }[];
+  };
   isEdit?: boolean;
   productId?: string;
   onSuccess?: (product?: Product) => void;
@@ -171,6 +173,117 @@ function FormField({
   );
 }
 
+function PricingFields({
+  formData,
+  errors,
+  includeQuantity,
+  hideWarehouse,
+  selectedWarehouseId,
+  setSelectedWarehouseId,
+  warehouses,
+  readOnlyQuantity = false,
+  readOnlyWarehouse = false,
+  warehouseLabel,
+  onInputChange,
+}: {
+  formData: ProductFormData;
+  errors: FormErrors;
+  includeQuantity: boolean;
+  hideWarehouse: boolean;
+  selectedWarehouseId: string;
+  setSelectedWarehouseId: (id: string) => void;
+  warehouses: { id: string; name: string }[];
+  readOnlyQuantity?: boolean;
+  readOnlyWarehouse?: boolean;
+  warehouseLabel?: string;
+  onInputChange: (field: keyof ProductFormData, value: string) => void;
+}) {
+  return (
+    <>
+      <div className="flex gap-4">
+        {includeQuantity && (
+          <FormField label="Quantity" required fieldName="stock" error={errors.stock} className="flex-1">
+            <Input type="number" placeholder="0" value={formData.stock}
+              disabled={readOnlyQuantity}
+              onChange={(e) => onInputChange("stock", e.target.value)}
+              className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+            {readOnlyQuantity && (
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Stock is managed via transfers &amp; adjustments
+              </p>
+            )}
+          </FormField>
+        )}
+        {!hideWarehouse && (
+          <FormField label="Warehouse" className="flex-1">
+            {readOnlyWarehouse ? (
+              <div className="h-[38px] rounded-[5px] border bg-muted/40 px-3 py-[7px] text-[14px] text-muted-foreground flex items-center truncate">
+                {warehouseLabel || "Not assigned"}
+              </div>
+            ) : (
+              <Select value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
+                <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  {warehouses.length > 0 ? warehouses.map((wh) => (
+                    <SelectItem key={wh.id} value={wh.id}>{wh.name}</SelectItem>
+                  )) : (
+                    <SelectItem value="__none" disabled>No warehouses (auto-created)</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            )}
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {readOnlyWarehouse
+                ? "Warehouse is managed via transfers &amp; adjustments"
+                : "Stock will be assigned to this warehouse"}
+            </p>
+          </FormField>
+        )}
+        <FormField label="Price" required fieldName="salePrice" error={errors.salePrice} className="flex-1">
+          <Input type="number" step="0.01" placeholder="0.00" value={formData.salePrice}
+            onChange={(e) => onInputChange("salePrice", e.target.value)} required
+            className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+        </FormField>
+        <FormField label="Tax Type" required fieldName="taxRate" error={errors.taxRate} className="flex-1">
+          <Select value={formData.taxRate || "0"} onValueChange={(value) => onInputChange("taxRate", value)}>
+            <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
+              <SelectValue placeholder="Select" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">No Tax</SelectItem>
+              <SelectItem value="5">5%</SelectItem>
+              <SelectItem value="10">10%</SelectItem>
+              <SelectItem value="12">12%</SelectItem>
+              <SelectItem value="18">18%</SelectItem>
+              <SelectItem value="20">20%</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
+      </div>
+
+      <div className="flex gap-4">
+        <FormField label="Reorder Level" fieldName="reorderLevel" error={errors.reorderLevel} className="flex-1">
+          <Input type="number" placeholder="0" value={formData.reorderLevel}
+            onChange={(e) => onInputChange("reorderLevel", e.target.value)}
+            className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+        </FormField>
+        <FormField label="Cost Price" fieldName="costPrice" error={errors.costPrice} className="flex-1">
+          <Input type="number" step="0.01" placeholder="0.00" value={formData.costPrice}
+            onChange={(e) => onInputChange("costPrice", e.target.value)}
+            className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+        </FormField>
+        <FormField label="Quantity Alert" className="flex-1">
+          <Input type="number" placeholder="0" value={formData.alertQuantity}
+            onChange={(e) => onInputChange("alertQuantity", e.target.value)}
+            className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+        </FormField>
+      </div>
+    </>
+  );
+}
+
 const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
   function ProductForm({ initialData, isEdit = false, productId, onSuccess, hideWarehouse = false, formId, onSubmittingChange = () => {}, showSubmit = true }, ref) {
     const router = useRouter();
@@ -204,6 +317,16 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
 
     const [variantsPayload, setVariantsPayload] = useState<VariantPayload[]>([]);
     const [parentAttributes, setParentAttributes] = useState<Record<string, string> | null>(null);
+    const [unifiedVariantDetails, setUnifiedVariantDetails] = useState(true);
+
+    const currentWarehouseLabel = useMemo(
+      () =>
+        (initialData?.inventory ?? [])
+          .map((inv) => inv.warehouseName)
+          .filter(Boolean)
+          .join(", ") || undefined,
+      [initialData]
+    );
 
     const [comboSearchQuery, setComboSearchQuery] = useState("");
     const [comboSearchResults, setComboSearchResults] = useState<
@@ -376,7 +499,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
       if (!formData.barcodeSymbology) newErrors.barcodeSymbology = "Barcode symbology is required";
       const finalCategory = showCustomCategory ? formData.customCategory : formData.category;
       if (!finalCategory.trim()) newErrors.category = "Category is required";
-      if (!formData.hasVariants && (!formData.salePrice || parseFloat(formData.salePrice) < 0)) newErrors.salePrice = "Valid sale price is required";
+      if ((!formData.hasVariants || (unifiedVariantDetails && !isEdit)) && (!formData.salePrice || parseFloat(formData.salePrice) < 0)) newErrors.salePrice = "Valid sale price is required";
       if (formData.costPrice && parseFloat(formData.costPrice) < 0) newErrors.costPrice = "Cost price cannot be negative";
       if (formData.taxRate && (parseFloat(formData.taxRate) < 0 || parseFloat(formData.taxRate) > 100)) newErrors.taxRate = "Tax rate must be between 0 and 100";
       setErrors(newErrors);
@@ -433,7 +556,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
           expiryDate: customFieldsEnabled.expiry ? formData.expiryDate || undefined : undefined,
           salePrice: parentSalePrice,
           costPrice: parentCostPrice,
-          stock: isDigitalOrService ? undefined : parseInt(formData.stock) || undefined,
+          stock: isEdit ? undefined : (isDigitalOrService ? undefined : parseInt(formData.stock) || undefined),
           reorderLevel: isDigitalOrService || isCombo ? undefined : parseInt(formData.reorderLevel) || undefined,
           alertQuantity: formData.alertQuantity ? parseInt(formData.alertQuantity) : undefined,
           barcodeSymbology: formData.barcodeSymbology,
@@ -457,7 +580,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
           await updateProduct(productId, productData);
           toast({ title: "Success", description: "Product updated successfully" });
         } else {
-          if (selectedWarehouseId) productData.warehouseId = selectedWarehouseId;
+          if (!isEdit && selectedWarehouseId) productData.warehouseId = selectedWarehouseId;
           const created = await createProduct(productData as any);
           const whName = warehouses.find((w) => w.id === selectedWarehouseId)?.name || "Default Warehouse";
           toast({ title: "Success", description: `Product created with ${formData.stock || 0} units in ${whName}` });
@@ -669,87 +792,72 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
             </div>
 
             {!formData.hasVariants ? (
-              <>
-                <div className="flex gap-4">
-                  <FormField label="Quantity" required fieldName="stock" error={errors.stock} className="flex-1">
-                    <Input type="number" placeholder="0" value={formData.stock}
-                      onChange={(e) => handleInputChange("stock", e.target.value)}
-                      className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
-                  </FormField>
-                  {!hideWarehouse && (
-                    <FormField label="Warehouse" className="flex-1">
-                      <Select value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
-                        <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
-                          <SelectValue placeholder="Select" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {warehouses.length > 0 ? warehouses.map((wh) => (
-                            <SelectItem key={wh.id} value={wh.id}>{wh.name}</SelectItem>
-                          )) : (
-                            <SelectItem value="__none" disabled>No warehouses (auto-created)</SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-[11px] text-muted-foreground mt-1">Stock will be assigned to this warehouse</p>
-                    </FormField>
-                  )}
-                  <FormField label="Price" required fieldName="salePrice" error={errors.salePrice} className="flex-1">
-                    <Input type="number" step="0.01" placeholder="0.00" value={formData.salePrice}
-                      onChange={(e) => handleInputChange("salePrice", e.target.value)} required
-                      className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
-                  </FormField>
-                  <FormField label="Tax Type" required fieldName="taxRate" error={errors.taxRate} className="flex-1">
-                    <Select value={formData.taxRate || "0"} onValueChange={(value) => handleInputChange("taxRate", value)}>
-                      <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">No Tax</SelectItem>
-                        <SelectItem value="5">5%</SelectItem>
-                        <SelectItem value="10">10%</SelectItem>
-                        <SelectItem value="12">12%</SelectItem>
-                        <SelectItem value="18">18%</SelectItem>
-                        <SelectItem value="20">20%</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormField>
-                </div>
-
-                <div className="flex gap-4">
-                  <FormField label="Reorder Level" fieldName="reorderLevel" error={errors.reorderLevel} className="flex-1">
-                    <Input type="number" placeholder="0" value={formData.reorderLevel}
-                      onChange={(e) => handleInputChange("reorderLevel", e.target.value)}
-                      className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
-                  </FormField>
-                  <FormField label="Cost Price" fieldName="costPrice" error={errors.costPrice} className="flex-1">
-                    <Input type="number" step="0.01" placeholder="0.00" value={formData.costPrice}
-                      onChange={(e) => handleInputChange("costPrice", e.target.value)}
-                      className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
-                  </FormField>
-                  <FormField label="Quantity Alert" className="flex-1">
-                    <Input type="number" placeholder="0" value={formData.alertQuantity}
-                      onChange={(e) => handleInputChange("alertQuantity", e.target.value)}
-                      className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
-                  </FormField>
-                </div>
-              </>
-            ) : (
-              <VariantManager
-                mode={isEdit ? "edit" : "create"}
-                parentId={isEdit ? productId : undefined}
-                parentName={formData.name}
-                parentSku={formData.sku}
-                parentCategory={showCustomCategory ? formData.customCategory : formData.category}
-                warehouseId={selectedWarehouseId}
+              <PricingFields
+                formData={formData}
+                errors={errors}
+                includeQuantity
+                hideWarehouse={hideWarehouse}
+                selectedWarehouseId={selectedWarehouseId}
+                setSelectedWarehouseId={setSelectedWarehouseId}
                 warehouses={warehouses}
-                defaultSalePrice={formData.salePrice}
-                defaultCostPrice={formData.costPrice}
-                defaultReorderLevel={formData.reorderLevel}
-                defaultTaxRate={formData.taxRate}
-                initialAttributes={formData.attributes}
-                onVariantsChange={setVariantsPayload}
-                onAttributesChange={setParentAttributes}
+                readOnlyQuantity={isEdit}
+                readOnlyWarehouse={isEdit}
+                warehouseLabel={currentWarehouseLabel}
+                onInputChange={handleInputChange}
               />
+            ) : (
+              <>
+                {!isEdit && (
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={unifiedVariantDetails}
+                      onChange={(e) => setUnifiedVariantDetails(e.target.checked)}
+                      className="w-4 h-4 accent-[#fe9f43]"
+                    />
+                    <span className="text-[14px] text-[#212b36] dark:text-card-foreground">
+                      Use same details for all variants
+                    </span>
+                    <span className="text-[12px] text-muted-foreground">
+                      (price, cost, warehouse, reorder level &amp; tax)
+                    </span>
+                  </label>
+                )}
+                {unifiedVariantDetails && !isEdit && (
+                  <>
+                    <PricingFields
+                      formData={formData}
+                      errors={errors}
+                      includeQuantity={false}
+                      hideWarehouse={hideWarehouse}
+                      selectedWarehouseId={selectedWarehouseId}
+                      setSelectedWarehouseId={setSelectedWarehouseId}
+                      warehouses={warehouses}
+                      onInputChange={handleInputChange}
+                    />
+                    <p className="text-[12px] text-muted-foreground -mt-1">
+                      These details are applied to every variant — only SKU and quantity are entered per variant below.
+                    </p>
+                  </>
+                )}
+                <VariantManager
+                  mode={isEdit ? "edit" : "create"}
+                  parentId={isEdit ? productId : undefined}
+                  parentName={formData.name}
+                  parentSku={formData.sku}
+                  parentCategory={showCustomCategory ? formData.customCategory : formData.category}
+                  warehouseId={selectedWarehouseId}
+                  warehouses={warehouses}
+                  defaultSalePrice={formData.salePrice}
+                  defaultCostPrice={formData.costPrice}
+                  defaultReorderLevel={formData.reorderLevel}
+                  defaultTaxRate={formData.taxRate}
+                  initialAttributes={formData.attributes}
+                  unified={unifiedVariantDetails && !isEdit}
+                  onVariantsChange={setVariantsPayload}
+                  onAttributesChange={setParentAttributes}
+                />
+              </>
             )}
 
             <div className="flex gap-4 pt-2">

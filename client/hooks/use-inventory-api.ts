@@ -176,6 +176,18 @@ export function useInventoryApi() {
     [del]
   );
 
+  const removeProductFromWarehouse = useCallback(
+    async (
+      productId: string,
+      warehouseId: string
+    ): Promise<{ message: string }> => {
+      return del(
+        `/inventory/warehouses/${warehouseId}/products/${productId}`
+      ) as Promise<{ message: string }>;
+    },
+    [del]
+  );
+
   const getWarehouseInventory = useCallback(
     async (warehouseId: string): Promise<WarehouseInventory> => {
       return get(
@@ -297,6 +309,7 @@ export function useInventoryApi() {
     getWarehouse,
     updateWarehouse,
     deleteWarehouse,
+    removeProductFromWarehouse,
     getWarehouseInventory,
 
     // Inventory

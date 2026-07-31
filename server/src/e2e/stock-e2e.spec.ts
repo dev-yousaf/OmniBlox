@@ -852,8 +852,15 @@ describe('Stock E2E on live DB', () => {
     expect(storedParent?.hasVariants).toBe(true);
     expect(storedParent?.attributes).toEqual({ Color: 'Red,Blue', Size: 'S,M' });
 
-    // All surfaces agree (derived totals on parent = 40)
-    expect((await productsTable(parentSku)).stock).toBe(40);
+    // Parent is a container, not a sellable product: never in the list.
+    // Variants appear individually with their own stock.
+    expect((await productsTable(parentSku)).id).toBeUndefined();
+    const variantRows: { id: string; stock: number }[] = [];
+    for (const v of variants as any[]) {
+      variantRows.push(await productsTable(v.sku));
+    }
+    expect(variantRows.reduce((s, r) => s + r.stock, 0)).toBe(40);
+    log('STEP6: parent hidden from list; 4 variant rows sum to 40');
 
     // SKU collisions must be rejected
     const v0 = (variants as any[])[0];
@@ -1034,7 +1041,12 @@ describe('Stock E2E on live DB', () => {
     expect(await inventoryTable(v2.id, wh1)).toBe(9);
     expect(await inventoryTable(v1.id, wh1)).toBe(10);
     expect(await inventoryTable(v3.id, wh1)).toBe(10);
-    expect((await productsTable((parent as any).sku)).stock).toBe(29);
+    expect((await productsTable((parent as any).sku)).id).toBeUndefined();
+    const step8Rows: { id: string; stock: number }[] = [];
+    for (const v of [v1, v2, v3]) {
+      step8Rows.push(await productsTable(v.sku));
+    }
+    expect(step8Rows.reduce((s, r) => s + r.stock, 0)).toBe(29);
     const v2Rows = await ledger(v2.id, wh1);
     expect(v2Rows.map((r) => r.type)).toEqual(['INITIAL', 'SALE']);
     expect(v2Rows[1].quantity).toBe(-1);
@@ -1170,5 +1182,57 @@ describe('Stock E2E on live DB', () => {
     expect(variantLedger.filter((r) => r.type === 'SALE')[0].quantity).toBe(-1);
     expect(c1Ledger.filter((r) => r.type === 'SALE')[0].quantity).toBe(-1);
     log('STEP9: one tx -> plain=8 (SALE -2), variant=7 (SALE -1), C1=9 C2=9, combo avail 9');
+  });
+
+  test('STEP 10: remove product from warehouse - blocked with stock, works at 0', async () => {
+    const p = await productService.create(
+      {
+        name: 'E2E Wh Remove',
+        sku: `E2E-WHR-${Date.now()}`,
+        category: 'E2E',
+        salePrice: 1,
+        costPrice: 1,
+        stock: 5,
+        warehouseId: wh1,
+      },
+      companyId,
+      userId,
+    );
+    const pid = (p as any).id;
+    productIds.push(pid);
+
+    await expect(
+      inventoryService.removeProductFromWarehouse(companyId, pid, wh1),
+    ).rejects.toThrow(/stock to 0/);
+
+    await prisma.$transaction((tx) =>
+      stockService.adjustStock(tx, {
+        companyId,
+        productId: pid,
+        warehouseId: wh1,
+        newQuantity: 0,
+        reference: 'E2E-WHR-0',
+        type: 'ADJUSTMENT',
+        note: 'e2e zero out',
+        userId,
+      }),
+    );
+
+    const result = await inventoryService.removeProductFromWarehouse(
+      companyId,
+      pid,
+      wh1,
+    );
+    expect((result as any).message).toContain('removed from');
+
+    const row = await prisma.inventory.findUnique({
+      where: { productId_warehouseId: { productId: pid, warehouseId: wh1 } },
+    });
+    expect(row).toBeNull();
+
+    await expect(
+      inventoryService.removeProductFromWarehouse(companyId, pid, wh1),
+    ).rejects.toThrow(/not in this warehouse/);
+    log('STEP10: removal blocked at qty 5, succeeds at qty 0, row deleted');
   });
 });

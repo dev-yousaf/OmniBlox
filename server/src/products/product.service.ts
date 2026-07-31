@@ -382,6 +382,16 @@ export class ProductService {
         );
       }
 
+      // Adding a variant under an existing parent (details-page flow):
+      // mark the parent as a variable product so its page renders the
+      // variant manager.
+      if (createProductDto.parentId) {
+        await this.prisma.product.update({
+          where: { id: createProductDto.parentId },
+          data: { hasVariants: true },
+        });
+      }
+
       return this.transformToDto(product, stock);
     } catch (error: any) {
       throw new BadRequestException(
@@ -418,6 +428,11 @@ export class ProductService {
 
     const where: any = {
       companyId, // Golden Rule: always filter by companyId
+      // Variant parents are containers, not sellable products: they never
+      // appear in lists/pickers. Singles (hasVariants false) and variant
+      // children (parentId set) are listed; containers (hasVariants true,
+      // parentId null) are excluded.
+      AND: [{ OR: [{ hasVariants: false }, { parentId: { not: null } }] }],
     };
 
     // Combos hold no inventory rows of their own; include them in
@@ -434,13 +449,8 @@ export class ProductService {
         ]
       : null;
 
-    if (searchClauses && whClauses) {
-      where.AND = [{ OR: searchClauses }, { OR: whClauses }];
-    } else if (searchClauses) {
-      where.OR = searchClauses;
-    } else if (whClauses) {
-      where.OR = whClauses;
-    }
+    if (searchClauses) where.AND.push({ OR: searchClauses });
+    if (whClauses) where.AND.push({ OR: whClauses });
 
     if (category) {
       where.category = {
@@ -472,18 +482,6 @@ export class ProductService {
               warehouse: true,
             },
           },
-          variants: {
-            include: {
-              category: true,
-              brand: true,
-              createdBy: { select: { id: true, name: true, image: true } },
-              inventory: {
-                include: {
-                  warehouse: true,
-                },
-              },
-            },
-          },
         },
       }),
       this.prisma.product.count({ where }),
@@ -505,21 +503,6 @@ export class ProductService {
         let stock: number;
         if (product.type === 'COMBO') {
           stock = derivedStock.get(product.id) ?? 0;
-        } else if (product.hasVariants && product.variants?.length) {
-          // Variant parents hold no stock themselves; surface the sum of
-          // child variant inventory (respecting warehouse filters).
-          stock = product.variants.reduce((sum, v) => {
-            const inv = warehouseId
-              ? v.inventory.filter((i) => i.warehouseId === warehouseId)
-              : v.inventory;
-            return sum + inv.reduce((s, i) => s + i.quantity, 0);
-          }, 0);
-          if (!warehouseId) {
-            stock += product.inventory.reduce(
-              (sum, inv) => sum + inv.quantity,
-              0,
-            );
-          }
         } else if (warehouseId) {
           const warehouseInv = product.inventory.find(
             (inv) => inv.warehouseId === warehouseId,
@@ -548,6 +531,7 @@ export class ProductService {
       include: {
         category: true,
         brand: true,
+        parent: { select: { id: true, name: true, sku: true } },
         inventory: { include: { warehouse: true } },
         comboComponents: {
           include: { product: { select: { name: true, sku: true } } },
@@ -1343,6 +1327,13 @@ export class ProductService {
       hasVariants: product.hasVariants ?? false,
       attributes: product.attributes || null,
       parentId: product.parentId || null,
+      parent: product.parent
+        ? {
+            id: product.parent.id,
+            name: product.parent.name,
+            sku: product.parent.sku,
+          }
+        : null,
       inventory: product.inventory
         ? product.inventory.map((inv: any) => ({
             warehouseId: inv.warehouseId,

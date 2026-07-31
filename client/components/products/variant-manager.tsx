@@ -50,6 +50,7 @@ export interface VariantManagerProps {
   defaultTaxRate?: string;
   initialAttributes?: Record<string, string> | null;
   canManage?: boolean;
+  unified?: boolean;
   onVariantsChange?: (payload: VariantPayload[]) => void;
   onAttributesChange?: (attrs: Record<string, string> | null) => void;
 }
@@ -154,12 +155,22 @@ function DraftsTable({
   drafts,
   warehouses,
   disabled,
+  locked,
+  lockedValues,
   onUpdate,
   onRemove,
 }: {
   drafts: VariantPayload[];
   warehouses?: { id: string; name: string }[];
   disabled?: boolean;
+  locked?: boolean;
+  lockedValues?: {
+    salePrice: number;
+    costPrice: number;
+    reorderLevel: number;
+    taxRate: number;
+    warehouseId?: string;
+  };
   onUpdate: (
     index: number,
     field: "salePrice" | "costPrice" | "stock" | "sku" | "reorderLevel" | "taxRate" | "warehouseId",
@@ -167,8 +178,15 @@ function DraftsTable({
   ) => void;
   onRemove: (index: number) => void;
 }) {
+  const lockedWarehouse = warehouses?.find((w) => w.id === lockedValues?.warehouseId);
   return (
-    <div className="overflow-x-auto rounded border">
+    <div className="space-y-1">
+      {locked && (
+        <p className="text-[12px] text-muted-foreground">
+          Shared details apply to all variants — edit them in the fields above (only SKU & stock are per variant).
+        </p>
+      )}
+      <div className="overflow-x-auto rounded border">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b bg-muted/50">
@@ -196,24 +214,36 @@ function DraftsTable({
                 />
               </td>
               <td className="px-3 py-2">
-                <Input
-                  type="number"
-                  step="0.01"
-                  className="h-8 text-xs w-24"
-                  value={variant.salePrice}
-                  disabled={disabled}
-                  onChange={(e) => onUpdate(index, "salePrice", e.target.value)}
-                />
+                {locked && lockedValues ? (
+                  <span className="text-xs text-muted-foreground">
+                    ${lockedValues.salePrice.toFixed(2)}
+                  </span>
+                ) : (
+                  <Input
+                    type="number"
+                    step="0.01"
+                    className="h-8 text-xs w-24"
+                    value={variant.salePrice}
+                    disabled={disabled}
+                    onChange={(e) => onUpdate(index, "salePrice", e.target.value)}
+                  />
+                )}
               </td>
               <td className="px-3 py-2">
-                <Input
-                  type="number"
-                  step="0.01"
-                  className="h-8 text-xs w-24"
-                  value={variant.costPrice}
-                  disabled={disabled}
-                  onChange={(e) => onUpdate(index, "costPrice", e.target.value)}
-                />
+                {locked && lockedValues ? (
+                  <span className="text-xs text-muted-foreground">
+                    ${lockedValues.costPrice.toFixed(2)}
+                  </span>
+                ) : (
+                  <Input
+                    type="number"
+                    step="0.01"
+                    className="h-8 text-xs w-24"
+                    value={variant.costPrice}
+                    disabled={disabled}
+                    onChange={(e) => onUpdate(index, "costPrice", e.target.value)}
+                  />
+                )}
               </td>
               <td className="px-3 py-2">
                 <Input
@@ -225,56 +255,74 @@ function DraftsTable({
                 />
               </td>
               <td className="px-3 py-2">
-                <Input
-                  type="number"
-                  className="h-8 text-xs w-20"
-                  value={variant.reorderLevel ?? ""}
-                  disabled={disabled}
-                  onChange={(e) => onUpdate(index, "reorderLevel", e.target.value)}
-                />
+                {locked && lockedValues ? (
+                  <span className="text-xs text-muted-foreground">
+                    {lockedValues.reorderLevel}
+                  </span>
+                ) : (
+                  <Input
+                    type="number"
+                    className="h-8 text-xs w-20"
+                    value={variant.reorderLevel ?? ""}
+                    disabled={disabled}
+                    onChange={(e) => onUpdate(index, "reorderLevel", e.target.value)}
+                  />
+                )}
               </td>
               <td className="px-3 py-2">
-                <Select
-                  value={(variant.taxRate ?? 0).toString()}
-                  onValueChange={(value) => onUpdate(index, "taxRate", value)}
-                  disabled={disabled}
-                >
-                  <SelectTrigger className="h-8 w-20 text-xs rounded-[5px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">No Tax</SelectItem>
-                    <SelectItem value="5">5%</SelectItem>
-                    <SelectItem value="10">10%</SelectItem>
-                    <SelectItem value="12">12%</SelectItem>
-                    <SelectItem value="18">18%</SelectItem>
-                    <SelectItem value="20">20%</SelectItem>
-                  </SelectContent>
-                </Select>
+                {locked && lockedValues ? (
+                  <span className="text-xs text-muted-foreground">
+                    {lockedValues.taxRate > 0 ? `${lockedValues.taxRate}%` : "No Tax"}
+                  </span>
+                ) : (
+                  <Select
+                    value={(variant.taxRate ?? 0).toString()}
+                    onValueChange={(value) => onUpdate(index, "taxRate", value)}
+                    disabled={disabled}
+                  >
+                    <SelectTrigger className="h-8 w-20 text-xs rounded-[5px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">No Tax</SelectItem>
+                      <SelectItem value="5">5%</SelectItem>
+                      <SelectItem value="10">10%</SelectItem>
+                      <SelectItem value="12">12%</SelectItem>
+                      <SelectItem value="18">18%</SelectItem>
+                      <SelectItem value="20">20%</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </td>
               <td className="px-3 py-2">
-                <Select
-                  value={variant.warehouseId ?? ""}
-                  onValueChange={(value) => onUpdate(index, "warehouseId", value)}
-                  disabled={disabled || !warehouses || warehouses.length === 0}
-                >
-                  <SelectTrigger className="h-8 w-32 text-xs rounded-[5px]">
-                    <SelectValue placeholder="Warehouse" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouses && warehouses.length > 0 ? (
-                      warehouses.map((wh) => (
-                        <SelectItem key={wh.id} value={wh.id}>
-                          {wh.name}
+                {locked && lockedValues ? (
+                  <span className="text-xs text-muted-foreground">
+                    {lockedWarehouse ? lockedWarehouse.name : "—"}
+                  </span>
+                ) : (
+                  <Select
+                    value={variant.warehouseId ?? ""}
+                    onValueChange={(value) => onUpdate(index, "warehouseId", value)}
+                    disabled={disabled || !warehouses || warehouses.length === 0}
+                  >
+                    <SelectTrigger className="h-8 w-32 text-xs rounded-[5px]">
+                      <SelectValue placeholder="Warehouse" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses && warehouses.length > 0 ? (
+                        warehouses.map((wh) => (
+                          <SelectItem key={wh.id} value={wh.id}>
+                            {wh.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="__none" disabled>
+                          No warehouses
                         </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="__none" disabled>
-                        No warehouses
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
               </td>
               <td className="px-3 py-2">
                 <Button
@@ -292,6 +340,7 @@ function DraftsTable({
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
@@ -310,6 +359,7 @@ export function VariantManager({
   defaultTaxRate,
   initialAttributes,
   canManage = true,
+  unified = false,
   onVariantsChange,
   onAttributesChange,
 }: VariantManagerProps) {
@@ -332,20 +382,31 @@ export function VariantManager({
     initialAttributes,
   });
 
+  const unifiedValues = useMemo(
+    () => ({
+      salePrice: parseFloat(defaultSalePrice ?? "") || 0,
+      costPrice: parseFloat(defaultCostPrice ?? "") || 0,
+      reorderLevel: parseInt(defaultReorderLevel ?? "") || 0,
+      taxRate: parseFloat(defaultTaxRate ?? "") || 0,
+      warehouseId: warehouseId || undefined,
+    }),
+    [defaultSalePrice, defaultCostPrice, defaultReorderLevel, defaultTaxRate, warehouseId],
+  );
+
   const payload = useMemo<VariantPayload[]>(
     () =>
       variants.drafts.map((d) => ({
         sku: d.sku,
         name: d.name,
-        salePrice: parseFloat(d.salePrice) || 0,
-        costPrice: parseFloat(d.costPrice) || 0,
+        salePrice: unified ? unifiedValues.salePrice : parseFloat(d.salePrice) || 0,
+        costPrice: unified ? unifiedValues.costPrice : parseFloat(d.costPrice) || 0,
         stock: parseInt(d.stock) || 0,
-        reorderLevel: parseInt(d.reorderLevel) || 0,
-        taxRate: parseFloat(d.taxRate) || 0,
-        warehouseId: d.warehouseId || undefined,
+        reorderLevel: unified ? unifiedValues.reorderLevel : parseInt(d.reorderLevel) || 0,
+        taxRate: unified ? unifiedValues.taxRate : parseFloat(d.taxRate) || 0,
+        warehouseId: unified ? unifiedValues.warehouseId : d.warehouseId || undefined,
         attributes: d.attributes,
       })),
-    [variants.drafts],
+    [variants.drafts, unified, unifiedValues],
   );
 
   const warehouseColumns = useMemo(() => {
@@ -646,6 +707,8 @@ export function VariantManager({
             <DraftsTable
               drafts={payload}
               warehouses={warehouses}
+              locked={unified}
+              lockedValues={unified ? unifiedValues : undefined}
               onUpdate={(index, field, value) =>
                 variants.updateDraft(index, field, value)
               }
@@ -677,6 +740,8 @@ export function VariantManager({
                 <DraftsTable
                   drafts={payload}
                   warehouses={warehouses}
+                  locked={unified}
+                  lockedValues={unified ? unifiedValues : undefined}
                   onUpdate={(index, field, value) =>
                     variants.updateDraft(index, field, value)
                   }

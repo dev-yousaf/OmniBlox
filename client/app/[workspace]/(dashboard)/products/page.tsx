@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import {
   MoreHorizontal,
@@ -13,7 +13,6 @@ import {
   RefreshCw,
   Minus,
   ChevronDown,
-  ChevronRight,
   Loader2,
   ImageIcon,
   CirclePlus,
@@ -81,9 +80,6 @@ export default function ProductsPage() {
   const [bulkSalePrice, setBulkSalePrice] = useState("");
   const [bulkCostPrice, setBulkCostPrice] = useState("");
 
-  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
-  const [expandedVariants, setExpandedVariants] = useState<Record<string, Product[]>>({});
-  const [expandedLoading, setExpandedLoading] = useState<Record<string, boolean>>({});
   const {
     getProducts,
     deleteProduct,
@@ -91,7 +87,6 @@ export default function ProductsPage() {
     exportCsv,
     exportExcel,
     bulkUpdatePrice,
-    getVariants,
   } = useProductApi();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -123,26 +118,6 @@ export default function ProductsPage() {
       setError("Failed to load products.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const toggleExpand = async (product: Product) => {
-    const expanded = !expandedRows[product.id];
-    setExpandedRows((prev) => ({ ...prev, [product.id]: expanded }));
-    if (expanded && !expandedVariants[product.id]) {
-      setExpandedLoading((prev) => ({ ...prev, [product.id]: true }));
-      try {
-        const variants = await getVariants(product.id);
-        setExpandedVariants((prev) => ({ ...prev, [product.id]: variants }));
-      } catch {
-        toast({
-          title: "Error",
-          description: "Failed to load variants",
-          variant: "destructive",
-        });
-      } finally {
-        setExpandedLoading((prev) => ({ ...prev, [product.id]: false }));
-      }
     }
   };
 
@@ -442,24 +417,13 @@ export default function ProductsPage() {
                 </TableRow>
               ) : (
                 products.map((product) => (
-                  <Fragment key={product.id}>
-                  <TableRow>
+                  <TableRow key={product.id}>
                     <TableCell>
                       <Checkbox checked={selectedIds.includes(product.id)} onCheckedChange={() => toggleSelect(product.id)} />
                     </TableCell>
                     <TableCell className="font-mono text-[13px] text-foreground">{product.sku}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {product.hasVariants && (
-                          <button
-                            type="button"
-                            title={expandedRows[product.id] ? "Collapse variants" : "Show variants"}
-                            onClick={() => toggleExpand(product)}
-                            className="flex items-center justify-center h-5 w-5 rounded text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
-                          >
-                            <ChevronRight className={`h-4 w-4 transition-transform ${expandedRows[product.id] ? "rotate-90" : ""}`} />
-                          </button>
-                        )}
                         <Link href={`/products/${product.id}`} className="flex items-center gap-3 hover:underline">
                           <div className="w-[30px] h-[30px] rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
                             {product.imageUrl ? (
@@ -470,9 +434,6 @@ export default function ProductsPage() {
                           </div>
                           <span className="text-[13px] font-medium text-foreground">{product.name}</span>
                         </Link>
-                        {product.hasVariants && (
-                          <Badge variant="outline" className="text-[10px] shrink-0">Variable</Badge>
-                        )}
                         {product.type === "COMBO" && (
                           <Badge className="text-[10px] shrink-0">Combo</Badge>
                         )}
@@ -539,37 +500,6 @@ export default function ProductsPage() {
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                  {expandedRows[product.id] && (
-                    <TableRow className="bg-muted/30">
-                      <TableCell />
-                      <TableCell colSpan={9}>
-                        {expandedLoading[product.id] ? (
-                          <div className="flex items-center gap-2 text-[13px] text-muted-foreground py-2">
-                            <Loader2 className="h-4 w-4 animate-spin" /> Loading variants...
-                          </div>
-                        ) : (expandedVariants[product.id]?.length ?? 0) > 0 ? (
-                          <div className="py-1 space-y-1">
-                            {(expandedVariants[product.id] ?? []).map((v) => (
-                              <div key={v.id} className="flex items-center gap-3 pl-5 text-[13px]">
-                                <span className="font-mono text-muted-foreground w-[160px] truncate">{v.sku}</span>
-                                <Link href={`/products/${v.id}`} className="flex-1 hover:underline text-foreground font-medium truncate">
-                                  {v.name}
-                                </Link>
-                                <span className="w-[80px] text-right">${v.salePrice.toFixed(2)}</span>
-                                <span className="w-[70px] text-right">{v.stock}</span>
-                                <Badge variant={v.status === "ACTIVE" ? "default" : "secondary"} className="text-[10px] capitalize w-[95px] justify-center">
-                                  {v.status.toLowerCase()}
-                                </Badge>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-[13px] text-muted-foreground italic py-2">No variants found</p>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  </Fragment>
                 ))
               )}
             </TableBody>

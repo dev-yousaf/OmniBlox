@@ -34,6 +34,7 @@ export class ProductResponseDto {
   hasVariants: boolean;
   attributes?: Record<string, string> | null;
   parentId?: string | null;
+  parent?: { id: string; name: string; sku: string } | null;
   variants?: ProductResponseDto[];
   inventory?: { warehouseId: string; warehouseName: string; quantity: number }[];
   comboItems?: ComboItemResponseDto[];

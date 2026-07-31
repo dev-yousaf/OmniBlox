@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState, useRef } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import {
@@ -42,7 +42,6 @@ import {
 	type ProductQuotation,
 	type ProductPurchase,
 	type ProductTransfer,
-	type ProductAdjustment,
 } from "@/components/products/detail/types";
 import { DetailsTab } from "@/components/products/detail/details-tab";
 import { ChartsTab } from "@/components/products/detail/charts-tab";
@@ -50,7 +49,6 @@ import { SalesTab } from "@/components/products/detail/sales-tab";
 import { QuotationsTab } from "@/components/products/detail/quotations-tab";
 import { PurchaseTab } from "@/components/products/detail/purchase-tab";
 import { TransferTab } from "@/components/products/detail/transfer-tab";
-import { AdjustmentTab } from "@/components/products/detail/adjustment-tab";
 
 const TABS = [
 	{ id: "details", label: "Details" },
@@ -59,7 +57,6 @@ const TABS = [
 	{ id: "quotations", label: "Quotations" },
 	{ id: "purchase", label: "Purchase" },
 	{ id: "transfer", label: "Transfer" },
-	{ id: "adjustment", label: "Quantity Adjustment" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -84,15 +81,13 @@ export default function ProductDetailPage({
 		getProductQuotations,
 		getProductPurchases,
 		getProductTransfers,
-		getProductAdjustments,
-		adjustStock,
 	} = useProductApi();
 	const { getProductInventory } = useInventoryApi();
 	const { toast } = useToast();
 	const router = useRouter();
   const ws = useWorkspace();
 	const { user } = useAuth();
-	const { warehouses, loading: warehousesLoading } = useWarehouses();
+	const { warehouses } = useWarehouses();
 	const canManage =
 		user?.role === "OWNER" ||
 		user?.role === "ADMIN" ||
@@ -116,22 +111,6 @@ export default function ProductDetailPage({
 	const [transfersLoading, setTransfersLoading] = useState(false);
 	const [transfersError, setTransfersError] = useState<string | null>(null);
 
-	const [adjustments, setAdjustments] = useState<ProductAdjustment[]>([]);
-	const [adjustmentsLoading, setAdjustmentsLoading] = useState(false);
-	const [adjustmentsError, setAdjustmentsError] = useState<string | null>(null);
-
-	const [adjDate, setAdjDate] = useState(
-		new Date().toISOString().split("T")[0]
-	);
-	const [adjReference, setAdjReference] = useState("");
-	const [adjWarehouseId, setAdjWarehouseId] = useState("");
-	const [adjType, setAdjType] = useState<"ADDITION" | "REMOVAL">("ADDITION");
-	const [adjQuantity, setAdjQuantity] = useState("");
-	const [adjNote, setAdjNote] = useState("");
-	const [adjDocument, setAdjDocument] = useState<File | null>(null);
-	const [savingAdj, setSavingAdj] = useState(false);
-	const fileInputRef = useRef<HTMLInputElement>(null);
-
 	useEffect(() => {
 		if (productId) loadProduct();
 	}, [productId]);
@@ -146,31 +125,16 @@ export default function ProductDetailPage({
 		}
 	}, [product?.parentId, getProduct]);
 
+	// Load all per-product activity up front so every tab (and the Charts
+	// summaries) shows real data the moment it is opened.
 	useEffect(() => {
-		if (activeTab === "sales" && product) loadSales();
-	}, [activeTab, product]);
-
-	useEffect(() => {
-		if (activeTab === "quotations" && product) loadQuotations();
-	}, [activeTab, product]);
-
-	useEffect(() => {
-		if (activeTab === "purchase" && product) loadPurchases();
-	}, [activeTab, product]);
-
-	useEffect(() => {
-		if (activeTab === "transfer" && product) loadTransfers();
-	}, [activeTab, product]);
-
-	useEffect(() => {
-		if (activeTab === "adjustment" && product) loadAdjustments();
-	}, [activeTab, product]);
-
-	useEffect(() => {
-		if (warehouses.length > 0 && !adjWarehouseId) {
-			setAdjWarehouseId(warehouses[0].id);
-		}
-	}, [warehouses, adjWarehouseId]);
+		if (!product) return;
+		loadSales();
+		loadQuotations();
+		loadPurchases();
+		loadTransfers();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [product]);
 
 	const loadProduct = async () => {
 		try {
@@ -263,23 +227,6 @@ export default function ProductDetailPage({
 		}
 	};
 
-	const loadAdjustments = async () => {
-		if (!productId) return;
-		try {
-			setAdjustmentsLoading(true);
-			setAdjustmentsError(null);
-			const data = (await getProductAdjustments(
-				productId
-			)) as ProductAdjustment[];
-			setAdjustments(data);
-		} catch (error) {
-			setAdjustmentsError("Failed to load adjustment data");
-			setAdjustments([]);
-		} finally {
-			setAdjustmentsLoading(false);
-		}
-	};
-
 	const handleDelete = async () => {
 		if (!product) return;
 		if (confirm("Are you sure you want to delete this product?")) {
@@ -297,83 +244,6 @@ export default function ProductDetailPage({
 					variant: "destructive",
 				});
 			}
-		}
-	};
-
-	const handleSaveAdjustment = async () => {
-		if (!product || !adjWarehouseId || !adjQuantity) return;
-
-		const quantityNum = parseInt(adjQuantity);
-		if (isNaN(quantityNum) || quantityNum <= 0) {
-			toast({
-				title: "Error",
-				description: "Please enter a valid quantity",
-				variant: "destructive",
-			});
-			return;
-		}
-
-		try {
-			setSavingAdj(true);
-			const currentItem = inventory.find(
-				(i) => i.warehouseId === adjWarehouseId
-			);
-			const previousQuantity = currentItem?.quantity ?? 0;
-			const newQuantity =
-				adjType === "ADDITION"
-					? previousQuantity + quantityNum
-					: previousQuantity - quantityNum;
-
-			if (newQuantity < 0) {
-				toast({
-					title: "Error",
-					description: "Resulting quantity cannot be negative",
-					variant: "destructive",
-				});
-				setSavingAdj(false);
-				return;
-			}
-
-			const reference = adjReference.trim() || `ADJ-${Date.now()}`;
-
-			await adjustStock({
-				items: [
-					{
-						productId: product.id,
-						warehouseId: adjWarehouseId,
-						previousQuantity,
-						newQuantity,
-					},
-				],
-				notes: adjNote || undefined,
-				type: adjType,
-				documentUrl: adjDocument ? adjDocument.name : undefined,
-			});
-
-			toast({
-				title: "Success",
-				description: "Stock adjustment saved successfully",
-			});
-
-			setAdjQuantity("");
-			setAdjNote("");
-			setAdjReference("");
-			setAdjDocument(null);
-
-			const [inventoryData, ledgerData] = await Promise.all([
-				getProductInventory(productId),
-				getStockLedger(productId),
-			]);
-			setInventory(inventoryData);
-			setLedger(ledgerData);
-		} catch (error) {
-			toast({
-				title: "Error",
-				description: "Failed to save adjustment",
-				variant: "destructive",
-			});
-		} finally {
-			setSavingAdj(false);
 		}
 	};
 
@@ -570,36 +440,6 @@ export default function ProductDetailPage({
 					transfers={transfers}
 					transfersLoading={transfersLoading}
 					transfersError={transfersError}
-				/>
-			)}
-
-			{activeTab === "adjustment" && (
-				<AdjustmentTab
-					canManage={canManage}
-					adjDate={adjDate}
-					setAdjDate={setAdjDate}
-					adjReference={adjReference}
-					setAdjReference={setAdjReference}
-					adjWarehouseId={adjWarehouseId}
-					setAdjWarehouseId={setAdjWarehouseId}
-					adjType={adjType}
-					setAdjType={setAdjType}
-					adjQuantity={adjQuantity}
-					setAdjQuantity={setAdjQuantity}
-					adjNote={adjNote}
-					setAdjNote={setAdjNote}
-					adjDocument={adjDocument}
-					setAdjDocument={setAdjDocument}
-					savingAdj={savingAdj}
-					fileInputRef={fileInputRef}
-					warehouses={warehouses}
-					warehousesLoading={warehousesLoading}
-					user={user}
-					handleSaveAdjustment={handleSaveAdjustment}
-					productId={productId}
-					adjustments={adjustments}
-					adjustmentsLoading={adjustmentsLoading}
-					adjustmentsError={adjustmentsError}
 				/>
 			)}
 		</div>

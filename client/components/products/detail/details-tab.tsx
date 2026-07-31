@@ -432,7 +432,7 @@ export function DetailsTab({
 			)}
 
 			{/* Variants */}
-			{product.hasVariants && (
+			{(product.hasVariants || product.parentId) && (
 				<div className="border border-border rounded-[5px]">
 					<div className="border-b border-border px-[20px] py-[15px]">
 						<h3 className="text-[16px] font-semibold text-card-foreground">Variants</h3>
@@ -441,9 +441,9 @@ export function DetailsTab({
 					<div className="p-[20px]">
 						<VariantManager
 							mode="edit"
-							parentId={product.id}
-							parentName={product.name}
-							parentSku={product.sku}
+							parentId={product.parentId ?? product.id}
+							parentName={product.parent?.name || product.name}
+							parentSku={product.parent?.sku || product.sku}
 							parentCategory={product.category}
 							defaultSalePrice={product.salePrice.toFixed(2)}
 							defaultCostPrice={product.costPrice.toFixed(2)}

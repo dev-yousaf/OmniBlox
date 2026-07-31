@@ -78,6 +78,20 @@ export class InventoryController {
     return this.inventoryService.getWarehouseInventory(companyId, warehouseId);
   }
 
+  @Delete('warehouses/:warehouseId/products/:productId')
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
+  removeProductFromWarehouse(
+    @CompanyId() companyId: string,
+    @Param('warehouseId') warehouseId: string,
+    @Param('productId') productId: string,
+  ) {
+    return this.inventoryService.removeProductFromWarehouse(
+      companyId,
+      productId,
+      warehouseId,
+    );
+  }
+
   // === INVENTORY ENDPOINTS ===
   @Get()
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER)

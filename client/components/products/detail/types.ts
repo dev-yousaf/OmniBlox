@@ -47,19 +47,6 @@ export interface ProductTransfer {
 	createdBy: string | null;
 }
 
-export interface ProductAdjustment {
-	id: string;
-	date: string;
-	reference: string;
-	warehouse: string;
-	type: "ADDITION" | "REMOVAL";
-	previousQuantity: number;
-	newQuantity: number;
-	quantity: number;
-	notes: string | null;
-	createdBy: string | null;
-}
-
 export interface DetailsTabProps {
 	product: Product;
 	inventory: InventoryItem[];
@@ -98,32 +85,4 @@ export interface TransferTabProps {
 	transfers: ProductTransfer[];
 	transfersLoading: boolean;
 	transfersError: string | null;
-}
-
-export interface AdjustmentTabProps {
-	canManage: boolean;
-	adjDate: string;
-	setAdjDate: (v: string) => void;
-	adjReference: string;
-	setAdjReference: (v: string) => void;
-	adjWarehouseId: string;
-	setAdjWarehouseId: (v: string) => void;
-	adjType: "ADDITION" | "REMOVAL";
-	setAdjType: (v: "ADDITION" | "REMOVAL") => void;
-	adjQuantity: string;
-	setAdjQuantity: (v: string) => void;
-	adjNote: string;
-	setAdjNote: (v: string) => void;
-	adjDocument: File | null;
-	setAdjDocument: (v: File | null) => void;
-	savingAdj: boolean;
-	fileInputRef: React.RefObject<HTMLInputElement | null>;
-	warehouses: { id: string; name: string; location?: string | null }[];
-	warehousesLoading: boolean;
-	user: { name?: string | null } | null;
-	handleSaveAdjustment: () => void;
-	productId: string;
-	adjustments: ProductAdjustment[];
-	adjustmentsLoading: boolean;
-	adjustmentsError: string | null;
 }

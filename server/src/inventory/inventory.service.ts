@@ -154,6 +154,51 @@ export class InventoryService {
     return { message: 'Warehouse deleted successfully' };
   }
 
+  async removeProductFromWarehouse(
+    companyId: string,
+    productId: string,
+    warehouseId: string,
+  ) {
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, companyId },
+      select: { id: true, name: true },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+
+    const warehouse = await this.prisma.warehouse.findFirst({
+      where: { id: warehouseId, companyId },
+      select: { id: true, name: true },
+    });
+    if (!warehouse) throw new NotFoundException('Warehouse not found');
+
+    const inventory = await this.prisma.inventory.findUnique({
+      where: {
+        productId_warehouseId: { productId, warehouseId },
+      },
+    });
+    if (!inventory) {
+      throw new NotFoundException('Product is not in this warehouse');
+    }
+
+    if (inventory.quantity > 0) {
+      throw new BadRequestException(
+        `Cannot remove "${product.name}" - it still has ${inventory.quantity} unit(s) in "${warehouse.name}". Move or adjust the stock to 0 first.`,
+      );
+    }
+
+    await this.prisma.inventory.delete({
+      where: {
+        productId_warehouseId: { productId, warehouseId },
+      },
+    });
+
+    await this.invalidateWarehouseCache(companyId, warehouseId);
+
+    return {
+      message: `"${product.name}" removed from "${warehouse.name}"`,
+    };
+  }
+
   // === INVENTORY MANAGEMENT ===
   async getInventory(companyId: string, query: InventoryQueryDto) {
     const { page = 1, limit = 10, search, warehouseId, filter } = query;

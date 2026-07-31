@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, ChevronRight, Package, MapPin, Pencil, Trash2,
-  DollarSign, CalendarDays, Building2,
+  DollarSign, CalendarDays, Building2, X,
 } from "lucide-react";
 import { useInventoryApi } from "@/hooks/use-inventory-api";
 import { useToast } from "@/hooks/use-toast";
@@ -53,12 +53,14 @@ export default function WarehouseDetailPage() {
   const router = useRouter();
   const ws = useWorkspace();
   const { toast } = useToast();
-  const { getWarehouse, deleteWarehouse } = useInventoryApi();
+  const { getWarehouse, deleteWarehouse, removeProductFromWarehouse } = useInventoryApi();
 
   const [loading, setLoading] = useState(true);
   const [warehouse, setWarehouse] = useState<Warehouse | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<{ productId: string; productName: string; quantity: number } | null>(null);
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
     loadWarehouse();
@@ -89,6 +91,21 @@ export default function WarehouseDetailPage() {
     } finally {
       setDeleting(false);
       setDeleteOpen(false);
+    }
+  }
+
+  async function handleRemoveProductConfirm() {
+    if (!warehouse || !removeTarget) return;
+    try {
+      setRemoving(true);
+      const result = await removeProductFromWarehouse(removeTarget.productId, warehouse.id);
+      toast({ title: "Success", description: result.message });
+      setRemoveTarget(null);
+      await loadWarehouse();
+    } catch (error: any) {
+      toast({ title: "Error", description: error?.message || "Failed to remove product", variant: "destructive" });
+    } finally {
+      setRemoving(false);
     }
   }
 
@@ -226,6 +243,7 @@ export default function WarehouseDetailPage() {
                     <th className="w-[120px] px-5 py-2 text-left font-semibold text-foreground">Category</th>
                     <th className="w-[100px] px-5 py-2 text-right font-semibold text-foreground">Price</th>
                     <th className="w-[120px] px-5 py-2 text-right font-semibold text-foreground">Total Value</th>
+                    {canManage && <th className="w-[90px] px-5 py-2 text-right font-semibold text-foreground">Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -239,6 +257,31 @@ export default function WarehouseDetailPage() {
                       <td className="px-5 text-right font-semibold tabular-nums">
                         {formatCurrency.format(item.quantity * Number(item.product.salePrice))}
                       </td>
+                      {canManage && (
+                        <td className="px-5 text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-[28px] text-[12px] text-destructive hover:text-destructive hover:bg-destructive/10"
+                            disabled={item.quantity > 0}
+                            title={
+                              item.quantity > 0
+                                ? "Move or adjust the stock to 0 before removing"
+                                : "Remove product from this warehouse"
+                            }
+                            onClick={() =>
+                              setRemoveTarget({
+                                productId: item.product.id,
+                                productName: item.product.name,
+                                quantity: item.quantity,
+                              })
+                            }
+                          >
+                            <X className="mr-1 h-3 w-3" />
+                            Remove
+                          </Button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -275,6 +318,32 @@ export default function WarehouseDetailPage() {
               disabled={deleting}
             >
               {deleting ? "Deleting..." : "Delete Warehouse"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {/* Remove Product Confirmation Dialog */}
+      <AlertDialog
+        open={!!removeTarget}
+        onOpenChange={(open) => !open && setRemoveTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove product from warehouse?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{removeTarget?.productName}" will be removed from this
+              warehouse. Its 0-unit inventory entry will be deleted. This
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={handleRemoveProductConfirm}
+              disabled={removing}
+            >
+              {removing ? "Removing..." : "Remove Product"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
