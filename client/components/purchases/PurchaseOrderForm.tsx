@@ -227,7 +227,9 @@ export default function PurchaseOrderForm() {
       const list = res?.products || [];
       return list.map((p) => ({
         value: p.id,
-        label: `${p.name}${p.sku ? ` (${p.sku})` : ""}`,
+        label: `${p.name}${p.sku ? ` (${p.sku})` : ""}${
+          p.type === "COMBO" ? " (Combo)" : ""
+        }`,
         meta: p,
       }));
     },

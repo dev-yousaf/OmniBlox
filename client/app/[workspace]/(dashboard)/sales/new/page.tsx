@@ -53,7 +53,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useProductApi } from "@/hooks/use-product-api";
 import { useInventoryApi } from "@/hooks/use-inventory-api";
 import { useCustomersApi, type Customer } from "@/hooks/use-customers-api";
-import type { Product } from "@/lib/types";
+import type { ComboItem, Product } from "@/lib/types";
 import type { Warehouse } from "@/hooks/use-inventory-api";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +64,8 @@ interface SaleItemRow {
   id: string;
   productId: string;
   productName: string;
+  productType?: "STANDARD" | "DIGITAL" | "SERVICE" | "COMBO";
+  comboItems?: ComboItem[];
   quantity: number;
   unitPrice: number;
   total: number;
@@ -259,10 +261,22 @@ export default function NewSalePage() {
 
         if (field === "productId" && typeof value === "string") {
           next.productId = value;
-          const product = products.find((p) => p.id === value);
+          const option = productOptions.find((o) =>
+            o.variant
+              ? o.variant.id === value
+              : o.product.id === value
+          );
+          const product = option?.variant ?? option?.product;
           if (product) {
             next.productName = product.name;
             next.unitPrice = Number(product.salePrice) || 0;
+            next.productType = product.type;
+            next.comboItems = product.comboItems;
+          } else {
+            next.productName = "";
+            next.unitPrice = 0;
+            next.productType = undefined;
+            next.comboItems = undefined;
           }
         }
 
@@ -332,6 +346,29 @@ export default function NewSalePage() {
       customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
       customer.email?.toLowerCase().includes(customerSearch.toLowerCase())
   );
+
+  const productOptions = useMemo(() => {
+    const options: Array<{ product: Product; variant?: Product }> = [];
+    for (const product of products) {
+      if (product.hasVariants && product.variants && product.variants.length > 0) {
+        for (const variant of product.variants) {
+          if (variant.status === "DISCONTINUED") continue;
+          options.push({ product, variant });
+        }
+      } else {
+        if (product.parentId) continue;
+        if (product.status === "DISCONTINUED") continue;
+        options.push({ product });
+      }
+    }
+    return options;
+  }, [products]);
+
+  const productOptionLabel = (option: { product: Product; variant?: Product }) => {
+    const p = option.variant ?? option.product;
+    const label = option.variant ? `${p.name} (${p.sku})` : p.name;
+    return option.product.type === "COMBO" ? `${label} (Combo)` : label;
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -801,18 +838,18 @@ export default function NewSalePage() {
                       key={item.id}
                       className="flex items-start justify-between gap-4 border rounded-[5px] p-4"
                     >
-                      <div className="flex-1 grid gap-4 md:grid-cols-4">
-                        <div className="space-y-2">
-                          <Label className="text-xs font-medium">Product</Label>
-                          <Select
-                            value={item.productId}
-                            onValueChange={(value) =>
-                              updateItem(item.id, "productId", value)
-                            }
-                          >
-                            <SelectTrigger className="h-[34px] rounded-[5px] text-sm">
-                              <SelectValue placeholder="Select product" />
-                            </SelectTrigger>
+                        <div className="flex-1 grid gap-4 md:grid-cols-4">
+                          <div className="space-y-2">
+                            <Label className="text-xs font-medium">Product</Label>
+                            <Select
+                              value={item.productId}
+                              onValueChange={(value) =>
+                                updateItem(item.id, "productId", value)
+                              }
+                            >
+                              <SelectTrigger className="h-[34px] rounded-[5px] text-sm">
+                                <SelectValue placeholder="Select product" />
+                              </SelectTrigger>
                             <SelectContent>
                               {productsLoading && (
                                 <SelectItem value="LOADING" disabled>
@@ -826,19 +863,19 @@ export default function NewSalePage() {
                               )}
                               {!productsLoading &&
                                 !productsError &&
-                                products.length === 0 && (
+                                productOptions.length === 0 && (
                                   <SelectItem value="NO_PRODUCTS" disabled>
                                     No products available
                                   </SelectItem>
                                 )}
                               {!productsLoading &&
                                 !productsError &&
-                                products.map((product) => (
+                                productOptions.map((option) => (
                                   <SelectItem
-                                    key={product.id}
-                                    value={product.id}
+                                    key={option.variant?.id ?? option.product.id}
+                                    value={option.variant?.id ?? option.product.id}
                                   >
-                                    {product.name}
+                                    {productOptionLabel(option)}
                                   </SelectItem>
                                 ))}
                             </SelectContent>
@@ -886,6 +923,16 @@ export default function NewSalePage() {
                           />
                         </div>
                       </div>
+                      {item.productType === "COMBO" &&
+                        item.comboItems &&
+                        item.comboItems.length > 0 && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Combo includes:{" "}
+                            {item.comboItems
+                              .map((ci) => `${ci.productName} x${ci.quantity}`)
+                              .join(", ")}
+                          </p>
+                        )}
                       <Button
                         type="button"
                         variant="ghost"

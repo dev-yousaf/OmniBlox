@@ -73,7 +73,6 @@ export default function ProductDetailPage({
 	const [activeTab, setActiveTab] = useState<TabId>("details");
 	const [product, setProduct] = useState<Product | null>(null);
 	const [inventory, setInventory] = useState<InventoryItem[]>([]);
-	const [variants, setVariants] = useState<Product[]>([]);
 	const [ledger, setLedger] = useState<StockLedgerEntry[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [inventoryLoading, setInventoryLoading] = useState(false);
@@ -81,8 +80,6 @@ export default function ProductDetailPage({
 		getProduct,
 		deleteProduct,
 		getStockLedger,
-		getVariants,
-		createProduct,
 		getProductSales,
 		getProductQuotations,
 		getProductPurchases,
@@ -101,13 +98,7 @@ export default function ProductDetailPage({
 		user?.role === "ADMIN" ||
 		user?.role === "MANAGER";
 
-	const [showVariantForm, setShowVariantForm] = useState(false);
-	const [variantSku, setVariantSku] = useState("");
-	const [variantName, setVariantName] = useState("");
-	const [variantSalePrice, setVariantSalePrice] = useState("");
-	const [variantCostPrice, setVariantCostPrice] = useState("");
-	const [variantStock, setVariantStock] = useState("");
-	const [savingVariant, setSavingVariant] = useState(false);
+	const [parentProduct, setParentProduct] = useState<Product | null>(null);
 
 	const [sales, setSales] = useState<ProductSale[]>([]);
 	const [salesLoading, setSalesLoading] = useState(false);
@@ -146,6 +137,16 @@ export default function ProductDetailPage({
 	}, [productId]);
 
 	useEffect(() => {
+		if (product?.parentId) {
+			getProduct(product.parentId)
+				.then((parent) => setParentProduct(parent))
+				.catch(() => setParentProduct(null));
+		} else {
+			setParentProduct(null);
+		}
+	}, [product?.parentId, getProduct]);
+
+	useEffect(() => {
 		if (activeTab === "sales" && product) loadSales();
 	}, [activeTab, product]);
 
@@ -179,12 +180,10 @@ export default function ProductDetailPage({
 			setInventoryLoading(true);
 			const results = await Promise.allSettled([
 				getProductInventory(productId),
-				getVariants(productId),
 				getStockLedger(productId),
 			]);
 			if (results[0].status === "fulfilled") setInventory(results[0].value);
-			if (results[1].status === "fulfilled") setVariants(results[1].value);
-			if (results[2].status === "fulfilled") setLedger(results[2].value);
+			if (results[1].status === "fulfilled") setLedger(results[1].value);
 		} catch (error) {
 			toast({
 				title: "Error",
@@ -301,40 +300,6 @@ export default function ProductDetailPage({
 		}
 	};
 
-	const handleSaveVariant = async () => {
-		if (!product) return;
-		try {
-			setSavingVariant(true);
-			await createProduct({
-				sku: variantSku,
-				name: variantName,
-				salePrice: parseFloat(variantSalePrice),
-				costPrice: parseFloat(variantCostPrice),
-				stock: parseInt(variantStock) || 0,
-				parentId: product.id,
-				category: product.category,
-				status: "ACTIVE",
-			});
-			toast({ title: "Success", description: "Variant created successfully" });
-			setShowVariantForm(false);
-			setVariantSku("");
-			setVariantName("");
-			setVariantSalePrice("");
-			setVariantCostPrice("");
-			setVariantStock("");
-			const variantsData = await getVariants(productId);
-			setVariants(variantsData);
-		} catch (error) {
-			toast({
-				title: "Error",
-				description: "Failed to create variant",
-				variant: "destructive",
-			});
-		} finally {
-			setSavingVariant(false);
-		}
-	};
-
 	const handleSaveAdjustment = async () => {
 		if (!product || !adjWarehouseId || !adjQuantity) return;
 
@@ -439,6 +404,17 @@ export default function ProductDetailPage({
 					<h1 className="text-2xl font-semibold tracking-tight">
 						{product.name}
 					</h1>
+					{parentProduct && (
+						<p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+							This is a variant of{" "}
+							<Link
+								href={`/products/${parentProduct.id}`}
+								className="text-primary hover:underline font-medium"
+							>
+								{parentProduct.name}
+							</Link>
+						</p>
+					)}
 					<p className="text-xs text-muted-foreground">
 						SKU: {product.sku}
 					</p>
@@ -550,24 +526,8 @@ export default function ProductDetailPage({
 					product={product}
 					inventory={inventory}
 					inventoryLoading={inventoryLoading}
-					variants={variants}
 					ledger={ledger}
 					canManage={canManage}
-					showVariantForm={showVariantForm}
-					setShowVariantForm={setShowVariantForm}
-					variantSku={variantSku}
-					setVariantSku={setVariantSku}
-					variantName={variantName}
-					setVariantName={setVariantName}
-					variantSalePrice={variantSalePrice}
-					setVariantSalePrice={setVariantSalePrice}
-					variantCostPrice={variantCostPrice}
-					setVariantCostPrice={setVariantCostPrice}
-					variantStock={variantStock}
-					setVariantStock={setVariantStock}
-					savingVariant={savingVariant}
-					handleSaveVariant={handleSaveVariant}
-					productId={productId}
 				/>
 			)}
 

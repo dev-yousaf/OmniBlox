@@ -64,24 +64,8 @@ export interface DetailsTabProps {
 	product: Product;
 	inventory: InventoryItem[];
 	inventoryLoading: boolean;
-	variants: Product[];
 	ledger: StockLedgerEntry[];
 	canManage: boolean;
-	showVariantForm: boolean;
-	setShowVariantForm: (v: boolean) => void;
-	variantSku: string;
-	setVariantSku: (v: string) => void;
-	variantName: string;
-	setVariantName: (v: string) => void;
-	variantSalePrice: string;
-	setVariantSalePrice: (v: string) => void;
-	variantCostPrice: string;
-	setVariantCostPrice: (v: string) => void;
-	variantStock: string;
-	setVariantStock: (v: string) => void;
-	savingVariant: boolean;
-	handleSaveVariant: () => void;
-	productId: string;
 }
 
 export interface ChartsTabProps {

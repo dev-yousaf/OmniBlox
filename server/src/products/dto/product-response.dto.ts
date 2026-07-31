@@ -35,6 +35,7 @@ export class ProductResponseDto {
   attributes?: Record<string, string> | null;
   parentId?: string | null;
   variants?: ProductResponseDto[];
+  inventory?: { warehouseId: string; warehouseName: string; quantity: number }[];
   comboItems?: ComboItemResponseDto[];
   createdBy?: { id: string; name: string; image?: string | null } | null;
   createdAt: Date;

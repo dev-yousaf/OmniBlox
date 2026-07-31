@@ -146,6 +146,7 @@ export class ProductService {
         warehouseId: _warehouseId,
         itemCode: _itemCode,
         manufacturer: _manufacturer,
+        variants,
         ...restProductData
       } = productData;
       const dateData: Record<string, Date> = {};
@@ -267,6 +268,84 @@ export class ProductService {
           companyId,
           [product.id],
           [initialStockWarehouseId],
+        );
+      }
+
+      // Create variant children (each a real Product row with parentId).
+      // Initial stock for every variant goes through StockService.receiveStock
+      // so it is ledgered (INITIAL) and never a silent inventory.create.
+      if (variants && variants.length > 0) {
+        const variantSkus = variants.map((v) => v.sku);
+        if (new Set(variantSkus).size !== variantSkus.length) {
+          throw new BadRequestException(
+            'Duplicate variant SKUs in the same request',
+          );
+        }
+        const skuCollision = await this.prisma.product.findFirst({
+          where: { sku: { in: variantSkus }, companyId },
+          select: { sku: true },
+        });
+        if (skuCollision) {
+          throw new BadRequestException(
+            `Variant SKU already exists: ${skuCollision.sku}`,
+          );
+        }
+
+        let variantWarehouseId = initialStockWarehouseId;
+        if (!variantWarehouseId) {
+          const firstWarehouse: { id: string } | null =
+            await this.prisma.warehouse.findFirst({
+              where: { companyId },
+            });
+          variantWarehouseId = firstWarehouse?.id;
+        }
+        if (!variantWarehouseId) {
+          throw new BadRequestException(
+            'A warehouse is required to create variants with stock',
+          );
+        }
+
+        const createdVariantIds: string[] = [];
+        await this.prisma.$transaction(async (tx) => {
+          for (const v of variants) {
+            const child = await tx.product.create({
+              data: {
+                sku: v.sku,
+                name: v.name,
+                type: 'STANDARD',
+                unit: unit || 'pcs',
+                description: productData.description,
+                salePrice: v.salePrice,
+                costPrice: v.costPrice,
+                status: 'ACTIVE',
+                attributes: v.attributes ?? undefined,
+                categoryId: categoryRecord.id,
+                brandId: brandRecord?.id || null,
+                subCategoryId,
+                companyId,
+                createdById: userId || null,
+                parentId: product.id,
+              },
+            });
+            createdVariantIds.push(child.id);
+            if (v.stock > 0) {
+              await this.stockService.receiveStock(tx, {
+                productId: child.id,
+                warehouseId: variantWarehouseId,
+                quantity: v.stock,
+                reference: v.sku,
+                type: 'INITIAL',
+                note: 'Initial stock',
+                companyId,
+              });
+            }
+          }
+        });
+
+        await this.stockService.invalidateStockCaches(
+          companyId,
+          createdVariantIds,
+          [variantWarehouseId],
         );
       }
 
@@ -393,6 +472,21 @@ export class ProductService {
         let stock: number;
         if (product.type === 'COMBO') {
           stock = derivedStock.get(product.id) ?? 0;
+        } else if (product.hasVariants && product.variants?.length) {
+          // Variant parents hold no stock themselves; surface the sum of
+          // child variant inventory (respecting warehouse filters).
+          stock = product.variants.reduce((sum, v) => {
+            const inv = warehouseId
+              ? v.inventory.filter((i) => i.warehouseId === warehouseId)
+              : v.inventory;
+            return sum + inv.reduce((s, i) => s + i.quantity, 0);
+          }, 0);
+          if (!warehouseId) {
+            stock += product.inventory.reduce(
+              (sum, inv) => sum + inv.quantity,
+              0,
+            );
+          }
         } else if (warehouseId) {
           const warehouseInv = product.inventory.find(
             (inv) => inv.warehouseId === warehouseId,
@@ -422,6 +516,9 @@ export class ProductService {
         category: true,
         brand: true,
         inventory: { include: { warehouse: true } },
+        comboComponents: {
+          include: { product: { select: { name: true, sku: true } } },
+        },
         variants: {
           include: {
             category: true,
@@ -439,7 +536,15 @@ export class ProductService {
     const totalStock =
       product.type === 'COMBO'
         ? await this.stockService.getAvailableStock(companyId, product.id)
-        : product.inventory.reduce((sum, inv) => sum + inv.quantity, 0);
+        : product.hasVariants && product.variants?.length
+          ? product.variants.reduce(
+              (sum, v) =>
+                sum +
+                v.inventory.reduce((s, inv) => s + inv.quantity, 0),
+              0,
+            ) +
+            product.inventory.reduce((sum, inv) => sum + inv.quantity, 0)
+          : product.inventory.reduce((sum, inv) => sum + inv.quantity, 0);
     const data = this.transformToDto(product, totalStock);
     await this.cache.set(cacheKey, data, 60 * 2);
     return data;
@@ -698,7 +803,10 @@ export class ProductService {
     }
   }
 
-  async remove(id: string, companyId: string): Promise<void> {
+  async remove(
+    id: string,
+    companyId: string,
+  ): Promise<{ softDeleted: boolean }> {
     const existingProduct = await this.prisma.product.findFirst({
       where: {
         id,
@@ -711,6 +819,27 @@ export class ProductService {
 
     if (!existingProduct) {
       throw new NotFoundException('Product not found');
+    }
+
+    // Variant soft-delete policy: a variant with sale history can never be
+    // hard-deleted (FK references + audit value); mark it DISCONTINUED instead.
+    if (existingProduct.parentId) {
+      const [saleHistory, returnHistory] = await Promise.all([
+        this.prisma.saleItem.count({ where: { productId: id } }),
+        this.prisma.salesReturnItem.count({ where: { productId: id } }),
+      ]);
+      if (saleHistory > 0 || returnHistory > 0) {
+        await Promise.all([
+          this.cache.del(LIST_KEY(companyId)),
+          this.cache.del(ITEM_KEY(companyId, id)),
+          this.cache.del(STATS_KEY(companyId)),
+        ]);
+        await this.prisma.product.update({
+          where: { id },
+          data: { status: 'DISCONTINUED' },
+        });
+        return { softDeleted: true };
+      }
     }
 
     try {
@@ -740,6 +869,7 @@ export class ProductService {
           where: { id },
         }),
       ]);
+      return { softDeleted: false };
     } catch {
       throw new BadRequestException(
         'Failed to delete product. It may be referenced by other records.',
@@ -1177,6 +1307,13 @@ export class ProductService {
       hasVariants: product.hasVariants ?? false,
       attributes: product.attributes || null,
       parentId: product.parentId || null,
+      inventory: product.inventory
+        ? product.inventory.map((inv: any) => ({
+            warehouseId: inv.warehouseId,
+            warehouseName: inv.warehouse?.name || '',
+            quantity: inv.quantity,
+          }))
+        : undefined,
       variants: product.variants
         ? product.variants.map((v: any) => {
             const variantStock = v.inventory
@@ -1214,6 +1351,13 @@ export class ProductService {
               hasVariants: v.hasVariants ?? false,
               attributes: v.attributes || null,
               parentId: v.parentId || null,
+              inventory: v.inventory
+                ? v.inventory.map((inv: any) => ({
+                    warehouseId: inv.warehouseId,
+                    warehouseName: inv.warehouse?.name || '',
+                    quantity: inv.quantity,
+                  }))
+                : undefined,
               createdAt: v.createdAt,
               updatedAt: v.updatedAt,
             };

@@ -136,7 +136,7 @@ const sections: SidebarSection[] = [
   {
     label: "Reports",
     items: [
-
+      { id: "expense-reports", name: "Expense Reports", href: "/expenses/reports", icon: FileText },
     ],
   },
   {

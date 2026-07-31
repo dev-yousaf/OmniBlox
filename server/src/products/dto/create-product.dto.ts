@@ -23,6 +23,35 @@ class ComboItemDto {
   quantity: number;
 }
 
+export class VariantProductDto {
+  @IsString()
+  @IsNotEmpty()
+  sku: string;
+
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @Transform(({ value }) => parseFloat(value))
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  salePrice: number;
+
+  @Transform(({ value }) => parseFloat(value))
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  costPrice: number;
+
+  @Transform(({ value }) => parseInt(value))
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  stock: number = 0;
+
+  @IsOptional()
+  attributes?: Record<string, string>;
+}
+
 export class CreateProductDto {
   @IsString()
   @IsNotEmpty()
@@ -131,6 +160,12 @@ export class CreateProductDto {
   @ValidateNested({ each: true })
   @Type(() => ComboItemDto)
   comboItems?: ComboItemDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => VariantProductDto)
+  variants?: VariantProductDto[];
 
   @IsString()
   @IsOptional()

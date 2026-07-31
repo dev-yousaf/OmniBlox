@@ -1,6 +1,5 @@
 "use client";
 
-import { WorkspaceLink as Link } from "@/components/workspace-link";
 import {
 	Package,
 	Folder,
@@ -20,7 +19,6 @@ import {
 	Percent,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
 	Table,
 	TableBody,
@@ -29,30 +27,15 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { VariantManager } from "@/components/products/variant-manager";
 import type { DetailsTabProps } from "./types";
 
 export function DetailsTab({
 	product,
 	inventory,
 	inventoryLoading,
-	variants,
 	ledger,
 	canManage,
-	showVariantForm,
-	setShowVariantForm,
-	variantSku,
-	setVariantSku,
-	variantName,
-	setVariantName,
-	variantSalePrice,
-	setVariantSalePrice,
-	variantCostPrice,
-	setVariantCostPrice,
-	variantStock,
-	setVariantStock,
-	savingVariant,
-	handleSaveVariant,
-	productId,
 }: DetailsTabProps) {
 	return (
 		<div role="tabpanel" id="panel-details" aria-labelledby="tab-details" className="space-y-4">
@@ -178,7 +161,7 @@ export function DetailsTab({
 					<div className="px-[16px] py-[14px] space-y-3">
 						<div className="flex items-center justify-between">
 							<span className="text-[13px] text-muted-foreground">Product Type</span>
-							<span className="text-[13px] font-medium text-card-foreground">{product.hasVariants ? "Variable" : "Single"}</span>
+							<span className="text-[13px] font-medium text-card-foreground">{product.type === "COMBO" ? "Combo" : product.hasVariants ? "Variable" : "Single"}</span>
 						</div>
 						<div className="h-px bg-muted" />
 						{product.taxRate != null && (
@@ -447,87 +430,25 @@ export function DetailsTab({
 				</div>
 			)}
 
-			{/* Create Variant */}
-			{product.hasVariants && canManage && (
-				<div className="border border-border rounded-[5px]">
-					<div className="border-b border-border px-[20px] py-[15px]">
-						<h3 className="text-[16px] font-semibold text-card-foreground">Create Variant</h3>
-					</div>
-					<div className="p-[20px]">
-						{!showVariantForm ? (
-							<Button onClick={() => setShowVariantForm(true)}>Add Variant</Button>
-						) : (
-							<div className="space-y-4">
-								<div className="grid grid-cols-2 gap-4">
-									<div>
-										<label className="text-sm font-medium text-muted-foreground block mb-1">SKU</label>
-										<input type="text" value={variantSku} onChange={(e) => setVariantSku(e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
-									</div>
-									<div>
-										<label className="text-sm font-medium text-muted-foreground block mb-1">Name</label>
-										<input type="text" value={variantName} onChange={(e) => setVariantName(e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
-									</div>
-								</div>
-								<div className="grid grid-cols-3 gap-4">
-									<div>
-										<label className="text-sm font-medium text-muted-foreground block mb-1">Sale Price</label>
-										<input type="number" value={variantSalePrice} onChange={(e) => setVariantSalePrice(e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
-									</div>
-									<div>
-										<label className="text-sm font-medium text-muted-foreground block mb-1">Cost Price</label>
-										<input type="number" value={variantCostPrice} onChange={(e) => setVariantCostPrice(e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
-									</div>
-									<div>
-										<label className="text-sm font-medium text-muted-foreground block mb-1">Stock</label>
-										<input type="number" value={variantStock} onChange={(e) => setVariantStock(e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" />
-									</div>
-								</div>
-								<div className="flex items-center gap-2">
-									<Button onClick={handleSaveVariant} disabled={savingVariant}>{savingVariant ? "Saving..." : "Save Variant"}</Button>
-									<Button variant="outline" onClick={() => setShowVariantForm(false)}>Cancel</Button>
-								</div>
-							</div>
-						)}
-					</div>
-				</div>
-			)}
-
-			{/* Variants Table */}
-			{variants.length > 0 && (
+			{/* Variants */}
+			{product.hasVariants && (
 				<div className="border border-border rounded-[5px]">
 					<div className="border-b border-border px-[20px] py-[15px]">
 						<h3 className="text-[16px] font-semibold text-card-foreground">Variants</h3>
-						<p className="text-[13px] text-muted-foreground">Product variations ({variants.length})</p>
+						<p className="text-[13px] text-muted-foreground">Product variations</p>
 					</div>
 					<div className="p-[20px]">
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>SKU</TableHead>
-									<TableHead>Name</TableHead>
-									<TableHead>Price</TableHead>
-									<TableHead>Stock</TableHead>
-									<TableHead>Status</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{variants.map((v) => (
-									<TableRow key={v.id}>
-										<TableCell className="font-mono text-xs">{v.sku}</TableCell>
-										<TableCell>
-											<Link href={`/products/${v.id}`} className="hover:underline font-medium">{v.name}</Link>
-										</TableCell>
-										<TableCell>${v.salePrice.toFixed(2)}</TableCell>
-										<TableCell>
-											<span className={v.stock <= v.reorderLevel ? "text-warning font-semibold" : ""}>{v.stock}</span>
-										</TableCell>
-										<TableCell>
-											<Badge variant={v.status === "ACTIVE" ? "default" : "secondary"}>{v.status}</Badge>
-										</TableCell>
-									</TableRow>
-								))}
-							</TableBody>
-						</Table>
+						<VariantManager
+							mode="edit"
+							parentId={product.id}
+							parentName={product.name}
+							parentSku={product.sku}
+							parentCategory={product.category}
+							defaultSalePrice={product.salePrice.toFixed(2)}
+							defaultCostPrice={product.costPrice.toFixed(2)}
+							initialAttributes={product.attributes}
+							canManage={canManage}
+						/>
 					</div>
 				</div>
 			)}

@@ -15,6 +15,7 @@ export interface Product {
   attributes?: Record<string, string> | null
   parentId?: string | null
   variants?: Product[]
+  inventory?: { warehouseId: string; warehouseName: string; quantity: number }[]
   category: string
   brand?: string
   unit: string

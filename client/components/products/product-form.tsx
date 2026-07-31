@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useEffect, useMemo, useCallback, forwardRef } from "react";
+import { useState, useEffect, useMemo, forwardRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,8 +21,9 @@ import { useProductCategoriesApi } from "@/hooks/use-product-categories-api";
 import { useUnitsApi } from "@/hooks/use-units-api";
 import { useSubCategoriesApi } from "@/hooks/use-sub-categories-api";
 import { useWarrantiesApi } from "@/hooks/use-warranties-api";
-import { useVariantAttributesApi, VariantAttribute as ApiVariantAttribute } from "@/hooks/use-variant-attributes-api";
 import { useInventoryApi } from "@/hooks/use-inventory-api";
+import { VariantManager } from "@/components/products/variant-manager";
+import type { VariantPayload } from "@/hooks/use-product-variants";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@/lib/types";
 import Image from "next/image";
@@ -36,21 +37,6 @@ import {
   Calendar,
   Loader2,
 } from "lucide-react";
-
-interface VariantAttribute {
-  id?: string;
-  name: string;
-  values: string | string[];
-}
-
-interface GeneratedVariant {
-  id: string;
-  combo: string;
-  skuSuffix: string;
-  salePrice: string;
-  costPrice: string;
-  stock: string;
-}
 
 interface ComboItemEntry {
   productId: string;
@@ -71,7 +57,7 @@ interface ProductFormData {
   imageUrl: string;
   type: "STANDARD" | "DIGITAL" | "SERVICE" | "COMBO";
   hasVariants: boolean;
-  attributes: string;
+  attributes: Record<string, string> | null;
   parentId: string;
   salePrice: string;
   costPrice: string;
@@ -195,7 +181,6 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
     const { getUnits } = useUnitsApi();
     const { getSubCategories } = useSubCategoriesApi();
     const { getWarranties } = useWarrantiesApi();
-    const { getVariantAttributes } = useVariantAttributesApi();
     const { getWarehouses } = useInventoryApi();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -208,7 +193,6 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
     const [units, setUnits] = useState<Array<{ shortName: string; name: string }>>([]);
     const [subCategories, setSubCategories] = useState<Array<{ id: string; name: string; categoryId: string }>>([]);
     const [warranties, setWarranties] = useState<Array<{ id: string; name: string; duration: number; durationType: string }>>([]);
-    const [savedAttributes, setSavedAttributes] = useState<VariantAttribute[]>([]);
     const [showCustomCategory, setShowCustomCategory] = useState(false);
     const [warehouses, setWarehouses] = useState<{ id: string; name: string }[]>([]);
 
@@ -218,10 +202,8 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
       expiry: !!initialData?.expiryDate || !!initialData?.manufacturedDate,
     });
 
-    const [attributesList, setAttributesList] = useState<VariantAttribute[]>([]);
-    const [generatedVariants, setGeneratedVariants] = useState<
-      GeneratedVariant[]
-    >([]);
+    const [variantsPayload, setVariantsPayload] = useState<VariantPayload[]>([]);
+    const [parentAttributes, setParentAttributes] = useState<Record<string, string> | null>(null);
 
     const [comboSearchQuery, setComboSearchQuery] = useState("");
     const [comboSearchResults, setComboSearchResults] = useState<
@@ -254,7 +236,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
       imageUrl: initialData?.imageUrl || "",
       type: initialData?.type || "STANDARD",
       hasVariants: initialData?.hasVariants || false,
-      attributes: initialData?.attributes || "",
+      attributes: initialData?.attributes || null,
       parentId: initialData?.parentId || "",
       salePrice: initialData?.salePrice?.toString() || "",
       costPrice: initialData?.costPrice?.toString() || "",
@@ -276,13 +258,12 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
     useEffect(() => {
       const loadData = async () => {
         try {
-          const [categoriesData, brandsData, unitsData, subCatsData, warrantiesData, attrsData, whData] = await Promise.all([
+          const [categoriesData, brandsData, unitsData, subCatsData, warrantiesData, whData] = await Promise.all([
             getCategories(),
             getBrands(),
             getUnits(),
             getSubCategories(),
             getWarranties(),
-            getVariantAttributes(),
             getWarehouses(),
           ]);
           setCategories(categoriesData);
@@ -290,7 +271,6 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
           setUnits(unitsData);
           setSubCategories(subCatsData);
           setWarranties(warrantiesData);
-          setSavedAttributes(attrsData as unknown as VariantAttribute[]);
           setWarehouses(whData);
           if (whData.length > 0 && !selectedWarehouseId) setSelectedWarehouseId(whData[0].id);
         } catch (error) {
@@ -303,7 +283,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
         }
       };
       loadData();
-    }, [getCategories, getBrands, getUnits, getSubCategories, getWarranties, getVariantAttributes, toast]);
+    }, [getCategories, getBrands, getUnits, getSubCategories, getWarranties, toast]);
 
     useEffect(() => {
       if (formData.comboItems.length > 0) {
@@ -333,93 +313,9 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
     const handleVariantToggle = (checked: boolean) => {
       setFormData((prev) => ({ ...prev, hasVariants: checked }));
       if (!checked) {
-        setAttributesList([]);
-        setGeneratedVariants([]);
+        setVariantsPayload([]);
+        setParentAttributes(null);
       }
-    };
-
-    const addAttribute = () => {
-      setAttributesList((prev) => [...prev, { name: "", values: "" }]);
-    };
-
-    const updateAttribute = (
-      index: number,
-      field: keyof VariantAttribute,
-      value: string
-    ) => {
-      setAttributesList((prev) => {
-        const next = [...prev];
-        next[index] = { ...next[index], [field]: value };
-        return next;
-      });
-      setGeneratedVariants([]);
-    };
-
-    const removeAttribute = (index: number) => {
-      setAttributesList((prev) => prev.filter((_, i) => i !== index));
-      setGeneratedVariants([]);
-    };
-
-    const cartesianProduct = useCallback(
-      (arrays: string[][]): string[][] => {
-        if (arrays.length === 0) return [[]];
-        return arrays.reduce<string[][]>(
-          (acc, curr) => acc.flatMap((a) => curr.map((c) => [...a, c])),
-          [[]]
-        );
-      },
-      []
-    );
-
-    const getAttrValues = (a: VariantAttribute): string[] => {
-      return Array.isArray(a.values) ? a.values : a.values.split(",").map((v) => v.trim()).filter(Boolean);
-    };
-
-    const generateVariants = () => {
-      const valid = attributesList.filter((a) => a.name.trim() && getAttrValues(a).length > 0);
-      if (valid.length === 0) {
-        toast({ title: "Error", description: "Add at least one attribute with values", variant: "destructive" });
-        return;
-      }
-
-      const attrValues = valid.map((a) => getAttrValues(a));
-
-      if (attrValues.some((v) => v.length === 0)) {
-        toast({ title: "Error", description: "Each attribute must have at least one value", variant: "destructive" });
-        return;
-      }
-
-      const combos = cartesianProduct(attrValues);
-
-      const variants: GeneratedVariant[] = combos.map((combo) => ({
-        id: crypto.randomUUID(),
-        combo: combo.join(" - "),
-        skuSuffix: combo.map((v) => v.toUpperCase().replace(/\s+/g, "-")).join("-"),
-        salePrice: formData.salePrice,
-        costPrice: formData.costPrice,
-        stock: "0",
-      }));
-
-      setGeneratedVariants(variants);
-
-      const attrsRecord: Record<string, string> = {};
-      valid.forEach((a) => {
-        attrsRecord[a.name.trim()] = getAttrValues(a).join(",");
-      });
-
-      setFormData((prev) => ({ ...prev, attributes: JSON.stringify(attrsRecord) }));
-    };
-
-    const updateVariantField = (index: number, field: keyof GeneratedVariant, value: string) => {
-      setGeneratedVariants((prev) => {
-        const next = [...prev];
-        next[index] = { ...next[index], [field]: value };
-        return next;
-      });
-    };
-
-    const removeVariant = (index: number) => {
-      setGeneratedVariants((prev) => prev.filter((_, i) => i !== index));
     };
 
     const handleComboSearch = async () => {
@@ -512,11 +408,6 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
         const isDigitalOrService = formData.type === "DIGITAL" || formData.type === "SERVICE";
         const isCombo = formData.type === "COMBO";
 
-        let attributesRecord: Record<string, string> | undefined;
-        if (formData.hasVariants) {
-          try { attributesRecord = formData.attributes ? JSON.parse(formData.attributes) : undefined; } catch { attributesRecord = undefined; }
-        }
-
         const productData: Record<string, unknown> = {
           name: formData.name,
           sku: formData.sku,
@@ -541,7 +432,13 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
           taxRate: formData.taxRate ? parseFloat(formData.taxRate) : undefined,
           status: formData.status,
           hasVariants: formData.hasVariants || undefined,
-          attributes: attributesRecord,
+          attributes: formData.hasVariants
+            ? (parentAttributes ?? formData.attributes)
+            : undefined,
+          variants:
+            !isEdit && formData.hasVariants && variantsPayload.length > 0
+              ? variantsPayload
+              : undefined,
         };
 
         if (isCombo && comboItems.length > 0) {
@@ -994,94 +891,21 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
         )}
 
         {/* Variants */}
-        {!isEdit && formData.hasVariants && (
+        {formData.hasVariants && (
           <CardSection icon={<List className="h-4 w-4" />} title="Variants">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[14px] font-medium text-[#212b36] dark:text-card-foreground shrink-0">Attributes</span>
-                <div className="flex items-center gap-2">
-                  {savedAttributes.length > 0 && (
-                    <Select onValueChange={(value) => {
-                      const attr = savedAttributes.find(a => a.id === value);
-                      if (attr && Array.isArray(attr.values) && !attributesList.some(a => a.name === attr.name)) {
-                        setAttributesList(prev => [...prev, { name: attr.name, values: attr.values instanceof Array ? attr.values.join(", ") : attr.values }]);
-                      }
-                    }}>
-                      <SelectTrigger className="h-[34px] w-[160px] text-[12px] rounded-[5px]">
-                        <SelectValue placeholder="Select preset" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {savedAttributes.map((a, idx) => (
-                          <SelectItem key={a.id ?? idx} value={a.id ?? ''} disabled={attributesList.some(at => at.name === a.name)}>
-                            {a.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  <Button type="button" variant="outline" size="sm" onClick={addAttribute}
-                    className="text-[12px] h-[34px]">Add Custom</Button>
-                </div>
-              </div>
-              {attributesList.map((attr, index) => (
-                <div key={index} className="flex items-start gap-2 rounded border p-3">
-                  <div className="flex-1 space-y-1">
-                    <Label className="text-xs text-muted-foreground">Attribute Name</Label>
-                    <Input placeholder='e.g. "Color"' value={attr.name}
-                      onChange={(e) => updateAttribute(index, "name", e.target.value)}
-                      className="h-[34px] text-[13px]" />
-                  </div>
-                  <div className="flex-[2] space-y-1">
-                    <Label className="text-xs text-muted-foreground">Values (comma-separated)</Label>
-                    <Input placeholder='e.g. "Red, Blue, Green"' value={attr.values}
-                      onChange={(e) => updateAttribute(index, "values", e.target.value)}
-                      className="h-[34px] text-[13px]" />
-                  </div>
-                  <Button type="button" variant="ghost" size="sm" className="mt-5"
-                    onClick={() => removeAttribute(index)}>X</Button>
-                </div>
-              ))}
-              {attributesList.length > 0 && (
-                <Button type="button" variant="secondary" onClick={generateVariants}
-                  className="text-[13px]">Generate Variants</Button>
-              )}
-              {generatedVariants.length > 0 && (
-                <div className="overflow-x-auto rounded border">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-muted/50">
-                        <th className="px-3 py-2 text-left font-medium text-[12px] text-muted-foreground">Variant</th>
-                        <th className="px-3 py-2 text-left font-medium text-[12px] text-muted-foreground">SKU Suffix</th>
-                        <th className="px-3 py-2 text-left font-medium text-[12px] text-muted-foreground">Sale Price</th>
-                        <th className="px-3 py-2 text-left font-medium text-[12px] text-muted-foreground">Cost Price</th>
-                        <th className="px-3 py-2 text-left font-medium text-[12px] text-muted-foreground">Stock</th>
-                        <th className="px-3 py-2" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {generatedVariants.map((variant, index) => (
-                        <tr key={variant.id} className="border-b">
-                          <td className="px-3 py-2 text-xs">{variant.combo}</td>
-                          <td className="px-3 py-2"><Input className="h-8 text-xs" value={variant.skuSuffix}
-                            onChange={(e) => updateVariantField(index, "skuSuffix", e.target.value)} /></td>
-                          <td className="px-3 py-2"><Input type="number" step="0.01" className="h-8 text-xs w-24"
-                            value={variant.salePrice}
-                            onChange={(e) => updateVariantField(index, "salePrice", e.target.value)} /></td>
-                          <td className="px-3 py-2"><Input type="number" step="0.01" className="h-8 text-xs w-24"
-                            value={variant.costPrice}
-                            onChange={(e) => updateVariantField(index, "costPrice", e.target.value)} /></td>
-                          <td className="px-3 py-2"><Input type="number" className="h-8 text-xs w-20"
-                            value={variant.stock}
-                            onChange={(e) => updateVariantField(index, "stock", e.target.value)} /></td>
-                          <td className="px-3 py-2"><Button type="button" variant="ghost" size="sm" className="h-8 w-8"
-                            onClick={() => removeVariant(index)}>X</Button></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+            <VariantManager
+              mode={isEdit ? "edit" : "create"}
+              parentId={isEdit ? productId : undefined}
+              parentName={formData.name}
+              parentSku={formData.sku}
+              parentCategory={showCustomCategory ? formData.customCategory : formData.category}
+              warehouseId={selectedWarehouseId}
+              defaultSalePrice={formData.salePrice}
+              defaultCostPrice={formData.costPrice}
+              initialAttributes={formData.attributes}
+              onVariantsChange={setVariantsPayload}
+              onAttributesChange={setParentAttributes}
+            />
           </CardSection>
         )}
         {showSubmit && (

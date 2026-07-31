@@ -225,7 +225,6 @@ export class ProductController {
   // DELETE - Management roles only
   @Delete(':id')
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.MANAGER)
-  @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string, @CompanyId() companyId: string) {
     return this.productService.remove(id, companyId);
   }

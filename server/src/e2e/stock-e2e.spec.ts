@@ -603,4 +603,411 @@ describe('Stock E2E on live DB', () => {
     expect(sales[0].balance).toBe(1);
     log(`STEP5: ledger SALE -4 bal 1; total ledger rows=${rows.length}`);
   });
+
+  test('STEP 6: variant product - batch create via attributes, ledgered INITIAL per variant', async () => {
+    const parent = await productService.create(
+      {
+        name: 'E2E Variant Parent',
+        sku: `E2E-VP-${Date.now()}`,
+        category: 'E2E',
+        salePrice: 12,
+        costPrice: 6,
+        stock: 0,
+        warehouseId: wh1,
+        type: 'STANDARD',
+        hasVariants: true,
+        attributes: { Color: 'Red,Blue', Size: 'S,M' },
+        variants: [
+          {
+            sku: `E2E-VR-${Date.now()}`,
+            name: 'E2E Variant Parent - Red / S',
+            salePrice: 12.5,
+            costPrice: 6.5,
+            stock: 10,
+            attributes: { Color: 'Red', Size: 'S' },
+          },
+          {
+            sku: `E2E-VB-${Date.now()}`,
+            name: 'E2E Variant Parent - Blue / S',
+            salePrice: 12.5,
+            costPrice: 6.5,
+            stock: 10,
+            attributes: { Color: 'Blue', Size: 'S' },
+          },
+          {
+            sku: `E2E-VM-${Date.now()}`,
+            name: 'E2E Variant Parent - Red / M',
+            salePrice: 12.5,
+            costPrice: 6.5,
+            stock: 10,
+            attributes: { Color: 'Red', Size: 'M' },
+          },
+          {
+            sku: `E2E-VL-${Date.now()}`,
+            name: 'E2E Variant Parent - Blue / M',
+            salePrice: 12.5,
+            costPrice: 6.5,
+            stock: 10,
+            attributes: { Color: 'Blue', Size: 'M' },
+          },
+        ],
+      },
+      companyId,
+      userId,
+    );
+    const parentId = (parent as any).id;
+    const parentSku = (parent as any).sku;
+    productIds.push(parentId);
+    log(`STEP6: parent=${parentId} (${parentSku}) + 4 variants x10 wh1`);
+
+    const variants = await productService.getVariants(parentId, companyId);
+    expect(variants.length).toBe(4);
+    const ids = variants.map((v: any) => v.id);
+    productIds.push(...ids);
+
+    for (const v of variants as any[]) {
+      expect(v.parentId).toBe(parentId);
+      expect(v.attributes).toBeTruthy();
+      expect(await inventoryTable(v.id, wh1)).toBe(10);
+      const rows = await ledger(v.id, wh1);
+      expect(rows.length).toBe(1);
+      expect(rows[0].type).toBe('INITIAL');
+      expect(rows[0].quantity).toBe(10);
+      expect(rows[0].balance).toBe(10);
+    }
+    log('STEP6: 4 variants each: inventory 10 wh1 + ledger [INITIAL +10 bal 10]');
+
+    // Parent must NOT hold its own inventory/ledger rows
+    const parentInv = await prisma.inventory.count({ where: { productId: parentId } });
+    const parentLedger = await prisma.stockLedger.count({ where: { productId: parentId } });
+    expect(parentInv).toBe(0);
+    expect(parentLedger).toBe(0);
+
+    // Parent attributes round-trip
+    const storedParent = await prisma.product.findUnique({
+      where: { id: parentId },
+      select: { hasVariants: true, attributes: true },
+    });
+    expect(storedParent?.hasVariants).toBe(true);
+    expect(storedParent?.attributes).toEqual({ Color: 'Red,Blue', Size: 'S,M' });
+
+    // All surfaces agree (derived totals on parent = 40)
+    expect((await productsTable(parentSku)).stock).toBe(40);
+
+    // SKU collisions must be rejected
+    const v0 = (variants as any[])[0];
+    const dup = productService.create(
+      {
+        name: 'E2E Dup',
+        sku: `E2E-DUP-${Date.now()}`,
+        category: 'E2E',
+        salePrice: 1,
+        costPrice: 1,
+        warehouseId: wh1,
+        variants: [{ sku: v0.sku, name: 'Dup Variant', salePrice: 1, costPrice: 1 }],
+      },
+      companyId,
+      userId,
+    );
+    await expect(dup).rejects.toThrow(/already exists/);
+    const dupInternal = productService.create(
+      {
+        name: 'E2E Dup2',
+        sku: `E2E-DUP2-${Date.now()}`,
+        category: 'E2E',
+        salePrice: 1,
+        costPrice: 1,
+        warehouseId: wh1,
+        variants: [
+          { sku: `E2E-X-${Date.now()}`, name: 'X1', salePrice: 1, costPrice: 1 },
+          { sku: `E2E-X-${Date.now()}`, name: 'X2', salePrice: 1, costPrice: 1 },
+        ],
+      },
+      companyId,
+      userId,
+    );
+    await expect(dupInternal).rejects.toThrow(/Duplicate variant SKUs/);
+    log('STEP6: duplicate SKUs (db + in-request) rejected');
+  });
+
+  test('STEP 7: variant edit ops - add, stock save (ledgered), delete, soft-delete with sales', async () => {
+    const parent = await productService.create(
+      {
+        name: 'E2E Variant Edit Parent',
+        sku: `E2E-VEP-${Date.now()}`,
+        category: 'E2E',
+        salePrice: 20,
+        costPrice: 10,
+        stock: 0,
+        warehouseId: wh1,
+        hasVariants: true,
+        variants: [
+          { sku: `E2E-VE1-${Date.now()}`, name: 'Edit Var 1', salePrice: 20, costPrice: 10, stock: 10 },
+          { sku: `E2E-VE2-${Date.now()}`, name: 'Edit Var 2', salePrice: 20, costPrice: 10, stock: 10 },
+          { sku: `E2E-VE3-${Date.now()}`, name: 'Edit Var 3', salePrice: 20, costPrice: 10, stock: 10 },
+        ],
+      },
+      companyId,
+      userId,
+    );
+    const parentId = (parent as any).id;
+    productIds.push(parentId);
+    let variants = await productService.getVariants(parentId, companyId);
+    const vIds = (variants as any[]).map((v) => v.id);
+    productIds.push(...vIds);
+    log('STEP7: parent + 3 variants x10');
+
+    // Add a 5th variant the way the UI does (createProduct with parentId)
+    const added = await productService.create(
+      {
+        name: 'Edit Var 4',
+        sku: `E2E-VE4-${Date.now()}`,
+        category: 'E2E',
+        salePrice: 21,
+        costPrice: 11,
+        stock: 5,
+        warehouseId: wh1,
+        parentId,
+        status: 'ACTIVE',
+      },
+      companyId,
+      userId,
+    );
+    const v4Id = (added as any).id;
+    productIds.push(v4Id);
+    variants = await productService.getVariants(parentId, companyId);
+    expect(variants.length).toBe(4);
+    const v4Ledger = await ledger(v4Id, wh1);
+    expect(v4Ledger.map((r) => r.type)).toEqual(['INITIAL']);
+    expect(v4Ledger[0].quantity).toBe(5);
+    expect(await inventoryTable(v4Id, wh1)).toBe(5);
+    log('STEP7: added 4th variant -> INITIAL +5 bal 5');
+
+    // Stock edit via StockService-backed endpoint (what VariantManager save uses)
+    await productService.updateStock(v4Id, 3, 'add', companyId, wh1);
+    expect(await inventoryTable(v4Id, wh1)).toBe(8);
+    const v4LedgerAfter = await ledger(v4Id, wh1);
+    expect(v4LedgerAfter.map((r) => r.type)).toEqual(['INITIAL', 'ADJUSTMENT']);
+    expect(v4LedgerAfter[1].quantity).toBe(3);
+    expect(v4LedgerAfter[1].balance).toBe(8);
+    log('STEP7: stock edit +3 -> 8; ledger [INITIAL +5 bal5, ADJUSTMENT +3 bal8]');
+
+    // Hard delete a variant with NO sale history
+    const v3Id = (variants as any[])[2].id;
+    const del = await productService.remove(v3Id, companyId);
+    expect(del).toEqual({ softDeleted: false });
+    variants = await productService.getVariants(parentId, companyId);
+    expect(variants.length).toBe(3);
+    expect(await prisma.inventory.count({ where: { productId: v3Id } })).toBe(0);
+    expect(await prisma.stockLedger.count({ where: { productId: v3Id } })).toBe(0);
+    log('STEP7: hard-deleted variant w/o sales; children=3');
+
+    // Soft-delete a variant WITH sale history
+    const v1Id = (variants as any[])[0].id;
+    await salesService.create(
+      {
+        customer: { name: 'E2E Customer' },
+        warehouseId: wh1,
+        saleDate: nowIso(),
+        dueDate: nowIso(),
+        status: 'COMPLETED',
+        paymentStatus: 'PAID',
+        items: [{ productId: v1Id, quantity: 1, unitPrice: 20 }],
+      },
+      userId,
+      companyId,
+    );
+    const softDel = await productService.remove(v1Id, companyId);
+    expect(softDel).toEqual({ softDeleted: true });
+    const stored = await prisma.product.findUnique({
+      where: { id: v1Id },
+      select: { status: true },
+    });
+    expect(stored?.status).toBe('DISCONTINUED');
+    expect(await inventoryTable(v1Id, wh1)).toBe(9);
+    variants = await productService.getVariants(parentId, companyId);
+    expect(variants.some((v: any) => v.id === v1Id && v.status === 'DISCONTINUED')).toBe(true);
+    log('STEP7: soft-deleted variant with sales -> DISCONTINUED, stock kept at 9');
+  });
+
+  test('STEP 8: sell one variant - only that variant decrements, surfaces agree', async () => {
+    const parent = await productService.create(
+      {
+        name: 'E2E Variant Sale Parent',
+        sku: `E2E-VSP-${Date.now()}`,
+        category: 'E2E',
+        salePrice: 15,
+        costPrice: 7,
+        stock: 0,
+        warehouseId: wh1,
+        hasVariants: true,
+        variants: [
+          { sku: `E2E-VS1-${Date.now()}`, name: 'Sale Var 1', salePrice: 15, costPrice: 7, stock: 10 },
+          { sku: `E2E-VS2-${Date.now()}`, name: 'Sale Var 2', salePrice: 15, costPrice: 7, stock: 10 },
+          { sku: `E2E-VS3-${Date.now()}`, name: 'Sale Var 3', salePrice: 15, costPrice: 7, stock: 10 },
+        ],
+      },
+      companyId,
+      userId,
+    );
+    const parentId = (parent as any).id;
+    productIds.push(parentId);
+    const variants = await productService.getVariants(parentId, companyId);
+    const [v1, v2, v3] = variants as any[];
+    productIds.push(v1.id, v2.id, v3.id);
+
+    await salesService.create(
+      {
+        customer: { name: 'E2E Customer' },
+        warehouseId: wh1,
+        saleDate: nowIso(),
+        dueDate: nowIso(),
+        status: 'COMPLETED',
+        paymentStatus: 'PAID',
+        items: [{ productId: v2.id, quantity: 1, unitPrice: 15 }],
+      },
+      userId,
+      companyId,
+    );
+
+    expect(await inventoryTable(v2.id, wh1)).toBe(9);
+    expect(await inventoryTable(v1.id, wh1)).toBe(10);
+    expect(await inventoryTable(v3.id, wh1)).toBe(10);
+    expect((await productsTable((parent as any).sku)).stock).toBe(29);
+    const v2Rows = await ledger(v2.id, wh1);
+    expect(v2Rows.map((r) => r.type)).toEqual(['INITIAL', 'SALE']);
+    expect(v2Rows[1].quantity).toBe(-1);
+    expect(v2Rows[1].balance).toBe(9);
+    const v1Rows = await ledger(v1.id, wh1);
+    expect(v1Rows.length).toBe(1);
+    log('STEP8: sold 1 of v2 -> v2=9 (SALE -1 bal 9), siblings untouched at 10');
+  });
+
+  test('STEP 9: multi-item cart - plain + variant + combo in one transaction', async () => {
+    const plain = await productService.create(
+      {
+        name: 'E2E Cart Plain',
+        sku: `E2E-CP-${Date.now()}`,
+        category: 'E2E',
+        salePrice: 5,
+        costPrice: 2,
+        stock: 10,
+        warehouseId: wh1,
+        type: 'STANDARD',
+      },
+      companyId,
+      userId,
+    );
+    const plainId = (plain as any).id;
+    productIds.push(plainId);
+
+    const c1 = await productService.create(
+      {
+        name: 'E2E Cart C1',
+        sku: `E2E-CC1-${Date.now()}`,
+        category: 'E2E',
+        salePrice: 2,
+        costPrice: 1,
+        stock: 10,
+        warehouseId: wh1,
+        type: 'STANDARD',
+      },
+      companyId,
+      userId,
+    );
+    const c2 = await productService.create(
+      {
+        name: 'E2E Cart C2',
+        sku: `E2E-CC2-${Date.now()}`,
+        category: 'E2E',
+        salePrice: 3,
+        costPrice: 1,
+        stock: 10,
+        warehouseId: wh1,
+        type: 'STANDARD',
+      },
+      companyId,
+      userId,
+    );
+    const c1Id = (c1 as any).id;
+    const c2Id = (c2 as any).id;
+    productIds.push(c1Id, c2Id);
+
+    const combo = await productService.create(
+      {
+        name: 'E2E Cart Combo',
+        sku: `E2E-CCOMBO-${Date.now()}`,
+        category: 'E2E',
+        salePrice: 4,
+        costPrice: 2,
+        stock: 0,
+        warehouseId: wh1,
+        type: 'COMBO',
+        comboItems: [
+          { productId: c1Id, quantity: 1 },
+          { productId: c2Id, quantity: 1 },
+        ],
+      },
+      companyId,
+      userId,
+    );
+    const comboId = (combo as any).id;
+    productIds.push(comboId);
+
+    const parent = await productService.create(
+      {
+        name: 'E2E Cart Variant Parent',
+        sku: `E2E-CVP-${Date.now()}`,
+        category: 'E2E',
+        salePrice: 8,
+        costPrice: 4,
+        stock: 0,
+        warehouseId: wh1,
+        hasVariants: true,
+        variants: [
+          { sku: `E2E-CV1-${Date.now()}`, name: 'Cart Var 1', salePrice: 8, costPrice: 4, stock: 8 },
+        ],
+      },
+      companyId,
+      userId,
+    );
+    const parentId = (parent as any).id;
+    productIds.push(parentId);
+    const variants = await productService.getVariants(parentId, companyId);
+    const variantId = (variants as any[])[0].id;
+    productIds.push(variantId);
+    log('STEP9: plain=10, variant=8, combo (1xC1 +1xC2) C1=10 C2=10');
+
+    await salesService.create(
+      {
+        customer: { name: 'E2E Customer' },
+        warehouseId: wh1,
+        saleDate: nowIso(),
+        dueDate: nowIso(),
+        status: 'COMPLETED',
+        paymentStatus: 'PAID',
+        items: [
+          { productId: plainId, quantity: 2, unitPrice: 5 },
+          { productId: variantId, quantity: 1, unitPrice: 8 },
+          { productId: comboId, quantity: 1, unitPrice: 4 },
+        ],
+      },
+      userId,
+      companyId,
+    );
+
+    expect(await inventoryTable(plainId, wh1)).toBe(8);
+    expect(await inventoryTable(variantId, wh1)).toBe(7);
+    expect(await inventoryTable(c1Id, wh1)).toBe(9);
+    expect(await inventoryTable(c2Id, wh1)).toBe(9);
+    expect(await comboAvailability(comboId, wh1)).toBe(9);
+
+    const plainLedger = await ledger(plainId, wh1);
+    const variantLedger = await ledger(variantId, wh1);
+    const c1Ledger = await ledger(c1Id, wh1);
+    expect(plainLedger.filter((r) => r.type === 'SALE')[0].quantity).toBe(-2);
+    expect(variantLedger.filter((r) => r.type === 'SALE')[0].quantity).toBe(-1);
+    expect(c1Ledger.filter((r) => r.type === 'SALE')[0].quantity).toBe(-1);
+    log('STEP9: one tx -> plain=8 (SALE -2), variant=7 (SALE -1), C1=9 C2=9, combo avail 9');
+  });
 });

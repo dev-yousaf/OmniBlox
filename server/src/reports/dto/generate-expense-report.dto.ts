@@ -1,0 +1,17 @@
+import { IsDateString, IsOptional, IsString } from 'class-validator';
+
+export class GenerateExpenseReportDto {
+  @IsDateString()
+  startDate: string;
+
+  @IsDateString()
+  endDate: string;
+
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
+
+  @IsOptional()
+  @IsString()
+  vendor?: string;
+}

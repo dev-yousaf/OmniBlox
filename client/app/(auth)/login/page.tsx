@@ -93,7 +93,7 @@ export default function LoginPage() {
     } catch (err: any) {
       setError(err.message || "Failed to send magic link");
     } finally {
-      setIsLoading(false);
+      setSubmitting(false);
     }
   };
 

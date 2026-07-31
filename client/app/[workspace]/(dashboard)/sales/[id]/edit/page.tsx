@@ -30,7 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 import { useProductApi } from "@/hooks/use-product-api";
 import { useToast } from "@/hooks/use-toast";
-import type { Product } from "@/lib/types";
+import type { ComboItem, Product } from "@/lib/types";
 
 import { useSaleDetail } from "../../_hooks/use-sales";
 import type {
@@ -43,6 +43,8 @@ interface SaleItemRow {
   id: string;
   productId: string;
   productName: string;
+  productType?: "STANDARD" | "DIGITAL" | "SERVICE" | "COMBO";
+  comboItems?: ComboItem[];
   quantity: number;
   unitPrice: number;
   total: number;
@@ -228,6 +230,29 @@ export default function EditSalePage() {
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
+  const productOptions = useMemo(() => {
+    const options: Array<{ product: Product; variant?: Product }> = [];
+    for (const product of products) {
+      if (product.hasVariants && product.variants && product.variants.length > 0) {
+        for (const variant of product.variants) {
+          if (variant.status === "DISCONTINUED") continue;
+          options.push({ product, variant });
+        }
+      } else {
+        if (product.parentId) continue;
+        if (product.status === "DISCONTINUED") continue;
+        options.push({ product });
+      }
+    }
+    return options;
+  }, [products]);
+
+  const productOptionLabel = (option: { product: Product; variant?: Product }) => {
+    const p = option.variant ?? option.product;
+    const label = option.variant ? `${p.name} (${p.sku})` : p.name;
+    return option.product.type === "COMBO" ? `${label} (Combo)` : label;
+  };
+
   const updateItem = (id: string, field: keyof SaleItemRow, value: unknown) => {
     setItems((prev) =>
       prev.map((item) => {
@@ -239,10 +264,22 @@ export default function EditSalePage() {
 
         if (field === "productId" && typeof value === "string") {
           next.productId = value;
-          const product = products.find((p) => p.id === value);
+          const option = productOptions.find((o) =>
+            o.variant
+              ? o.variant.id === value
+              : o.product.id === value
+          );
+          const product = option?.variant ?? option?.product;
           if (product) {
             next.productName = product.name;
             next.unitPrice = Number(product.salePrice) || 0;
+            next.productType = product.type;
+            next.comboItems = product.comboItems;
+          } else {
+            next.productName = "";
+            next.unitPrice = 0;
+            next.productType = undefined;
+            next.comboItems = undefined;
           }
         }
 
@@ -675,19 +712,19 @@ export default function EditSalePage() {
                               )}
                               {!productsLoading &&
                                 !productsError &&
-                                products.length === 0 && (
+                                productOptions.length === 0 && (
                                   <SelectItem value="NO_PRODUCTS" disabled>
                                     No products available
                                   </SelectItem>
                                 )}
                               {!productsLoading &&
                                 !productsError &&
-                                products.map((product) => (
+                                productOptions.map((option) => (
                                   <SelectItem
-                                    key={product.id}
-                                    value={product.id}
+                                    key={option.variant?.id ?? option.product.id}
+                                    value={option.variant?.id ?? option.product.id}
                                   >
-                                    {product.name}
+                                    {productOptionLabel(option)}
                                   </SelectItem>
                                 ))}
                             </SelectContent>
@@ -735,6 +772,16 @@ export default function EditSalePage() {
                           />
                         </div>
                       </div>
+                      {item.productType === "COMBO" &&
+                        item.comboItems &&
+                        item.comboItems.length > 0 && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Combo includes:{" "}
+                            {item.comboItems
+                              .map((ci) => `${ci.productName} x${ci.quantity}`)
+                              .join(", ")}
+                          </p>
+                        )}
                       <Button
                         type="button"
                         variant="ghost"

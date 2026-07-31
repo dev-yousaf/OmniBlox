@@ -33,6 +33,7 @@ import { VariantAttributesModule } from './variant-attributes/variant-attributes
 import { UnitsModule } from './units/units.module';
 import { WarrantiesModule } from './warranties/warranties.module';
 import { AuditLogModule } from './audit-logs/audit-logs.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { AuditLogModule } from './audit-logs/audit-logs.module';
     UnitsModule,
     WarrantiesModule,
     AuditLogModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
