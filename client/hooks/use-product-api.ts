@@ -129,11 +129,13 @@ export function useProductApi() {
     async (
       id: string,
       quantity: number,
-      operation: "add" | "subtract"
+      operation: "add" | "subtract",
+      warehouseId?: string
     ): Promise<Product> => {
       return put(`/products/${id}/stock`, {
         quantity,
         operation,
+        ...(warehouseId ? { warehouseId } : {}),
       }) as Promise<Product>;
     },
     [put]
