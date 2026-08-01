@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCurrencyFormatter } from "@/hooks/use-currency-formatter";
+import { useEffect, useState } from "react";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,10 +44,7 @@ export default function BillsPage() {
   const [page, setPage] = useState(1);
   const [markingId, setMarkingId] = useState<string | null>(null);
 
-  const formatCurrency = useMemo(
-    () => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }),
-    []
-  );
+  const formatCurrency = useCurrencyFormatter();
 
   useEffect(() => {
     setLoading(true);

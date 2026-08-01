@@ -323,12 +323,41 @@ export class AuthService {
     };
   }
 
+  async updateCompany(
+    userId: string,
+    data: { name?: string; industry?: string; country?: string },
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const company = await this.prisma.company.update({
+      where: { id: user.companyId },
+      data: {
+        name: data.name ?? undefined,
+        industry: data.industry ?? undefined,
+        country: data.country ?? undefined,
+      },
+    });
+
+    return {
+      id: company.id,
+      name: company.name,
+      workspaceUrl: company.workspaceUrl,
+      industry: company.industry,
+      country: company.country,
+    };
+  }
+
   async changePassword(
     userId: string,
     currentPassword: string,
     newPassword: string,
-  ) {
-    const user = await this.prisma.user.findUnique({
+  ) {    const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
 

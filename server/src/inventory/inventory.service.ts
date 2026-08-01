@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CacheService } from '../cache/cache.service';
+import { SettingsService } from '../settings/settings.service';
 import { StockService } from './stock.service';
 import {
   CreateWarehouseDto,
@@ -41,6 +42,7 @@ export class InventoryService {
     private prisma: PrismaService,
     private cache: CacheService,
     private readonly stockService: StockService,
+    private readonly settingsService: SettingsService,
   ) {}
 
   // === WAREHOUSE MANAGEMENT ===
@@ -286,13 +288,19 @@ export class InventoryService {
     // Filter low stock items if needed (since Prisma doesn't support complex comparisons easily)
     let filteredInventory = inventory;
     if (filter === 'low_stock') {
+      const lowStockFallback = await this.getEffectiveThreshold(companyId, 0);
       filteredInventory = inventory.filter(
         (item) =>
           item.quantity > 0 &&
-          item.product.reorderLevel > 0 &&
-          item.quantity <= item.product.reorderLevel,
+          item.quantity <=
+            (item.product.reorderLevel > 0
+              ? item.product.reorderLevel
+              : lowStockFallback) &&
+          (item.product.reorderLevel > 0 || lowStockFallback > 0),
       );
     }
+
+    const lowStockFallback = await this.getEffectiveThreshold(companyId, 0);
 
     const items: InventoryItemDto[] = filteredInventory.map((item) => ({
       productId: item.productId,
@@ -306,7 +314,11 @@ export class InventoryService {
       costPrice: Number(item.product.costPrice),
       reorderLevel: item.product.reorderLevel,
       stockValue: item.quantity * Number(item.product.costPrice),
-      status: this.getStockStatus(item.quantity, item.product.reorderLevel),
+      status: this.statusOf(
+        item.quantity,
+        item.product.reorderLevel,
+        lowStockFallback,
+      ),
       category: item.product.category.name,
       brand: item.product.brand?.name,
       updatedAt: item.updatedAt.toISOString(),
@@ -363,6 +375,8 @@ export class InventoryService {
       orderBy: { warehouse: { name: 'asc' } },
     });
 
+    const lowStockFallback = await this.getEffectiveThreshold(companyId, 0);
+
     const result = inventory.map((item) => ({
       productId: item.productId,
       productName: item.product.name,
@@ -375,7 +389,11 @@ export class InventoryService {
       costPrice: Number(item.product.costPrice),
       reorderLevel: item.product.reorderLevel,
       stockValue: item.quantity * Number(item.product.costPrice),
-      status: this.getStockStatus(item.quantity, item.product.reorderLevel),
+      status: this.statusOf(
+        item.quantity,
+        item.product.reorderLevel,
+        lowStockFallback,
+      ),
       category: item.product.category.name,
       brand: item.product.brand?.name,
       updatedAt: item.updatedAt.toISOString(),
@@ -413,6 +431,8 @@ export class InventoryService {
       throw new NotFoundException('Warehouse not found');
     }
 
+    const lowStockFallback = await this.getEffectiveThreshold(companyId, 0);
+
     const inventory: InventoryItemDto[] = warehouse.inventory.map((item) => ({
       productId: item.productId,
       productName: item.product.name,
@@ -425,7 +445,11 @@ export class InventoryService {
       costPrice: Number(item.product.costPrice),
       reorderLevel: item.product.reorderLevel,
       stockValue: item.quantity * Number(item.product.costPrice),
-      status: this.getStockStatus(item.quantity, item.product.reorderLevel),
+      status: this.statusOf(
+        item.quantity,
+        item.product.reorderLevel,
+        lowStockFallback,
+      ),
       category: item.product.category.name,
       brand: item.product.brand?.name,
       updatedAt: item.updatedAt.toISOString(),
@@ -462,7 +486,11 @@ export class InventoryService {
         if (sellable !== undefined) {
           item.quantity = sellable;
           item.stockValue = sellable * item.costPrice;
-          item.status = this.getStockStatus(sellable, item.reorderLevel);
+          item.status = this.statusOf(
+            sellable,
+            item.reorderLevel,
+            lowStockFallback,
+          );
           item.updatedAt = new Date().toISOString();
         }
       }
@@ -482,7 +510,7 @@ export class InventoryService {
           costPrice: Number(c.costPrice),
           reorderLevel: c.reorderLevel,
           stockValue: quantity * Number(c.costPrice),
-          status: this.getStockStatus(quantity, c.reorderLevel),
+          status: this.statusOf(quantity, c.reorderLevel, lowStockFallback),
           category: c.category?.name,
           brand: c.brand?.name,
           updatedAt: new Date().toISOString(),
@@ -1167,6 +1195,7 @@ export class InventoryService {
     let lowStockProducts = 0;
     let outOfStockProducts = 0;
     let totalStockValue = 0;
+    const lowStockFallback = await this.getEffectiveThreshold(companyId, 0);
 
     allInventory.forEach((item) => {
       const stockValue = item.quantity * Number(item.product.costPrice);
@@ -1175,8 +1204,11 @@ export class InventoryService {
       if (item.quantity === 0) {
         outOfStockProducts++;
       } else if (
-        item.product.reorderLevel > 0 &&
-        item.quantity <= item.product.reorderLevel
+        item.quantity <=
+        (item.product.reorderLevel > 0
+          ? item.product.reorderLevel
+          : lowStockFallback) &&
+        (item.product.reorderLevel > 0 || lowStockFallback > 0)
       ) {
         lowStockProducts++;
       }
@@ -1230,12 +1262,32 @@ export class InventoryService {
     );
   }
 
-  private getStockStatus(
+  private async getStockStatus(
+    companyId: string,
     quantity: number,
     reorderLevel: number,
+  ): Promise<'in_stock' | 'low_stock' | 'out_of_stock'> {
+    const fallback = await this.getEffectiveThreshold(companyId, 0);
+    return this.statusOf(quantity, reorderLevel, fallback);
+  }
+
+  private statusOf(
+    quantity: number,
+    reorderLevel: number,
+    fallbackThreshold: number,
   ): 'in_stock' | 'low_stock' | 'out_of_stock' {
     if (quantity === 0) return 'out_of_stock';
-    if (reorderLevel > 0 && quantity <= reorderLevel) return 'low_stock';
+    const threshold = reorderLevel > 0 ? reorderLevel : fallbackThreshold;
+    if (threshold > 0 && quantity <= threshold) return 'low_stock';
     return 'in_stock';
+  }
+
+  private async getEffectiveThreshold(
+    companyId: string,
+    reorderLevel: number,
+  ): Promise<number> {
+    if (reorderLevel > 0) return reorderLevel;
+    const settings = await this.settingsService.getOrCreate(companyId);
+    return settings.lowStockThreshold ?? 10;
   }
 }

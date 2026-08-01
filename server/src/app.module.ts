@@ -34,6 +34,7 @@ import { UnitsModule } from './units/units.module';
 import { WarrantiesModule } from './warranties/warranties.module';
 import { AuditLogModule } from './audit-logs/audit-logs.module';
 import { ReportsModule } from './reports/reports.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { ReportsModule } from './reports/reports.module';
     WarrantiesModule,
     AuditLogModule,
     ReportsModule,
+    SettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

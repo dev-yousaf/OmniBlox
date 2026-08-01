@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { formatMoney } from "@/lib/money";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   ArrowLeft,
@@ -129,7 +130,7 @@ export default function PaymentDetailPage() {
             <div className="flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-green-500" />
               <span className="text-2xl font-bold">
-                ${payment.amount.toLocaleString()}
+                {formatMoney(payment.amount)}
               </span>
             </div>
           </CardContent>
@@ -207,7 +208,7 @@ export default function PaymentDetailPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Amount</p>
                   <p className="font-semibold text-lg">
-                    ${payment.amount.toLocaleString()}
+                    {formatMoney(payment.amount)}
                   </p>
                 </div>
                 <div>

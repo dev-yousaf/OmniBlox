@@ -1,5 +1,6 @@
 "use client";
 
+import { useCurrencyFormatter } from "@/hooks/use-currency-formatter";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { useParams, useRouter } from "next/navigation";
@@ -166,10 +167,7 @@ export default function EditQuotationPage() {
     );
   }, [quotation]);
 
-  const currencyFormatter = useMemo(
-    () => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }),
-    []
-  );
+  const currencyFormatter = useCurrencyFormatter();
 
   const subtotal = useMemo(
     () => items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0),

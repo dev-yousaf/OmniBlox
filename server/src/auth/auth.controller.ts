@@ -15,6 +15,7 @@ import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UpdateCompanyDto } from './dto/update-company.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { RequestMagicLinkDto } from './dto/request-magic-link.dto';
 import { VerifyMagicLinkDto } from './dto/verify-magic-link.dto';
@@ -31,6 +32,9 @@ import {
 import { AuthService as BetterAuthService } from '@thallesp/nestjs-better-auth';
 import type { Request, Response } from 'express';
 import { fromNodeHeaders } from 'better-auth/node';
+import { RolesGuard } from './guards/roles.guard';
+import { Roles } from './decorators/roles.decorator';
+import { UserRole } from '@prisma/client';
 
 // Define the session type with our custom fields
 interface UserSession {
@@ -132,6 +136,17 @@ export class AuthController {
   ) {
     const userId = session.session.userId;
     return this.authService.updateUserProfile(userId, updateProfileDto);
+  }
+
+  @Put('company')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  async updateCompany(
+    @Session() session: UserSession,
+    @Body() updateCompanyDto: UpdateCompanyDto,
+  ) {
+    const userId = session.session.userId;
+    return this.authService.updateCompany(userId, updateCompanyDto);
   }
 
   @Put('change-password')

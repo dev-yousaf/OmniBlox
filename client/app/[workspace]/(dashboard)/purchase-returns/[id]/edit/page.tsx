@@ -1,5 +1,6 @@
 "use client";
 
+import { useCurrencyFormatter } from "@/hooks/use-currency-formatter";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { useParams, useRouter } from "next/navigation";
@@ -89,9 +90,7 @@ export default function EditPurchaseReturnPage() {
     return () => { mounted = false; };
   }, [id, getPurchaseReturn, getSuppliers]);
 
-  const currencyFormatter = useMemo(
-    () => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }), []
-  );
+  const currencyFormatter = useCurrencyFormatter();
 
   const total = useMemo(() => items.reduce((sum, item) => sum + Number(item.quantity) * Number(item.unitPrice), 0), [items]);
   const itemUnits = useMemo(() => items.reduce((sum, item) => sum + Number(item.quantity), 0), [items]);

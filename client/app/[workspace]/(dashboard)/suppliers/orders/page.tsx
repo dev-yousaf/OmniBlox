@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { formatMoney } from "@/lib/money";
 import {
   Card,
   CardContent,
@@ -130,7 +131,7 @@ export default function SupplierOrdersPage() {
                   <TableCell>{order.supplier}</TableCell>
                   <TableCell>{order.date}</TableCell>
                   <TableCell>{order.items} items</TableCell>
-                  <TableCell>${order.amount.toLocaleString()}</TableCell>
+                  <TableCell>{formatMoney(order.amount)}</TableCell>
                   <TableCell>{getStatusBadge(order.status)}</TableCell>
                   <TableCell className="text-right">
                     <Button

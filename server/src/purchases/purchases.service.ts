@@ -356,6 +356,7 @@ export class PurchasesService {
     userId: string,
     companyId: string,
   ) {
+    let poUserId = userId;
     const result = await this.prisma.$transaction(
       async (tx) => {
         // 1. Verify the warehouse belongs to this company
@@ -440,6 +441,7 @@ export class PurchasesService {
           },
         });
 
+        poUserId = po.userId;
         return this.transformPurchase(po);
       },
       { timeout: 20000 },
@@ -461,7 +463,7 @@ export class PurchasesService {
           categoryId: expenseCategory.id,
           purchaseOrderId: result.id,
           description: `Purchase order ${result.referenceNumber} received`,
-          userId: result.userId,
+          userId: poUserId,
           companyId,
         },
       });

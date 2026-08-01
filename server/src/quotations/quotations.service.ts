@@ -364,6 +364,10 @@ export class QuotationsService {
         address: quotation.customer.address || undefined,
       },
       warehouseId: warehouse.id,
+      // The quotation was already accepted (COMPLETED); the sale must be
+      // COMPLETED too, otherwise no stock is deducted and the converted
+      // sale silently stays PENDING.
+      status: OrderStatus.COMPLETED,
       saleDate: new Date().toISOString(),
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       items: quotation.items.map((item) => ({

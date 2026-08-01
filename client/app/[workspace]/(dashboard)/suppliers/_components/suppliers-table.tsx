@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Star } from "lucide-react"
+import { formatMoney } from "@/lib/money"
 import type { SupplierTableProps } from "../_types"
 
 export function SuppliersTable({ suppliers, onSupplierClick }: SupplierTableProps) {
@@ -80,11 +81,11 @@ export function SuppliersTable({ suppliers, onSupplierClick }: SupplierTableProp
                 </TableCell>
                 <TableCell className="text-right">
                   <span className={supplier.balance < 0 ? "text-red-600" : "text-green-600"}>
-                    ${Math.abs(supplier.balance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {formatMoney(Math.abs(supplier.balance))}
                   </span>
                 </TableCell>
                 <TableCell className="text-right">
-                  ${supplier.totalPurchases.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {formatMoney(supplier.totalPurchases)}
                 </TableCell>
                 <TableCell>{renderRating(supplier.rating)}</TableCell>
               </TableRow>

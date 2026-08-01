@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useCurrencyFormatter } from "@/hooks/use-currency-formatter";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,10 +100,7 @@ export default function SalesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
 
-  const formatCurrency = useMemo(
-    () => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }),
-    []
-  );
+  const formatCurrency = useCurrencyFormatter();
 
   const totalRevenue = stats?.totalRevenue ?? 0;
   const pendingAmount = stats?.pendingAmount ?? 0;

@@ -1,3 +1,5 @@
+import { formatMoney, formatCompactMoney } from "@/lib/money";
+
 export interface TopSellingProduct {
   productId: string;
   name: string;
@@ -75,13 +77,10 @@ export interface UserProfile {
   company?: { name: string };
 }
 
-export const formatCurrency = (value: number) =>
-  `$${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export const formatCurrency = (value: number) => formatMoney(value);
 
-export const formatCompactCurrency = (value: number) => {
-  if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`;
-  return `$${value.toFixed(0)}`;
-};
+export const formatCompactCurrency = (value: number) =>
+  formatCompactMoney(value);
 
 export interface FinancialCardData {
   title: string;

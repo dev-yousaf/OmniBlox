@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "@/lib/money";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -176,10 +177,7 @@ export default function NewExpenseReportPage() {
   };
 
   const formatCurrency = (amount: number | string) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(Number(amount));
+    return formatMoney(amount);
   };
 
   const formatDate = (dateString: string) => {

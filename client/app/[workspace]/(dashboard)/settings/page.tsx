@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -19,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -27,14 +25,141 @@ import {
   Globe,
   DollarSign,
   Package,
-  Mail,
   Database,
+  Loader2,
 } from "lucide-react";
+import { useSettings } from "@/contexts/settings-context";
+import { useAuth } from "@/contexts/auth-context";
+import { useWarehouses } from "@/hooks/use-warehouses";
+import { usePermissions } from "@/hooks/use-permissions";
+import { useToast } from "@/hooks/use-toast";
+import { formatMoney } from "@/lib/money";
+import { api } from "@/lib/api";
 
 export default function SettingsPage() {
-  const [emailEnabled, setEmailEnabled] = useState(true);
-  const [autoBackup, setAutoBackup] = useState(true);
+  const { settings, loading, updateSettings } = useSettings();
+  const { user, refreshUser } = useAuth();
+  const { warehouses } = useWarehouses();
+  const { canEdit, isOwner, isAdmin } = usePermissions();
+  const { toast } = useToast();
+  const [saving, setSaving] = useState(false);
+  const [savingCompany, setSavingCompany] = useState(false);
+
+  const [companyName, setCompanyName] = useState("");
+  const [companyIndustry, setCompanyIndustry] = useState("");
+  const [companyCountry, setCompanyCountry] = useState("");
+  const [companyWorkspace, setCompanyWorkspace] = useState("");
+
+  const [timezone, setTimezone] = useState("utc");
+  const [language, setLanguage] = useState("en");
+  const [dateFormat, setDateFormat] = useState("mdy");
+  const [timeFormat, setTimeFormat] = useState("12");
+
+  const [currencyCode, setCurrencyCode] = useState("usd");
+  const [currencySymbol, setCurrencySymbol] = useState("$");
+  const [decimalPlaces, setDecimalPlaces] = useState("2");
+
+  const [lowStockThreshold, setLowStockThreshold] = useState("10");
   const [lowStockAlerts, setLowStockAlerts] = useState(true);
+  const [defaultWarehouseId, setDefaultWarehouseId] = useState("none");
+
+  const [autoBackup, setAutoBackup] = useState(true);
+  const [backupTime, setBackupTime] = useState("02:00");
+  const [dataRetention, setDataRetention] = useState("1year");
+
+  useEffect(() => {
+    if (!settings) return;
+    setTimezone(settings.timezone);
+    setLanguage(settings.language);
+    setDateFormat(settings.dateFormat);
+    setTimeFormat(settings.timeFormat);
+    setCurrencyCode(settings.currencyCode);
+    setCurrencySymbol(settings.currencySymbol);
+    setDecimalPlaces(String(settings.decimalPlaces));
+    setLowStockThreshold(String(settings.lowStockThreshold));
+    setLowStockAlerts(settings.lowStockAlerts);
+    setDefaultWarehouseId(settings.defaultWarehouseId ?? "none");
+    setAutoBackup(settings.autoBackup);
+    setBackupTime(settings.backupTime);
+    setDataRetention(settings.dataRetention);
+  }, [settings]);
+
+  useEffect(() => {
+    if (!user?.company) return;
+    setCompanyName(user.company.name ?? "");
+    setCompanyIndustry(user.company.industry ?? "");
+    setCompanyCountry(user.company.country ?? "");
+    setCompanyWorkspace(user.company.workspaceUrl ?? "");
+  }, [user]);
+
+  const saveTab = useCallback(
+    async (payload: any, message: string) => {
+      if (!canEdit) {
+        toast({
+          title: "Permission denied",
+          description: "Only managers and above can update settings.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setSaving(true);
+      try {
+        await updateSettings(payload);
+        toast({ title: message });
+      } catch (error: any) {
+        toast({
+          title: "Failed to save",
+          description: error?.message ?? "Something went wrong",
+          variant: "destructive",
+        });
+      } finally {
+        setSaving(false);
+      }
+    },
+    [canEdit, updateSettings, toast]
+  );
+
+  const saveCompany = async () => {
+    if (!isOwner && !isAdmin) {
+      toast({
+        title: "Permission denied",
+        description: "Only owners and admins can update company details.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSavingCompany(true);
+    try {
+      await api.put("/auth/company", {
+        name: companyName,
+        industry: companyIndustry,
+        country: companyCountry,
+      });
+      await refreshUser({ silent: true });
+      toast({ title: "Company details updated" });
+    } catch (error: any) {
+      toast({
+        title: "Failed to save",
+        description: error?.message ?? "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingCompany(false);
+    }
+  };
+
+  const clearLocalData = () => {
+    localStorage.clear();
+    window.location.reload();
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -51,7 +176,6 @@ export default function SettingsPage() {
           <TabsTrigger value="regional">Regional</TabsTrigger>
           <TabsTrigger value="currencies">Currencies</TabsTrigger>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
-          <TabsTrigger value="email">Email</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
 
@@ -63,47 +187,71 @@ export default function SettingsPage() {
                 <CardTitle>Company Information</CardTitle>
               </div>
               <CardDescription>
-                Update your company details and branding
+                Update your company details. These sync across the whole
+                workspace.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="company-name">Company Name</Label>
-                  <Input id="company-name" defaultValue="OmniBlox Inc" />
+                  <Input
+                    id="company-name"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="company-email">Email</Label>
+                  <Label htmlFor="company-workspace">Workspace URL</Label>
                   <Input
-                    id="company-email"
-                    type="email"
-                    defaultValue="info@OmniBlox.app"
+                    id="company-workspace"
+                    value={companyWorkspace}
+                    readOnly
+                    className="bg-muted"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Workspace URL cannot be changed
+                  </p>
                 </div>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="company-phone">Phone</Label>
-                  <Input id="company-phone" defaultValue="+1 234 567 8900" />
+                  <Label htmlFor="company-industry">Industry</Label>
+                  <Select
+                    value={companyIndustry}
+                    onValueChange={setCompanyIndustry}
+                  >
+                    <SelectTrigger id="company-industry">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="retail">Retail</SelectItem>
+                      <SelectItem value="hardware">Hardware</SelectItem>
+                      <SelectItem value="technology">Technology</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="company-website">Website</Label>
-                  <Input id="company-website" defaultValue="www.OmniBlox.app" />
+                  <Label htmlFor="company-country">Country</Label>
+                  <Select value={companyCountry} onValueChange={setCompanyCountry}>
+                    <SelectTrigger id="company-country">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="us">United States</SelectItem>
+                      <SelectItem value="ca">Canada</SelectItem>
+                      <SelectItem value="gb">United Kingdom</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="company-address">Address</Label>
-                <Textarea
-                  id="company-address"
-                  defaultValue="123 Business St, New York, NY 10001"
-                  rows={3}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="company-logo">Company Logo</Label>
-                <Input id="company-logo" type="file" accept="image/*" />
-              </div>
-              <Button>Save Changes</Button>
+              <Button onClick={saveCompany} disabled={savingCompany}>
+                {savingCompany && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Save Changes
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -123,21 +271,21 @@ export default function SettingsPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="timezone">Timezone</Label>
-                  <Select defaultValue="est">
+                  <Select value={timezone} onValueChange={setTimezone}>
                     <SelectTrigger id="timezone">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="est">Eastern Time (EST)</SelectItem>
-                      <SelectItem value="pst">Pacific Time (PST)</SelectItem>
-                      <SelectItem value="cst">Central Time (CST)</SelectItem>
                       <SelectItem value="utc">UTC</SelectItem>
+                      <SelectItem value="est">Eastern Time (EST)</SelectItem>
+                      <SelectItem value="cst">Central Time (CST)</SelectItem>
+                      <SelectItem value="pst">Pacific Time (PST)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="language">Language</Label>
-                  <Select defaultValue="en">
+                  <Select value={language} onValueChange={setLanguage}>
                     <SelectTrigger id="language">
                       <SelectValue />
                     </SelectTrigger>
@@ -153,7 +301,7 @@ export default function SettingsPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="date-format">Date Format</Label>
-                  <Select defaultValue="mdy">
+                  <Select value={dateFormat} onValueChange={setDateFormat}>
                     <SelectTrigger id="date-format">
                       <SelectValue />
                     </SelectTrigger>
@@ -166,7 +314,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="time-format">Time Format</Label>
-                  <Select defaultValue="12">
+                  <Select value={timeFormat} onValueChange={setTimeFormat}>
                     <SelectTrigger id="time-format">
                       <SelectValue />
                     </SelectTrigger>
@@ -177,7 +325,23 @@ export default function SettingsPage() {
                   </Select>
                 </div>
               </div>
-              <Button>Save Changes</Button>
+              <Button
+                onClick={() =>
+                  saveTab(
+                    {
+                      timezone,
+                      language,
+                      dateFormat,
+                      timeFormat,
+                    },
+                    "Regional settings saved"
+                  )
+                }
+                disabled={saving || !canEdit}
+              >
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -190,14 +354,15 @@ export default function SettingsPage() {
                 <CardTitle>Currency Settings</CardTitle>
               </div>
               <CardDescription>
-                Manage currencies and exchange rates
+                The base currency is used across the entire workspace — sales,
+                purchases, expenses, and reports
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="base-currency">Base Currency</Label>
-                  <Select defaultValue="usd">
+                  <Select value={currencyCode} onValueChange={setCurrencyCode}>
                     <SelectTrigger id="base-currency">
                       <SelectValue />
                     </SelectTrigger>
@@ -211,12 +376,17 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="currency-symbol">Currency Symbol</Label>
-                  <Input id="currency-symbol" defaultValue="$" />
+                  <Input
+                    id="currency-symbol"
+                    value={currencySymbol}
+                    onChange={(e) => setCurrencySymbol(e.target.value)}
+                    maxLength={4}
+                  />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Decimal Places</Label>
-                <Select defaultValue="2">
+                <Select value={decimalPlaces} onValueChange={setDecimalPlaces}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -227,7 +397,26 @@ export default function SettingsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button>Save Changes</Button>
+              <div className="rounded-md border p-4 text-sm">
+                <span className="font-medium">Preview: </span>
+                <span className="tabular-nums">{formatMoney(1234567.891)}</span>
+              </div>
+              <Button
+                onClick={() =>
+                  saveTab(
+                    {
+                      currencyCode,
+                      currencySymbol,
+                      decimalPlaces: Number(decimalPlaces),
+                    },
+                    "Currency settings saved"
+                  )
+                }
+                disabled={saving || !canEdit}
+              >
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -245,18 +434,25 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="low-stock-threshold">Low Stock Threshold</Label>
+                <Label htmlFor="low-stock-threshold">
+                  Low Stock Threshold
+                </Label>
                 <Input
                   id="low-stock-threshold"
                   type="number"
-                  defaultValue="10"
+                  min={0}
+                  value={lowStockThreshold}
+                  onChange={(e) => setLowStockThreshold(e.target.value)}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Products at or below this quantity count as low stock
+                </p>
               </div>
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Low Stock Alerts</Label>
                   <p className="text-sm text-muted-foreground">
-                    Receive notifications when stock is low
+                    Show alerts when stock is low
                   </p>
                 </div>
                 <Switch
@@ -266,80 +462,45 @@ export default function SettingsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="default-warehouse">Default Warehouse</Label>
-                <Select defaultValue="main">
+                <Select
+                  value={defaultWarehouseId}
+                  onValueChange={setDefaultWarehouseId}
+                >
                   <SelectTrigger id="default-warehouse">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="main">Main Warehouse</SelectItem>
-                    <SelectItem value="secondary">
-                      Secondary Warehouse
-                    </SelectItem>
+                    <SelectItem value="none">None</SelectItem>
+                    {warehouses.map((w) => (
+                      <SelectItem key={w.id} value={w.id}>
+                        {w.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  New products receive initial stock in this warehouse
+                </p>
               </div>
-              <Button>Save Changes</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="email" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Mail className="h-5 w-5" />
-                <CardTitle>Email Configuration</CardTitle>
-              </div>
-              <CardDescription>
-                Configure SMTP settings for email notifications
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Enable Email Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Send automated emails to customers
-                  </p>
-                </div>
-                <Switch
-                  checked={emailEnabled}
-                  onCheckedChange={setEmailEnabled}
-                />
-              </div>
-              {emailEnabled && (
-                <>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="smtp-host">SMTP Host</Label>
-                      <Input id="smtp-host" placeholder="smtp.gmail.com" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="smtp-port">SMTP Port</Label>
-                      <Input id="smtp-port" type="number" placeholder="587" />
-                    </div>
-                  </div>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="smtp-username">Username</Label>
-                      <Input id="smtp-username" type="email" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="smtp-password">Password</Label>
-                      <PasswordInput id="smtp-password" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="from-email">From Email</Label>
-                    <Input
-                      id="from-email"
-                      type="email"
-                      defaultValue="noreply@OmniBlox.app"
-                    />
-                  </div>
-                </>
-              )}
-              <Button>Save Changes</Button>
+              <Button
+                onClick={() =>
+                  saveTab(
+                    {
+                      lowStockThreshold: Number(lowStockThreshold),
+                      lowStockAlerts,
+                      defaultWarehouseId:
+                        defaultWarehouseId === "none"
+                          ? null
+                          : defaultWarehouseId,
+                    },
+                    "Inventory settings saved"
+                  )
+                }
+                disabled={saving || !canEdit}
+              >
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -367,11 +528,19 @@ export default function SettingsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="backup-time">Backup Time</Label>
-                <Input id="backup-time" type="time" defaultValue="02:00" />
+                <Input
+                  id="backup-time"
+                  type="time"
+                  value={backupTime}
+                  onChange={(e) => setBackupTime(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Data Retention</Label>
-                <Select defaultValue="1year">
+                <Select
+                  value={dataRetention}
+                  onValueChange={setDataRetention}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -383,14 +552,31 @@ export default function SettingsPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <Button
+                onClick={() =>
+                  saveTab(
+                    {
+                      autoBackup,
+                      backupTime,
+                      dataRetention,
+                    },
+                    "System settings saved"
+                  )
+                }
+                disabled={saving || !canEdit}
+              >
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+              </Button>
               <div className="pt-4 border-t">
-                <Button variant="destructive">Clear All Local Data</Button>
+                <Button variant="destructive" onClick={clearLocalData}>
+                  Clear All Local Data
+                </Button>
                 <p className="text-sm text-muted-foreground mt-2">
                   This will remove all locally stored data. This action cannot
                   be undone.
                 </p>
               </div>
-              <Button>Save Changes</Button>
             </CardContent>
           </Card>
         </TabsContent>

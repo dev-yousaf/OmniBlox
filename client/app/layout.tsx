@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { Suspense } from "react";
 import { AuthProvider } from "@/contexts";
+import { SettingsProvider } from "@/contexts/settings-context";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { GlobalRouteProgressBar } from "@/components/ui/global-route-progress-bar";
 import { Toaster } from "@/components/ui/sonner";
@@ -44,7 +45,9 @@ export default function RootLayout({
         </Suspense>
         <Suspense fallback={null}>
           <ThemeProvider>
-            <AuthProvider>{children}</AuthProvider>
+            <AuthProvider>
+              <SettingsProvider>{children}</SettingsProvider>
+            </AuthProvider>
           </ThemeProvider>
         </Suspense>
         <Toaster />

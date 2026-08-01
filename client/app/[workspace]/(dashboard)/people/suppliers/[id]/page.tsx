@@ -1,5 +1,6 @@
 "use client";
 
+import { useCurrencyFormatter } from "@/hooks/use-currency-formatter";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
@@ -73,9 +74,7 @@ export default function SupplierDetailPage() {
 
   if (loading || !supplier) return <PageLoadingSkeleton />;
 
-  const formatCurrency = new Intl.NumberFormat("en-US", {
-    style: "currency", currency: "USD", minimumFractionDigits: 2,
-  });
+  const formatCurrency = useCurrencyFormatter();
 
   return (
     <div className="space-y-5">

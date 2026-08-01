@@ -21,6 +21,8 @@ interface User {
     id: string;
     name: string;
     workspaceUrl: string;
+    industry?: string;
+    country?: string;
   };
 }
 

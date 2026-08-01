@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "@/lib/money";
 import { useState } from "react";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import {
@@ -138,10 +139,7 @@ const columns: ColumnDef<Product>[] = [
     },
     cell: ({ row }) => {
       const price = Number.parseFloat(row.getValue("salePrice"));
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(price);
+      const formatted = formatMoney(price);
       return <div className="font-medium">{formatted}</div>;
     },
   },

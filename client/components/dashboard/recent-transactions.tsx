@@ -4,6 +4,7 @@ import { useState } from "react";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { Flag, Receipt } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatMoney } from "@/lib/money";
 import type { RecentSale } from "./types";
 
 const TABS = ["Sale", "Purchase", "Quotation", "Expenses", "Invoices"] as const;
@@ -105,7 +106,7 @@ export function RecentTransactions({ sales, loading }: RecentTransactionsProps) 
                     </span>
                   </td>
                   <td className="text-base font-bold text-card-foreground px-4 py-3">
-                    ${tx.totalAmount.toLocaleString()}
+                    {formatMoney(tx.totalAmount)}
                   </td>
                 </tr>
               ))}

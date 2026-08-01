@@ -387,9 +387,7 @@ export function useProductVariants({
     if (!row) return { softDeleted: false };
     setDeletingId(row.product.id);
     try {
-      const res = (await deleteProduct(row.product.id)) as unknown as
-        | { softDeleted?: boolean }
-        | undefined;
+      const res = await deleteProduct(row.product.id);
       await refresh();
       return { softDeleted: !!res?.softDeleted };
     } finally {

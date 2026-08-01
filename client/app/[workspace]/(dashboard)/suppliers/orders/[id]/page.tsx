@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { formatMoney } from "@/lib/money";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   ArrowLeft,
@@ -208,7 +209,7 @@ export default function PurchaseOrderDetailPage() {
             <div className="flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-green-500" />
               <span className="text-2xl font-bold">
-                ${order.total.toLocaleString()}
+                {formatMoney(order.total)}
               </span>
             </div>
           </CardContent>
@@ -245,10 +246,10 @@ export default function PurchaseOrderDetailPage() {
                         {item.quantity}
                       </TableCell>
                       <TableCell className="text-right">
-                        ${item.unitPrice.toFixed(2)}
+                        {formatMoney(item.unitPrice)}
                       </TableCell>
                       <TableCell className="text-right font-semibold">
-                        ${item.total.toFixed(2)}
+                        {formatMoney(item.total)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -261,24 +262,24 @@ export default function PurchaseOrderDetailPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
                   <span className="font-medium">
-                    ${order.subtotal.toFixed(2)}
+                    {formatMoney(order.subtotal)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Tax (10%)</span>
-                  <span className="font-medium">${order.tax.toFixed(2)}</span>
+                  <span className="font-medium">{formatMoney(order.tax)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Shipping</span>
                   <span className="font-medium">
-                    ${order.shipping.toFixed(2)}
+                    {formatMoney(order.shipping)}
                   </span>
                 </div>
                 <Separator />
                 <div className="flex justify-between">
                   <span className="font-semibold">Total</span>
                   <span className="text-xl font-bold">
-                    ${order.total.toFixed(2)}
+                    {formatMoney(order.total)}
                   </span>
                 </div>
               </div>

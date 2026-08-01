@@ -1,3 +1,5 @@
+import { formatCompactMoney } from "@/lib/money";
+
 export interface SuperadminData {
   totalCompanies: number;
   companiesChange: number;
@@ -66,8 +68,5 @@ export interface ExpiringSubscriptionItem {
   lastSaleDate: string | null;
 }
 
-export const formatCompactCurrency = (value: number) => {
-  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`;
-  return `$${value.toFixed(0)}`;
-};
+export const formatCompactCurrency = (value: number) =>
+  formatCompactMoney(value);

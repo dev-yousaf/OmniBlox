@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { formatMoney } from "@/lib/money";
 import {
   Card,
   CardContent,
@@ -172,7 +173,7 @@ export default function SupplierPaymentsPage() {
                     {payment.reference}
                   </TableCell>
                   <TableCell className="font-semibold">
-                    ${payment.amount.toLocaleString()}
+                    {formatMoney(payment.amount)}
                   </TableCell>
                   <TableCell>{getStatusBadge(payment.status)}</TableCell>
                   <TableCell className="text-right">

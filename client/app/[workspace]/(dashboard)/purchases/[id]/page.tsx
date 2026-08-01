@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useCurrencyFormatter } from "@/hooks/use-currency-formatter";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
@@ -51,10 +52,7 @@ export default function PurchaseDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const formatCurrency = useMemo(
-    () => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }),
-    []
-  );
+  const formatCurrency = useCurrencyFormatter();
 
   useEffect(() => {
     if (!purchaseId) return;

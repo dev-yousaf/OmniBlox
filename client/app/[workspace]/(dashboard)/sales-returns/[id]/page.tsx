@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCurrencyFormatter } from "@/hooks/use-currency-formatter";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
@@ -45,9 +46,7 @@ export default function SalesReturnDetailPage() {
 
   const id = String(params.id);
 
-  const formatCurrency = useMemo(
-    () => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }), []
-  );
+  const formatCurrency = useCurrencyFormatter();
 
   useEffect(() => {
     let mounted = true;

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCurrencyFormatter } from "@/hooks/use-currency-formatter";
+import { useEffect, useState } from "react";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -45,10 +46,7 @@ export default function InvoicesPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [page, setPage] = useState(1);
 
-  const formatCurrency = useMemo(
-    () => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }),
-    []
-  );
+  const formatCurrency = useCurrencyFormatter();
 
   const fetchInvoices = async (p: number) => {
     setLoading(true);

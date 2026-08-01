@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "@/lib/money";
 import * as React from "react";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { Button } from "@/components/ui/button";
@@ -24,12 +25,7 @@ import { MoreHorizontal, RotateCcw } from "lucide-react";
 import type { PurchaseOrder } from "@/hooks/use-purchases-api";
 
 function formatCurrency(n: number | string | undefined) {
-  const value = typeof n === "string" ? Number(n) : n ?? 0;
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-  }).format(value);
+  return formatMoney(n);
 }
 
 function formatDate(s: string | Date | undefined) {

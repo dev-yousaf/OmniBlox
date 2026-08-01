@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, UserCheck, DollarSign, ShoppingCart } from "lucide-react"
+import { formatMoney } from "@/lib/money"
 import type { SupplierStatsCardsProps } from "../_types"
 
 export function SupplierStatsCards({ stats }: SupplierStatsCardsProps) {
@@ -20,13 +21,13 @@ export function SupplierStatsCards({ stats }: SupplierStatsCardsProps) {
     },
     {
       title: "Total Balance",
-      value: `$${stats.totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      value: formatMoney(stats.totalBalance),
       icon: DollarSign,
       description: "Outstanding payables",
     },
     {
       title: "Total Purchases",
-      value: `$${stats.totalPurchases.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      value: formatMoney(stats.totalPurchases),
       icon: ShoppingCart,
       description: "All-time purchases",
     },

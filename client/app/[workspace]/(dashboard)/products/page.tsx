@@ -123,9 +123,16 @@ export default function ProductsPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await deleteProduct(id);
+      const res = await deleteProduct(id);
+      if (res?.softDeleted) {
+        toast({
+          title: "Discontinued",
+          description: "This product has sales history and was marked as discontinued instead of deleted.",
+        });
+      } else {
+        toast({ title: "Success", description: "Product deleted." });
+      }
       setProducts((prev) => prev.filter((p) => p.id !== id));
-      toast({ title: "Success", description: "Product deleted." });
     } catch {
       toast({ title: "Error", description: "Failed to delete product.", variant: "destructive" });
     }

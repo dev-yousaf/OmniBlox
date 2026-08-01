@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CacheService } from '../cache/cache.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { SettingsService } from '../settings/settings.service';
 import {
   DashboardDataDto,
   SalesPurchaseChartItem,
@@ -12,6 +13,7 @@ export class DashboardService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
+    private readonly settingsService: SettingsService,
   ) {}
 
   private readonly DASH_KEY = (cid: string, period?: string) =>
@@ -286,45 +288,50 @@ export class DashboardService {
   ): Promise<SalesPurchaseChartItem[]> {
     const rows = (await Promise.all([
       this.prisma.$queryRawUnsafe(
-        `SELECT date_trunc('month', "saleDate") as month, SUM("totalAmount") as total
+        `SELECT to_char("saleDate" AT TIME ZONE 'UTC', 'YYYY-MM') as month, SUM("totalAmount") as total
          FROM sales
          WHERE "companyId" = $1 AND "saleDate" >= $2 AND "saleDate" <= $3 AND status != 'CANCELLED'
-         GROUP BY date_trunc('month', "saleDate") ORDER BY month`,
+         GROUP BY month ORDER BY month`,
         companyId,
         start,
         end,
       ),
       this.prisma.$queryRawUnsafe(
-        `SELECT date_trunc('month', "orderDate") as month, SUM("totalAmount") as total
+        `SELECT to_char("orderDate" AT TIME ZONE 'UTC', 'YYYY-MM') as month, SUM("totalAmount") as total
          FROM purchase_orders
          WHERE "companyId" = $1 AND "orderDate" >= $2 AND "orderDate" <= $3 AND status != 'CANCELLED'
-         GROUP BY date_trunc('month', "orderDate") ORDER BY month`,
+         GROUP BY month ORDER BY month`,
         companyId,
         start,
         end,
       ),
     ])) as [
-      Array<{ month: Date; total: string | null }>,
-      Array<{ month: Date; total: string | null }>,
+      Array<{ month: string; total: string | null }>,
+      Array<{ month: string; total: string | null }>,
     ];
 
-    const saleMap = new Map<number, number>(
-      rows[0].map((r) => [r.month.getTime(), Number(r.total || 0)]),
+    // Bucket keys are UTC calendar months ('YYYY-MM'); date_trunc in the DB
+    // session timezone (UTC) previously produced instants that never matched
+    // the local-timezone iteration below, zeroing every bucket.
+    const monthKey = (d: Date) =>
+      `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+    const saleMap = new Map<string, number>(
+      rows[0].map((r) => [r.month, Number(r.total || 0)]),
     );
-    const purchaseMap = new Map<number, number>(
-      rows[1].map((r) => [r.month.getTime(), Number(r.total || 0)]),
+    const purchaseMap = new Map<string, number>(
+      rows[1].map((r) => [r.month, Number(r.total || 0)]),
     );
 
     const months: SalesPurchaseChartItem[] = [];
-    const iter = new Date(start.getFullYear(), start.getMonth(), 1);
+    const iter = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
     while (iter <= end) {
-      const ts = iter.getTime();
+      const key = monthKey(iter);
       months.push({
         month: iter.toLocaleString('default', { month: 'short' }),
-        purchase: purchaseMap.get(ts) ?? 0,
-        sales: saleMap.get(ts) ?? 0,
+        purchase: purchaseMap.get(key) ?? 0,
+        sales: saleMap.get(key) ?? 0,
       });
-      iter.setMonth(iter.getMonth() + 1);
+      iter.setUTCMonth(iter.getUTCMonth() + 1);
     }
     return months;
   }
@@ -423,8 +430,16 @@ export class DashboardService {
       stockMap.set(inv.productId, existing);
     }
 
+    const fallbackThreshold = await this.getFallbackThreshold(companyId);
+
     return Array.from(stockMap.values())
-      .filter((s) => s.totalQty <= s.product.alertQuantity)
+      .filter(
+        (s) =>
+          s.totalQty <=
+          (s.product.alertQuantity > 0
+            ? s.product.alertQuantity
+            : fallbackThreshold),
+      )
       .sort((a, b) => a.totalQty - b.totalQty)
       .slice(0, 5)
       .map((s) => ({
@@ -435,6 +450,11 @@ export class DashboardService {
         stockQuantity: s.totalQty,
         alertQuantity: s.product.alertQuantity,
       }));
+  }
+
+  private async getFallbackThreshold(companyId: string): Promise<number> {
+    const settings = await this.settingsService.getOrCreate(companyId);
+    return settings.lowStockThreshold ?? 10;
   }
 
   private async getCustomerStats(

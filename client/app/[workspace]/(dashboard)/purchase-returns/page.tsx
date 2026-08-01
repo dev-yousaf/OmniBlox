@@ -1,5 +1,6 @@
 "use client";
 
+import { useCurrencyFormatter } from "@/hooks/use-currency-formatter";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { Button } from "@/components/ui/button";
@@ -91,9 +92,7 @@ export default function PurchaseReturnsPage() {
     toast({ title: "Exported", description: "Purchase returns exported as CSV" });
   };
 
-  const formatCurrency = new Intl.NumberFormat("en-US", {
-    style: "currency", currency: "USD", minimumFractionDigits: 2,
-  });
+  const formatCurrency = useCurrencyFormatter();
 
   return (
     <div className="space-y-5">

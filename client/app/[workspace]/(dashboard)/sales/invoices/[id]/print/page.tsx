@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCurrencyFormatter } from "@/hooks/use-currency-formatter";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { ArrowLeft, Printer, Loader2 } from "lucide-react";
@@ -25,10 +26,7 @@ export default function PrintInvoicePage() {
       .finally(() => setLoading(false));
   }, [params?.id, getSale]);
 
-  const formatCurrency = useMemo(
-    () => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }),
-    []
-  );
+  const formatCurrency = useCurrencyFormatter();
 
   if (loading) return <PageLoadingSkeleton />;
   if (!sale) return <div className="p-6 text-center text-muted-foreground">Invoice not found</div>;

@@ -1,5 +1,6 @@
 "use client";
 
+import { useCurrencyFormatter } from "@/hooks/use-currency-formatter";
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useWorkspace } from "@/hooks/use-workspace";
@@ -76,9 +77,7 @@ export default function ExpenseDetailPage() {
     }
   };
 
-  const formatCurrency = new Intl.NumberFormat("en-US", {
-    style: "currency", currency: "USD", minimumFractionDigits: 2,
-  });
+  const formatCurrency = useCurrencyFormatter();
 
   if (loading || !expense) {
     return <PageLoadingSkeleton />;

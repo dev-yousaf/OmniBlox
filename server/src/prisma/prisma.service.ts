@@ -24,10 +24,22 @@ export class PrismaService
 
     if (databaseUrl) {
       // If a runtime database URL is available, pass it explicitly to Prisma.
+      //
+      // Supabase's session-mode pooler caps concurrent clients at pool_size
+      // (15 for this project). Prisma's default pool (2*cores+1) can exceed
+      // that, so parallel dashboard queries (22 concurrent) blow the pooler
+      // limit with FATAL: (EMAXCONNSESSION) max clients reached in session
+      // mode. Capping connection_limit keeps the client below the pooler
+      // ceiling; excess queries queue client-side instead of erroring.
+      const url = new URL(databaseUrl);
+      if (!url.searchParams.has('connection_limit')) {
+        url.searchParams.set('connection_limit', '10');
+      }
+
       super({
         datasources: {
           db: {
-            url: databaseUrl,
+            url: url.toString(),
           },
         },
         log: ['error', 'warn'],

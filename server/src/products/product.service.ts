@@ -6,6 +6,7 @@
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CacheService } from '../cache/cache.service';
+import { SettingsService } from '../settings/settings.service';
 import { StockService, StockMutationParams } from '../inventory/stock.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -45,7 +46,17 @@ export class ProductService {
     private prisma: PrismaService,
     private cache: CacheService,
     private stockService: StockService,
+    private settingsService: SettingsService,
   ) {}
+
+  private async getEffectiveThreshold(
+    companyId: string,
+    reorderLevel: number,
+  ): Promise<number> {
+    if (reorderLevel > 0) return reorderLevel;
+    const settings = await this.settingsService.getOrCreate(companyId);
+    return settings.lowStockThreshold ?? 10;
+  }
 
   async create(
     createProductDto: CreateProductDto,
@@ -222,6 +233,23 @@ export class ProductService {
         createProductDto.type !== 'SERVICE'
       ) {
         let targetWarehouseId = createProductDto.warehouseId;
+
+        if (!targetWarehouseId) {
+          // Company settings default warehouse (if set) wins over the first
+          // warehouse in the company
+          const settings = await this.settingsService.getOrCreate(companyId);
+          if (settings.defaultWarehouseId) {
+            const settingsWarehouse = await this.prisma.warehouse.findUnique({
+              where: {
+                id: settings.defaultWarehouseId,
+                companyId,
+              },
+            });
+            if (settingsWarehouse) {
+              targetWarehouseId = settingsWarehouse.id;
+            }
+          }
+        }
 
         if (!targetWarehouseId) {
           const firstWarehouse: { id: string } | null =
@@ -875,21 +903,23 @@ export class ProductService {
         this.cache.del(STATS_KEY(companyId)),
       ]);
 
+      const variantIds = existingProduct.variants?.map((v) => v.id) ?? [];
+      const affectedIds = [id, ...variantIds];
+
       await this.prisma.$transaction([
-        this.prisma.inventory.deleteMany({
-          where: { productId: id },
+        // Clean up RESTRICT FK references before hard-deleting: a product can
+        // be a component of combos and can have stock-adjustment history.
+        this.prisma.comboItem.deleteMany({
+          where: { productId: { in: affectedIds } },
         }),
-        ...(existingProduct.variants?.length
-          ? [
-              this.prisma.inventory.deleteMany({
-                where: {
-                  productId: { in: existingProduct.variants.map((v) => v.id) },
-                },
-              }),
-              this.prisma.product.deleteMany({
-                where: { parentId: id },
-              }),
-            ]
+        this.prisma.stockAdjustmentItem.deleteMany({
+          where: { productId: { in: affectedIds } },
+        }),
+        this.prisma.inventory.deleteMany({
+          where: { productId: { in: affectedIds } },
+        }),
+        ...(variantIds.length
+          ? [this.prisma.product.deleteMany({ where: { parentId: id } })]
           : []),
         this.prisma.product.delete({
           where: { id },
@@ -932,11 +962,17 @@ export class ProductService {
       );
     }
 
-    // Low stock products (product-level compare against reorderLevel)
+    // Low stock products (product-level compare against reorderLevel,
+    // falling back to the company-wide low stock threshold)
     let lowStockCount = 0;
+    const lowStockFallback = await this.getEffectiveThreshold(companyId, 0);
     for (const inv of inventory) {
       const total = stockByProduct.get(inv.productId) || 0;
-      if (total <= (inv.product.reorderLevel || 0)) {
+      const threshold =
+        inv.product.reorderLevel > 0
+          ? inv.product.reorderLevel
+          : lowStockFallback;
+      if (total <= threshold && threshold > 0) {
         lowStockCount++;
       }
     }
@@ -1112,12 +1148,16 @@ export class ProductService {
     });
 
     // Filter products where total stock is less than or equal to reorder level
+    // (falling back to the company-wide low stock threshold)
+    const lowStockFallback = await this.getEffectiveThreshold(companyId, 0);
     const lowStockProducts = products.filter((product) => {
       const totalStock = product.inventory.reduce(
         (sum, inv) => sum + inv.quantity,
         0,
       );
-      return totalStock <= product.reorderLevel;
+      const threshold =
+        product.reorderLevel > 0 ? product.reorderLevel : lowStockFallback;
+      return totalStock <= threshold && threshold > 0;
     });
 
     return lowStockProducts.map((product) => {
@@ -1149,9 +1189,12 @@ export class ProductService {
     });
 
     const items: LowStockDetailItem[] = [];
+    const lowStockFallback = await this.getEffectiveThreshold(companyId, 0);
     for (const product of allProducts) {
       for (const inv of product.inventory) {
-        if (inv.quantity <= product.reorderLevel) {
+        const threshold =
+          product.reorderLevel > 0 ? product.reorderLevel : lowStockFallback;
+        if (threshold > 0 && inv.quantity <= threshold) {
           items.push({
             productId: product.id,
             productName: product.name,
@@ -1162,7 +1205,10 @@ export class ProductService {
             warehouseName: inv.warehouse.name,
             storeName: inv.warehouse.location || inv.warehouse.name,
             quantity: inv.quantity,
-            alertQuantity: product.alertQuantity ?? product.reorderLevel,
+            alertQuantity:
+              product.alertQuantity ??
+              product.reorderLevel ??
+              lowStockFallback,
           });
         }
       }
@@ -1253,6 +1299,7 @@ export class ProductService {
 
     let totalValue = 0;
     let lowStockCount = 0;
+    const lowStockFallback = await this.getEffectiveThreshold(companyId, 0);
 
     for (const product of productsWithStock) {
       const totalStock = product.inventory.reduce(
@@ -1260,7 +1307,9 @@ export class ProductService {
         0,
       );
 
-      if (totalStock <= product.reorderLevel) {
+      const threshold =
+        product.reorderLevel > 0 ? product.reorderLevel : lowStockFallback;
+      if (threshold > 0 && totalStock <= threshold) {
         lowStockCount += 1;
       }
 

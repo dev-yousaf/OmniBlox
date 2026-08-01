@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney } from "@/lib/money";
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -70,10 +71,7 @@ const formSchema = z.object({
 export type PurchaseOrderFormValues = z.infer<typeof formSchema>;
 
 function formatCurrency(n: number) {
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: "USD",
-  }).format(n || 0);
+  return formatMoney(n);
 }
 
 // A small async combobox that fetches options as the user types

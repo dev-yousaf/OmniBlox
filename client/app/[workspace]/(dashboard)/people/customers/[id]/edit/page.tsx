@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { formatMoney } from "@/lib/money";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
@@ -310,7 +311,7 @@ export default function EditCustomerPage() {
                 <span className="text-muted-foreground">Credit Limit</span>
                 <span className="font-medium">
                   {formData.creditLimit
-                    ? `$${formData.creditLimit.toLocaleString()}`
+                    ? formatMoney(formData.creditLimit)
                     : "—"}
                 </span>
               </div>

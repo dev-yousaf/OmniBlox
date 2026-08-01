@@ -1,5 +1,6 @@
 "use client";
 
+import { useCurrencyFormatter } from "@/hooks/use-currency-formatter";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { Button } from "@/components/ui/button";
@@ -54,9 +55,7 @@ export default function SuppliersPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE));
   const paged = filtered.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
 
-  const formatCurrency = new Intl.NumberFormat("en-US", {
-    style: "currency", currency: "USD", minimumFractionDigits: 2,
-  });
+  const formatCurrency = useCurrencyFormatter();
 
   const exportCSV = () => {
     const headers = ["Name", "Email", "Phone", "Credit Limit", "Balance"];

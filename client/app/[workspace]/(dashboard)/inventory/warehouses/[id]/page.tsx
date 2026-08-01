@@ -1,5 +1,6 @@
 "use client";
 
+import { useCurrencyFormatter } from "@/hooks/use-currency-formatter";
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
@@ -115,9 +116,7 @@ export default function WarehouseDetailPage() {
     (sum, item) => sum + item.quantity * Number(item.product.salePrice), 0
   ) || 0;
 
-  const formatCurrency = new Intl.NumberFormat("en-US", {
-    style: "currency", currency: "USD", minimumFractionDigits: 2,
-  });
+  const formatCurrency = useCurrencyFormatter();
 
   if (loading || !warehouse) return <PageLoadingSkeleton />;
 

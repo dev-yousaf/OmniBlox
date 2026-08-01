@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useWorkspace } from "@/hooks/use-workspace";
+import { formatMoney } from "@/lib/money";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import {
   Alert,
@@ -259,7 +260,7 @@ export default function CreateCustomerPage() {
                 <span className="text-muted-foreground">Credit Limit</span>
                 <span className="font-medium">
                   {formData.creditLimit
-                    ? `$${formData.creditLimit.toLocaleString()}`
+                    ? formatMoney(formData.creditLimit)
                     : "—"}
                 </span>
               </div>

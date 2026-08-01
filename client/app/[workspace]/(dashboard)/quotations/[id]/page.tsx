@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCurrencyFormatter } from "@/hooks/use-currency-formatter";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useWorkspace } from "@/hooks/use-workspace";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
@@ -105,10 +106,7 @@ export default function QuotationDetailPage() {
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>("");
   const [loadingStock, setLoadingStock] = useState(false);
 
-  const formatCurrency = useMemo(
-    () => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }),
-    []
-  );
+  const formatCurrency = useCurrencyFormatter();
 
   useEffect(() => {
     loadQuotation();

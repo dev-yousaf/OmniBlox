@@ -120,8 +120,8 @@ export function useProductApi() {
   );
 
   const deleteProduct = useCallback(
-    async (id: string): Promise<void> => {
-      await del(`/products/${id}`);
+    async (id: string): Promise<{ softDeleted: boolean }> => {
+      return (await del(`/products/${id}`)) as { softDeleted: boolean };
     },
     [del]
   );
