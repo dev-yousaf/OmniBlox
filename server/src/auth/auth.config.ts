@@ -10,7 +10,7 @@ function cappedDatabaseUrl(): string {
   if (!url) throw new Error('[auth.config] No database URL configured');
   const parsed = new URL(url);
   if (!parsed.searchParams.has('connection_limit')) {
-    parsed.searchParams.set('connection_limit', '4');
+    parsed.searchParams.set('connection_limit', '2');
   }
   return parsed.toString();
 }

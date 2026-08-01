@@ -33,7 +33,7 @@ export class PrismaService
       // ceiling; excess queries queue client-side instead of erroring.
       const url = new URL(databaseUrl);
       if (!url.searchParams.has('connection_limit')) {
-        url.searchParams.set('connection_limit', '10');
+        url.searchParams.set('connection_limit', '8');
       }
 
       super({
