@@ -29,18 +29,18 @@ export function FinancialCards({ amounts, changes, loading }: FinancialCardsProp
         return (
           <div key={card.title} className="bg-card border border-border rounded-lg p-5 flex flex-col gap-4 shadow-[0px_4px_12px_rgba(236,236,236,0.25)] dark:shadow-[0px_4px_12px_rgba(0,0,0,0.25)]">
             <div className="flex items-start justify-between gap-1">
-              <div>
+              <div className="min-w-0">
                 {loading ? (
                   <>
-                    <Skeleton className="h-7 w-24" />
+                    <Skeleton className="h-7 w-20 sm:w-24" />
                     <Skeleton className="h-4 w-16 mt-1" />
                   </>
                 ) : (
                   <>
-                    <p className="text-lg font-bold text-card-foreground leading-[27px]">
+                    <p className="text-[15px] sm:text-lg font-bold text-card-foreground leading-[22px] sm:leading-[27px] truncate" title={formatCompactCurrency(amount)}>
                       {formatCompactCurrency(amount)}
                     </p>
-                    <p className="text-sm text-muted-foreground leading-[21px]">
+                    <p className="text-sm text-muted-foreground leading-[21px] truncate">
                       {card.title}
                     </p>
                   </>
@@ -51,8 +51,8 @@ export function FinancialCards({ amounts, changes, loading }: FinancialCardsProp
               </div>
             </div>
             <div className="h-px bg-border" />
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">
+            <div className="flex items-center justify-between gap-1">
+              <p className="text-xs text-muted-foreground min-w-0 truncate">
                 <span
                   className={`font-bold ${
                     change >= 0 ? "text-[#3eb780]" : "text-red-500"

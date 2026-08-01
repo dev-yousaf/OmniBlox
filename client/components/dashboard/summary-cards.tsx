@@ -25,18 +25,18 @@ export function SummaryCards({ amounts, changes, loading }: SummaryCardsProps) {
         const amount = amounts[i] ?? 0;
         const change = changes[i] ?? 0;
         return (
-          <div key={card.title} className={`rounded-lg h-[92px] p-5 ${card.iconBg}`}>
+          <div key={card.title} className={`rounded-lg min-h-[92px] p-4 sm:p-5 ${card.iconBg}`}>
             <div className="flex items-center gap-3 h-full">
               <div className="bg-white dark:bg-white/10 rounded-lg p-[10px] shrink-0 flex items-center justify-center">
                 <Icon className="h-6 w-6 text-black dark:text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-[#f9fafb]">{card.title}</p>
-                <div className="flex items-center gap-2 mt-1">
+                <p className="text-sm text-[#f9fafb] truncate">{card.title}</p>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
                   {loading ? (
-                    <Skeleton className="h-7 w-24" />
+                    <Skeleton className="h-7 w-20 sm:w-24" />
                   ) : (
-                    <span className="text-lg font-bold text-white">
+                    <span className="text-[15px] sm:text-lg font-bold text-white truncate min-w-0">
                       {formatCurrency(amount)}
                     </span>
                   )}
