@@ -22,6 +22,7 @@ import { useReturnsApi } from "@/hooks/use-returns-api";
 import { usePurchasesApi } from "@/hooks/use-purchases-api";
 import { useSuppliersApi } from "@/hooks/use-suppliers-api";
 import { useToast } from "@/hooks/use-toast";
+import { NumberInput } from "@/components/ui/number-input";
 
 type ItemRow = {
   id: string;
@@ -317,14 +318,24 @@ export default function NewPurchaseReturnPage() {
                         </div>
                         <div className="space-y-2">
                           <Label className="text-xs font-medium">Qty {it.maxQuantity && <span className="text-xs text-muted-foreground ml-1">(max: {it.maxQuantity})</span>}</Label>
-                          <Input type="number" min={1} max={it.maxQuantity} value={it.quantity}
+                          <NumberInput
+                            integer
+                            min={1}
+                            max={it.maxQuantity}
+                            value={it.quantity}
                             className={`h-[34px] rounded-[5px] text-sm ${it.maxQuantity && it.quantity > it.maxQuantity ? "border-red-500" : ""}`}
-                            onChange={(e) => { const val = Number(e.target.value) || 1; const maxVal = it.maxQuantity || Infinity; updateItem(it.id, { quantity: Math.max(1, Math.min(val, maxVal)) }); }}
+                            onValueChange={(val) => updateItem(it.id, { quantity: val })}
                           />
                         </div>
                         <div className="space-y-2">
                           <Label className="text-xs font-medium">Price</Label>
-                          <Input type="number" min={0} step="0.01" value={it.unitPrice} onChange={(e) => updateItem(it.id, { unitPrice: Math.max(0, Number(e.target.value) || 0) })} className="h-[34px] rounded-[5px] text-sm" />
+                          <NumberInput
+                            min={0}
+                            step="0.01"
+                            value={it.unitPrice}
+                            onValueChange={(val) => updateItem(it.id, { unitPrice: val })}
+                            className="h-[34px] rounded-[5px] text-sm"
+                          />
                         </div>
                         <div className="space-y-2">
                           <Label className="text-xs font-medium">Total</Label>

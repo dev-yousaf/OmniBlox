@@ -18,6 +18,7 @@ import {
 } from "@/hooks/use-expense-categories-api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -165,13 +166,12 @@ export default function EditExpensePage() {
 
               <div className="space-y-2">
                 <Label htmlFor="amount">Amount <span className="text-destructive">*</span></Label>
-                <Input
+                <NumberInput
                   id="amount"
-                  type="number"
                   step="0.01"
-                  min="0"
+                  min={0}
                   value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
+                  onValueChange={(val) => setFormData({ ...formData, amount: val })}
                   placeholder="0.00"
                   required
                 />

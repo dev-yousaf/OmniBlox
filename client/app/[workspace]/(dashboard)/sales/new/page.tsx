@@ -60,6 +60,7 @@ import { cn } from "@/lib/utils";
 
 import { useSalesService } from "../_services/sales-service";
 import type { SalePaymentMethod, SalePaymentStatus, SaleStatus } from "../_types";
+import { NumberInput } from "@/components/ui/number-input";
 
 interface SaleItemRow {
   id: string;
@@ -363,6 +364,22 @@ export default function NewSalePage() {
     return option.product.type === "COMBO" ? `${label} (Combo)` : label;
   };
 
+  const getAvailableStock = (item: SaleItemRow): number | undefined => {
+    if (!item.productId) return undefined;
+    const option = productOptions.find(
+      (o) => (o.variant?.id ?? o.product.id) === item.productId
+    );
+    const p = option?.variant ?? option?.product;
+    if (!p) return undefined;
+    if (formData.warehouseId) {
+      const whStock = p.inventory?.find(
+        (inv) => inv.warehouseId === formData.warehouseId
+      )?.quantity;
+      if (whStock != null) return whStock;
+    }
+    return p.stock;
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -393,6 +410,17 @@ export default function NewSalePage() {
 
     if (items.some((item) => !item.productId)) {
       setSubmitError("Select a product for each line item.");
+      return;
+    }
+
+    const overstocked = items.find((item) => {
+      const available = getAvailableStock(item);
+      return available != null && item.quantity > available;
+    });
+    if (overstocked) {
+      setSubmitError(
+        `Quantity for "${overstocked.productName}" exceeds available stock (${getAvailableStock(overstocked)} available).`
+      );
       return;
     }
 
@@ -876,34 +904,27 @@ export default function NewSalePage() {
                         </div>
                         <div className="space-y-2">
                           <Label className="text-xs font-medium">Quantity</Label>
-                          <Input
-                            type="number"
+                          <NumberInput
+                            integer
                             min={1}
+                            max={getAvailableStock(item)}
                             value={item.quantity}
-                            onChange={(event) =>
-                              updateItem(
-                                item.id,
-                                "quantity",
-                                Number(event.target.value) || 0
-                              )
-                            }
+                            onValueChange={(value) => updateItem(item.id, "quantity", value)}
                             className="h-[34px] rounded-[5px] text-sm"
                           />
+                          {getAvailableStock(item) != null && (
+                            <p className="text-[11px] text-muted-foreground">
+                              Available: {getAvailableStock(item)}
+                            </p>
+                          )}
                         </div>
                         <div className="space-y-2">
                           <Label className="text-xs font-medium">Price</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
+                          <NumberInput
                             min={0}
+                            step="0.01"
                             value={item.unitPrice}
-                            onChange={(event) =>
-                              updateItem(
-                                item.id,
-                                "unitPrice",
-                                Number(event.target.value) || 0
-                              )
-                            }
+                            onValueChange={(value) => updateItem(item.id, "unitPrice", value)}
                             className="h-[34px] rounded-[5px] text-sm"
                           />
                         </div>
@@ -957,13 +978,10 @@ export default function NewSalePage() {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Tax</span>
                 <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
+                  <NumberInput
                     min={0}
                     value={taxRate}
-                    onChange={(event) =>
-                      setTaxRate(Math.max(0, Number(event.target.value) || 0))
-                    }
+                    onValueChange={setTaxRate}
                     className="h-7 w-16 text-xs rounded-[5px]"
                   />
                   <span className="text-xs text-muted-foreground">%</span>
@@ -975,14 +993,11 @@ export default function NewSalePage() {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Discount</span>
                 <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
+                  <NumberInput
                     min={0}
                     step="0.01"
                     value={discount}
-                    onChange={(event) =>
-                      setDiscount(Math.max(0, Number(event.target.value) || 0))
-                    }
+                    onValueChange={setDiscount}
                     className="h-7 w-20 text-xs rounded-[5px]"
                   />
                   <span className="font-medium tabular-nums min-w-[60px] text-right">

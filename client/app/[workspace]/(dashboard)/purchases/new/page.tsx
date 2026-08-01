@@ -48,6 +48,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { NumberInput } from "@/components/ui/number-input";
 import { useSuppliersApi, type Supplier } from "@/hooks/use-suppliers-api";
 import { usePurchasesApi } from "@/hooks/use-purchases-api";
 import { useAllProducts } from "@/hooks/use-products";
@@ -573,34 +574,21 @@ export default function NewPurchasePage() {
                           </div>
                         <div className="space-y-2">
                           <Label className="text-xs font-medium">Quantity</Label>
-                          <Input
-                            type="number"
+                          <NumberInput
+                            integer
                             min={1}
                             value={item.quantity}
-                            onChange={(event) =>
-                              updateItem(
-                                item.id,
-                                "quantity",
-                                Number(event.target.value) || 0
-                              )
-                            }
+                            onValueChange={(value) => updateItem(item.id, "quantity", value)}
                             className="h-[34px] rounded-[5px] text-sm"
                           />
                         </div>
                         <div className="space-y-2">
                           <Label className="text-xs font-medium">Unit Cost</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
+                          <NumberInput
                             min={0}
+                            step="0.01"
                             value={item.unitCost}
-                            onChange={(event) =>
-                              updateItem(
-                                item.id,
-                                "unitCost",
-                                Number(event.target.value) || 0
-                              )
-                            }
+                            onValueChange={(value) => updateItem(item.id, "unitCost", value)}
                             className="h-[34px] rounded-[5px] text-sm"
                           />
                         </div>

@@ -17,6 +17,7 @@ import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import {
   Popover, PopoverContent, PopoverTrigger,
@@ -403,22 +404,21 @@ export default function NewQuotationPage() {
                       </div>
                       <div className="space-y-2">
                         <Label className="text-xs font-medium">Quantity *</Label>
-                        <Input
-                          type="number"
+                        <NumberInput
+                          integer
                           min={1}
                           value={item.quantity}
-                          onChange={(e) => updateItem(item.id, "quantity", parseInt(e.target.value) || 1)}
+                          onValueChange={(val) => updateItem(item.id, "quantity", val)}
                           className="h-[34px] rounded-[5px] text-sm"
                         />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-xs font-medium">Unit Price *</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
+                        <NumberInput
                           min={0}
+                          step="0.01"
                           value={item.unitPrice}
-                          onChange={(e) => updateItem(item.id, "unitPrice", parseFloat(e.target.value) || 0)}
+                          onValueChange={(val) => updateItem(item.id, "unitPrice", val)}
                           className="h-[34px] rounded-[5px] text-sm"
                         />
                       </div>

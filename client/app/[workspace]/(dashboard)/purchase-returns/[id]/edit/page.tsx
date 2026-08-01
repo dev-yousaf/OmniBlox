@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -288,11 +289,11 @@ export default function EditPurchaseReturnPage() {
                         </div>
                         <div className="space-y-2">
                           <Label className="text-xs font-medium">Qty</Label>
-                          <Input type="number" min={1} value={item.quantity} onChange={(e) => updateItem(item.id, "quantity", Number(e.target.value) || 0)} className="h-[34px] rounded-[5px] text-sm" />
+                          <NumberInput integer min={1} value={item.quantity} onValueChange={(val) => updateItem(item.id, "quantity", val)} className="h-[34px] rounded-[5px] text-sm" />
                         </div>
                         <div className="space-y-2">
                           <Label className="text-xs font-medium">Price</Label>
-                          <Input type="number" min={0} step="0.01" value={item.unitPrice} onChange={(e) => updateItem(item.id, "unitPrice", Number(e.target.value) || 0)} className="h-[34px] rounded-[5px] text-sm" />
+                          <NumberInput min={0} step="0.01" value={item.unitPrice} onValueChange={(val) => updateItem(item.id, "unitPrice", val)} className="h-[34px] rounded-[5px] text-sm" />
                         </div>
                         <div className="space-y-2">
                           <Label className="text-xs font-medium">Total</Label>
