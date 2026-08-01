@@ -61,6 +61,8 @@ export class DashboardService {
       lowStock,
       chartData,
       recentSales,
+      cogsAgg,
+      prevCogsAgg,
     ] = await Promise.all([
       // Current period sales
       this.prisma.sale.aggregate({
@@ -208,6 +210,10 @@ export class DashboardService {
       this.getSalesPurchaseChart(companyId, range.start, range.end),
       // Recent sales
       this.getRecentSales(companyId),
+      // Cost of goods sold this period (from items actually sold)
+      this.getCogs(companyId, range.start, range.end),
+      // COGS previous period
+      this.getCogs(companyId, prevRange.start, prevRange.end),
     ]);
 
     const sales = Number(currentSalesAgg._sum.totalAmount || 0);
@@ -231,6 +237,17 @@ export class DashboardService {
     const chartTotalSales = chartData.reduce((s, c) => s + c.sales, 0);
     const chartTotalPurchase = chartData.reduce((s, c) => s + c.purchase, 0);
 
+    const cogs = Number(cogsAgg[0]?.cogs || 0);
+    const prevCogs = Number(prevCogsAgg[0]?.cogs || 0);
+
+    // Profit = revenue (net of returns) - cost of goods SOLD - expenses.
+    // Purchases are NOT expenses: they convert cash into inventory, so they
+    // must not reduce profit. COGS is derived from items actually sold
+    // (quantity minus returned quantity times the product's cost price).
+    const profit = sales - salesReturn - cogs - expenses;
+    const prevProfit =
+      prevSales - prevSalesReturn - prevCogs - prevExpenses;
+
     const result: DashboardDataDto = {
       totalSales: sales,
       salesChange: this.pctChange(sales, prevSales),
@@ -240,16 +257,9 @@ export class DashboardService {
       purchaseChange: this.pctChange(purchase, prevPurchase),
       totalPurchaseReturn: purchaseReturn,
       purchaseReturnChange: this.pctChange(purchaseReturn, prevPurchaseReturn),
-      profit: sales - salesReturn - purchase + purchaseReturn - expenses,
+      profit,
       profitLabel: '% from last month',
-      profitChange: this.directionalArrow(
-        sales - salesReturn - purchase + purchaseReturn - expenses,
-        prevSales -
-          prevSalesReturn -
-          prevPurchase +
-          prevPurchaseReturn -
-          prevExpenses,
-      ),
+      profitChange: this.directionalArrow(profit, prevProfit),
       invoiceDue: Number(invoiceDueAgg._sum.totalAmount || 0),
       invoiceDueLabel: '% from last month',
       invoiceDueChange: this.pctChange(
@@ -279,6 +289,26 @@ export class DashboardService {
 
     await this.cache.set(this.DASH_KEY(companyId, period), result, 120);
     return result;
+  }
+
+  private async getCogs(
+    companyId: string,
+    start: Date,
+    end: Date,
+  ): Promise<Array<{ cogs: number | null }>> {
+    return this.prisma.$queryRawUnsafe(
+      `SELECT COALESCE(SUM((si."quantity" - si."returnedQuantity") * p."costPrice"), 0) AS cogs
+         FROM sale_items si
+         JOIN sales s ON s.id = si."saleId"
+         JOIN products p ON p.id = si."productId"
+        WHERE s."companyId" = $1
+          AND s."saleDate" >= $2
+          AND s."saleDate" <= $3
+          AND s.status != 'CANCELLED'`,
+      companyId,
+      start,
+      end,
+    );
   }
 
   private async getSalesPurchaseChart(
