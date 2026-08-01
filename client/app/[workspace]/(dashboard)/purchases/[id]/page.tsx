@@ -7,7 +7,7 @@ import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
   ArrowLeft, Edit, Trash2, Loader2, Package, RotateCcw,
-  ChevronRight, CheckCircle2,
+  ChevronRight, CheckCircle2, FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -230,6 +230,11 @@ export default function PurchaseDetailPage() {
                   {updating ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Marking...</> : <><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Mark Paid</>}
                 </Button>
               )}
+              <Link href={`/purchases/invoices/${purchase.id}/print`}>
+                <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">
+                  <FileText className="mr-1.5 h-3.5 w-3.5" /> Make Invoice
+                </Button>
+              </Link>
               {!allReturned && (
                 <Link href={`/purchase-returns/new?purchaseId=${purchase.id}`}>
                   <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">

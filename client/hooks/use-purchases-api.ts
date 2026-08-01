@@ -42,7 +42,7 @@ export interface PurchaseOrder {
   netTotal?: number;
   subtotal?: number;
   totalAmount: number;
-  supplier: { id: string; name: string };
+  supplier: { id: string; name: string; email?: string };
   warehouseId?: string | null;
   warehouse?: { id: string; name: string } | null;
   items?: PurchaseOrderItem[];

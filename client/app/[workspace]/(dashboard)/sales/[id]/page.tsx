@@ -5,8 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { WorkspaceLink as Link } from "@/components/workspace-link";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import {
-  ArrowLeft, Edit, Trash2, Loader2, CheckCircle2, Package, RotateCcw, Mail,
-  ChevronRight, Undo2,
+  ArrowLeft, Edit, Trash2, Loader2, CheckCircle2, Package, RotateCcw,
+  ChevronRight, Undo2, FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -147,14 +147,15 @@ export default function SaleDetailPage() {
         <div className="flex flex-wrap items-center gap-2">
           {canManage && (
             <>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-[34px] rounded-[5px] text-[13px]"
-                disabled={!sale.customerEmail}
-              >
-                <Mail className="mr-1.5 h-3.5 w-3.5" /> Email
-              </Button>
+              <Link href={`/sales/invoices/${sale.id}/print`}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-[34px] rounded-[5px] text-[13px]"
+                >
+                  <FileText className="mr-1.5 h-3.5 w-3.5" /> Make Invoice
+                </Button>
+              </Link>
               {sale.paymentStatus !== "PAID" && (
                 <Button
                   size="sm"

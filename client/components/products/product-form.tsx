@@ -24,6 +24,8 @@ import { useWarrantiesApi } from "@/hooks/use-warranties-api";
 import { useInventoryApi } from "@/hooks/use-inventory-api";
 import { VariantManager } from "@/components/products/variant-manager";
 import type { VariantPayload } from "@/hooks/use-product-variants";
+import { QuickCreateDialog } from "@/components/products/quick-create-dialog";
+import type { QuickCreateOptions } from "@/components/products/quick-create-dialog";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@/lib/types";
 import Image from "next/image";
@@ -185,6 +187,7 @@ function PricingFields({
   readOnlyWarehouse = false,
   warehouseLabel,
   onInputChange,
+  onQuickCreate,
 }: {
   formData: ProductFormData;
   errors: FormErrors;
@@ -197,6 +200,7 @@ function PricingFields({
   readOnlyWarehouse?: boolean;
   warehouseLabel?: string;
   onInputChange: (field: keyof ProductFormData, value: string) => void;
+  onQuickCreate?: () => void;
 }) {
   return (
     <>
@@ -234,11 +238,19 @@ function PricingFields({
                 </SelectContent>
               </Select>
             )}
-            <p className="text-[11px] text-muted-foreground mt-1">
-              {readOnlyWarehouse
-                ? "Warehouse is managed via transfers &amp; adjustments"
-                : "Stock will be assigned to this warehouse"}
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {readOnlyWarehouse
+                  ? "Warehouse is managed via transfers &amp; adjustments"
+                  : "Stock will be assigned to this warehouse"}
+              </p>
+              {!readOnlyWarehouse && onQuickCreate && (
+                <button type="button" onClick={onQuickCreate} className="flex items-center gap-1 mt-1 text-[13px] text-[#fe9f43] font-medium hover:underline">
+                  <CirclePlus className="h-3.5 w-3.5" />
+                  Add New
+                </button>
+              )}
+            </div>
           </FormField>
         )}
         <FormField label="Price" required fieldName="salePrice" error={errors.salePrice} className="flex-1">
@@ -308,6 +320,8 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
     const [warranties, setWarranties] = useState<Array<{ id: string; name: string; duration: number; durationType: string }>>([]);
     const [showCustomCategory, setShowCustomCategory] = useState(false);
     const [warehouses, setWarehouses] = useState<{ id: string; name: string }[]>([]);
+    const [quickCreate, setQuickCreate] = useState<QuickCreateOptions | null>(null);
+    const [quickCreateReload, setQuickCreateReload] = useState(0);
 
     const [customFieldsEnabled, setCustomFieldsEnabled] = useState({
       warranties: !!initialData?.warranty,
@@ -406,7 +420,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
         }
       };
       loadData();
-    }, [getCategories, getBrands, getUnits, getSubCategories, getWarranties, toast]);
+    }, [getCategories, getBrands, getUnits, getSubCategories, getWarranties, toast, quickCreateReload]);
 
     useEffect(() => {
       if (formData.comboItems.length > 0) {
@@ -664,7 +678,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                       ))}
                     </SelectContent>
                   </Select>
-                  <button type="button" className="flex items-center gap-1 mt-1 text-[13px] text-[#fe9f43] font-medium hover:underline">
+                  <button type="button" onClick={() => setQuickCreate({ type: "category", onCreated: () => setQuickCreateReload((n) => n + 1) })} className="flex items-center gap-1 mt-1 text-[13px] text-[#fe9f43] font-medium hover:underline">
                     <CirclePlus className="h-3.5 w-3.5" />
                     Add New
                   </button>
@@ -695,6 +709,14 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                     )}
                   </SelectContent>
                 </Select>
+                <button type="button" onClick={() => {
+                  const catId = categories.find(c => c.name === formData.category)?.id;
+                  if (!catId) { toast({ title: "Select a category first", variant: "destructive" }); return; }
+                  setQuickCreate({ type: "subcategory", categoryId: catId, onCreated: () => setQuickCreateReload((n) => n + 1) });
+                }} className="flex items-center gap-1 mt-1 text-[13px] text-[#fe9f43] font-medium hover:underline">
+                  <CirclePlus className="h-3.5 w-3.5" />
+                  Add New
+                </button>
               </FormField>
             </div>
 
@@ -712,6 +734,10 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                     )}
                   </SelectContent>
                 </Select>
+                <button type="button" onClick={() => setQuickCreate({ type: "brand", onCreated: () => setQuickCreateReload((n) => n + 1) })} className="flex items-center gap-1 mt-1 text-[13px] text-[#fe9f43] font-medium hover:underline">
+                  <CirclePlus className="h-3.5 w-3.5" />
+                  Add New
+                </button>
               </FormField>
               <FormField label="Unit" required fieldName="unit" error={errors.unit} className="flex-1">
                 <Select value={formData.unit} onValueChange={(value) => handleInputChange("unit", value)}>
@@ -726,6 +752,10 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                     )}
                   </SelectContent>
                 </Select>
+                <button type="button" onClick={() => setQuickCreate({ type: "unit", onCreated: () => setQuickCreateReload((n) => n + 1) })} className="flex items-center gap-1 mt-1 text-[13px] text-[#fe9f43] font-medium hover:underline">
+                  <CirclePlus className="h-3.5 w-3.5" />
+                  Add New
+                </button>
               </FormField>
             </div>
 
@@ -804,6 +834,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                 readOnlyWarehouse={isEdit}
                 warehouseLabel={currentWarehouseLabel}
                 onInputChange={handleInputChange}
+                onQuickCreate={() => setQuickCreate({ type: "warehouse", onCreated: () => setQuickCreateReload((n) => n + 1) })}
               />
             ) : (
               <>
@@ -834,6 +865,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                       setSelectedWarehouseId={setSelectedWarehouseId}
                       warehouses={warehouses}
                       onInputChange={handleInputChange}
+                      onQuickCreate={() => setQuickCreate({ type: "warehouse", onCreated: () => setQuickCreateReload((n) => n + 1) })}
                     />
                     <p className="text-[12px] text-muted-foreground -mt-1">
                       These details are applied to every variant — only SKU and quantity are entered per variant below.
@@ -935,6 +967,10 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
                         )}
                       </SelectContent>
                     </Select>
+                    <button type="button" onClick={() => setQuickCreate({ type: "warranty", onCreated: () => setQuickCreateReload((n) => n + 1) })} className="flex items-center gap-1 mt-1 text-[13px] text-[#fe9f43] font-medium hover:underline">
+                      <CirclePlus className="h-3.5 w-3.5" />
+                      Add New
+                    </button>
                   </FormField>
                 )}
                 {customFieldsEnabled.manufacturer && (
@@ -1042,6 +1078,11 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
             </Button>
           </div>
         )}
+
+        <QuickCreateDialog
+          options={quickCreate}
+          onClose={() => setQuickCreate(null)}
+        />
       </form>
     );
   }

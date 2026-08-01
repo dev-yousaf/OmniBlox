@@ -64,6 +64,10 @@ export class VariantProductDto {
   @IsOptional()
   warehouseId?: string;
 
+  @IsString()
+  @IsOptional()
+  imageUrl?: string;
+
   @IsOptional()
   attributes?: Record<string, string>;
 }

@@ -14,6 +14,10 @@ export function setMoneySettings(settings: Partial<MoneySettings>) {
   current = {
     ...current,
     ...settings,
+    currencySymbol:
+      settings.currencySymbol && settings.currencySymbol.trim() !== ""
+        ? settings.currencySymbol
+        : current.currencySymbol,
     decimalPlaces: sanitizeDecimalPlaces(settings.decimalPlaces),
   };
 }
@@ -31,13 +35,12 @@ export function getMoneySettings(): MoneySettings {
 const memoizedFormatters = new Map<string, Intl.NumberFormat>();
 
 function getFormatter(compact: boolean): Intl.NumberFormat {
-  const key = `${current.currencyCode.toUpperCase()}:${current.decimalPlaces}:${compact}`;
+  const key = `${current.currencySymbol}:${current.decimalPlaces}:${compact}`;
   const existing = memoizedFormatters.get(key);
   if (existing) return existing;
   const decimals = Math.min(current.decimalPlaces, compact ? 1 : 2);
   const formatter = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: current.currencyCode.toUpperCase(),
+    style: "decimal",
     minimumFractionDigits: decimals,
     maximumFractionDigits: compact ? decimals : current.decimalPlaces,
     ...(compact ? { notation: "compact" } : {}),
@@ -54,7 +57,7 @@ export function formatMoney(
   if (value === undefined || value === null || Number.isNaN(num)) {
     return `${current.currencySymbol}0`;
   }
-  return getFormatter(!!opts?.compact).format(num);
+  return `${current.currencySymbol}${getFormatter(!!opts?.compact).format(num)}`;
 }
 
 export function formatCompactMoney(

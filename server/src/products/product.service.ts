@@ -379,6 +379,7 @@ export class ProductService {
                 taxRate: v.taxRate ?? 0,
                 status: 'ACTIVE',
                 attributes: v.attributes ?? undefined,
+                imageUrl: v.imageUrl || null,
                 categoryId: categoryRecord.id,
                 brandId: brandRecord?.id || null,
                 subCategoryId,

@@ -371,6 +371,36 @@ export default function SettingsPage() {
                       <SelectItem value="eur">EUR - Euro</SelectItem>
                       <SelectItem value="gbp">GBP - British Pound</SelectItem>
                       <SelectItem value="jpy">JPY - Japanese Yen</SelectItem>
+                      <SelectItem value="pkr">PKR - Pakistani Rupee</SelectItem>
+                      <SelectItem value="inr">INR - Indian Rupee</SelectItem>
+                      <SelectItem value="aed">AED - UAE Dirham</SelectItem>
+                      <SelectItem value="sar">SAR - Saudi Riyal</SelectItem>
+                      <SelectItem value="bdt">BDT - Bangladeshi Taka</SelectItem>
+                      <SelectItem value="npr">NPR - Nepalese Rupee</SelectItem>
+                      <SelectItem value="lkr">LKR - Sri Lankan Rupee</SelectItem>
+                      <SelectItem value="cad">CAD - Canadian Dollar</SelectItem>
+                      <SelectItem value="aud">AUD - Australian Dollar</SelectItem>
+                      <SelectItem value="nzd">NZD - New Zealand Dollar</SelectItem>
+                      <SelectItem value="sgd">SGD - Singapore Dollar</SelectItem>
+                      <SelectItem value="myr">MYR - Malaysian Ringgit</SelectItem>
+                      <SelectItem value="idr">IDR - Indonesian Rupiah</SelectItem>
+                      <SelectItem value="php">PHP - Philippine Peso</SelectItem>
+                      <SelectItem value="thb">THB - Thai Baht</SelectItem>
+                      <SelectItem value="vnd">VND - Vietnamese Dong</SelectItem>
+                      <SelectItem value="cny">CNY - Chinese Yuan</SelectItem>
+                      <SelectItem value="krw">KRW - South Korean Won</SelectItem>
+                      <SelectItem value="chf">CHF - Swiss Franc</SelectItem>
+                      <SelectItem value="sek">SEK - Swedish Krona</SelectItem>
+                      <SelectItem value="nok">NOK - Norwegian Krone</SelectItem>
+                      <SelectItem value="dkk">DKK - Danish Krone</SelectItem>
+                      <SelectItem value="zar">ZAR - South African Rand</SelectItem>
+                      <SelectItem value="ngn">NGN - Nigerian Naira</SelectItem>
+                      <SelectItem value="kes">KES - Kenyan Shilling</SelectItem>
+                      <SelectItem value="egp">EGP - Egyptian Pound</SelectItem>
+                      <SelectItem value="try">TRY - Turkish Lira</SelectItem>
+                      <SelectItem value="brl">BRL - Brazilian Real</SelectItem>
+                      <SelectItem value="mxn">MXN - Mexican Peso</SelectItem>
+                      <SelectItem value="rub">RUB - Russian Ruble</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

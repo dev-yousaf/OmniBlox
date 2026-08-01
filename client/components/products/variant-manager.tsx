@@ -31,7 +31,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Save, Trash2, X, Plus } from "lucide-react";
+import { Loader2, Save, Trash2, X, Plus, ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useProductVariants, type VariantAttributeRow, type VariantPayload } from "@/hooks/use-product-variants";
 import type { Product } from "@/lib/types";
@@ -173,12 +173,25 @@ function DraftsTable({
   };
   onUpdate: (
     index: number,
-    field: "salePrice" | "costPrice" | "stock" | "sku" | "reorderLevel" | "taxRate" | "warehouseId",
+    field: "salePrice" | "costPrice" | "stock" | "sku" | "reorderLevel" | "taxRate" | "warehouseId" | "imageUrl",
     value: string,
   ) => void;
   onRemove: (index: number) => void;
 }) {
   const lockedWarehouse = warehouses?.find((w) => w.id === lockedValues?.warehouseId);
+
+  const handleImageFile = (
+    index: number,
+    file: File | undefined,
+  ) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const dataUrl = evt.target?.result as string;
+      onUpdate(index, "imageUrl", dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
   return (
     <div className="space-y-1">
       {locked && (
@@ -191,6 +204,7 @@ function DraftsTable({
         <thead>
           <tr className="border-b bg-muted/50">
             <th className="px-3 py-2 text-left font-medium text-[12px] text-muted-foreground">Variant</th>
+            <th className="px-3 py-2 text-left font-medium text-[12px] text-muted-foreground">Image</th>
             <th className="px-3 py-2 text-left font-medium text-[12px] text-muted-foreground">SKU</th>
             <th className="px-3 py-2 text-left font-medium text-[12px] text-muted-foreground">Sale Price</th>
             <th className="px-3 py-2 text-left font-medium text-[12px] text-muted-foreground">Cost Price</th>
@@ -205,6 +219,38 @@ function DraftsTable({
           {drafts.map((variant, index) => (
             <tr key={index} className="border-b">
               <td className="px-3 py-2 text-xs">{variant.name}</td>
+              <td className="px-3 py-2">
+                <div className="flex items-center gap-2">
+                  {variant.imageUrl ? (
+                    <div className="relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={variant.imageUrl}
+                        alt={variant.name}
+                        className="h-10 w-10 rounded object-cover border"
+                      />
+                      <button
+                        type="button"
+                        className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]"
+                        onClick={() => onUpdate(index, "imageUrl", "")}
+                      >
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer flex items-center justify-center h-10 w-10 rounded border border-dashed border-muted-foreground/40 hover:border-[#fe9f43]">
+                      <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={disabled}
+                        onChange={(e) => handleImageFile(index, e.target.files?.[0])}
+                      />
+                    </label>
+                  )}
+                </div>
+              </td>
               <td className="px-3 py-2">
                 <Input
                   className="h-8 text-xs"
@@ -405,6 +451,7 @@ export function VariantManager({
         taxRate: unified ? unifiedValues.taxRate : parseFloat(d.taxRate) || 0,
         warehouseId: unified ? unifiedValues.warehouseId : d.warehouseId || undefined,
         attributes: d.attributes,
+        imageUrl: d.imageUrl || undefined,
       })),
     [variants.drafts, unified, unifiedValues],
   );
@@ -524,6 +571,7 @@ export function VariantManager({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
+                    <TableHead className="w-[90px] text-[12px] font-semibold text-muted-foreground">Image</TableHead>
                     <TableHead className="text-[12px] font-semibold text-muted-foreground">SKU</TableHead>
                     <TableHead className="text-[12px] font-semibold text-muted-foreground">Name</TableHead>
                     <TableHead className="w-[110px] text-[12px] font-semibold text-muted-foreground">Sale Price</TableHead>
@@ -542,6 +590,51 @@ export function VariantManager({
                 <TableBody>
                   {variants.rows.map((row, index) => (
                     <TableRow key={row.product.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          {row.imageUrl || row.product.imageUrl ? (
+                            <div className="relative">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={row.imageUrl || row.product.imageUrl || ""}
+                                alt={row.product.name}
+                                className="h-10 w-10 rounded object-cover border"
+                              />
+                              {canManage && (
+                                <button
+                                  type="button"
+                                  className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]"
+                                  onClick={() => variants.updateRowField(index, "imageUrl", "")}
+                                >
+                                  <X className="h-2.5 w-2.5" />
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <label className="cursor-pointer flex items-center justify-center h-10 w-10 rounded border border-dashed border-muted-foreground/40 hover:border-[#fe9f43]">
+                              <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                disabled={!canManage}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  const reader = new FileReader();
+                                  reader.onload = (evt) =>
+                                    variants.updateRowField(
+                                      index,
+                                      "imageUrl",
+                                      evt.target?.result as string,
+                                    );
+                                  reader.readAsDataURL(file);
+                                }}
+                              />
+                            </label>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="font-mono text-xs">{row.product.sku}</TableCell>
                       <TableCell className="text-[13px]">{row.product.name}</TableCell>
                       <TableCell>

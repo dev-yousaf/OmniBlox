@@ -31,7 +31,42 @@ export class UpdateSettingsDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['usd', 'eur', 'gbp', 'jpy'])
+  @IsIn([
+    'usd',
+    'eur',
+    'gbp',
+    'jpy',
+    'pkr',
+    'inr',
+    'aed',
+    'sar',
+    'bdt',
+    'npr',
+    'lkr',
+    'cad',
+    'aud',
+    'nzd',
+    'sgd',
+    'myr',
+    'idr',
+    'php',
+    'thb',
+    'vnd',
+    'cny',
+    'krw',
+    'chf',
+    'sek',
+    'nok',
+    'dkk',
+    'zar',
+    'ngn',
+    'kes',
+    'egp',
+    'try',
+    'brl',
+    'mxn',
+    'rub',
+  ])
   currencyCode?: string;
 
   @IsOptional()

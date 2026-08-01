@@ -23,6 +23,7 @@ export interface VariantDraft {
   reorderLevel: string;
   taxRate: string;
   warehouseId?: string;
+  imageUrl?: string;
 }
 
 export interface VariantPayload {
@@ -35,6 +36,7 @@ export interface VariantPayload {
   taxRate?: number;
   warehouseId?: string;
   attributes?: Record<string, string>;
+  imageUrl?: string;
 }
 
 export interface VariantStockInput {
@@ -49,6 +51,7 @@ export interface ExistingVariantRow {
   costPrice: string;
   reorderLevel: string;
   taxRate: string;
+  imageUrl?: string;
   stocks: VariantStockInput[];
   initialStocks: Record<string, number>;
   dirty: boolean;
@@ -173,6 +176,7 @@ export function useProductVariants({
             costPrice: String(v.costPrice ?? ""),
             reorderLevel: String(v.reorderLevel ?? ""),
             taxRate: String(v.taxRate ?? ""),
+            imageUrl: v.imageUrl ?? "",
             stocks,
             initialStocks,
             dirty: false,
@@ -259,6 +263,7 @@ export function useProductVariants({
         reorderLevel: defaultReorderLevel,
         taxRate: defaultTaxRate,
         warehouseId: warehouseId || "",
+        imageUrl: "",
       };
     });
 
@@ -301,6 +306,7 @@ export function useProductVariants({
         parentId,
         warehouseId: payload.warehouseId || warehouseId,
         status: "ACTIVE",
+        imageUrl: payload.imageUrl || undefined,
       });
       created.push(p);
     }
@@ -309,7 +315,7 @@ export function useProductVariants({
 
   const updateRowField = (
     index: number,
-    field: "salePrice" | "costPrice" | "reorderLevel" | "taxRate",
+    field: "salePrice" | "costPrice" | "reorderLevel" | "taxRate" | "imageUrl",
     value: string,
   ) => {
     setRows((prev) => {
@@ -352,11 +358,14 @@ export function useProductVariants({
       const costPrice = parseFloat(row.costPrice);
       const reorderLevel = parseInt(row.reorderLevel);
       const taxRate = parseFloat(row.taxRate);
-      const patch: Record<string, number> = {};
+      const patch: Record<string, number | string | null> = {};
       if (!isNaN(salePrice)) patch.salePrice = salePrice;
       if (!isNaN(costPrice)) patch.costPrice = costPrice;
       if (!isNaN(reorderLevel)) patch.reorderLevel = reorderLevel;
       if (!isNaN(taxRate)) patch.taxRate = taxRate;
+      if (row.imageUrl !== undefined && row.imageUrl !== row.product.imageUrl) {
+        patch.imageUrl = row.imageUrl || null;
+      }
       if (Object.keys(patch).length > 0) {
         await updateProduct(row.product.id, patch);
       }

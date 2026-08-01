@@ -177,7 +177,7 @@ export default function SupplierDetailPage() {
       )}
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Email</p>
           <p className="text-sm font-semibold truncate">{supplier.email || "—"}</p>
@@ -189,6 +189,14 @@ export default function SupplierDetailPage() {
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Address</p>
           <p className="text-sm font-semibold truncate">{supplier.address || "—"}</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Credit Limit</p>
+          <p className="text-lg font-semibold">{supplier.creditLimit != null ? formatCurrency.format(supplier.creditLimit) : "—"}</p>
+        </div>
+        <div className="border rounded-[5px] bg-card shadow-sm p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Balance</p>
+          <p className="text-lg font-semibold">{supplier.balance != null ? formatCurrency.format(supplier.balance) : "—"}</p>
         </div>
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Total Orders</p>
@@ -293,6 +301,16 @@ export default function SupplierDetailPage() {
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Address</p>
               <p className="text-foreground mt-0.5">{supplier.address || "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Credit Limit</p>
+              <p className="font-semibold text-foreground mt-0.5">{supplier.creditLimit != null ? formatCurrency.format(supplier.creditLimit) : "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Balance</p>
+              <p className={`font-bold text-base mt-0.5 ${(supplier.balance ?? 0) > 0 ? "text-destructive" : "text-emerald-600"}`}>
+                {supplier.balance != null ? formatCurrency.format(supplier.balance) : "—"}
+              </p>
             </div>
           </div>
         </div>
