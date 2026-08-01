@@ -11,7 +11,17 @@ let current: MoneySettings = {
 };
 
 export function setMoneySettings(settings: Partial<MoneySettings>) {
-  current = { ...current, ...settings };
+  current = {
+    ...current,
+    ...settings,
+    decimalPlaces: sanitizeDecimalPlaces(settings.decimalPlaces),
+  };
+}
+
+function sanitizeDecimalPlaces(value: number | undefined): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 2;
+  return Math.min(Math.max(Math.round(n), 0), 3);
 }
 
 export function getMoneySettings(): MoneySettings {
@@ -24,17 +34,13 @@ function getFormatter(compact: boolean): Intl.NumberFormat {
   const key = `${current.currencyCode.toUpperCase()}:${current.decimalPlaces}:${compact}`;
   const existing = memoizedFormatters.get(key);
   if (existing) return existing;
+  const decimals = Math.min(current.decimalPlaces, compact ? 1 : 2);
   const formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: current.currencyCode.toUpperCase(),
-    minimumFractionDigits: Math.min(current.decimalPlaces, 2),
-    maximumFractionDigits: current.decimalPlaces,
-    ...(compact
-      ? {
-          notation: "compact",
-          maximumFractionDigits: Math.min(current.decimalPlaces, 1),
-        }
-      : {}),
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: compact ? decimals : current.decimalPlaces,
+    ...(compact ? { notation: "compact" } : {}),
   });
   memoizedFormatters.set(key, formatter);
   return formatter;

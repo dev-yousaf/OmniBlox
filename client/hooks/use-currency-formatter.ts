@@ -7,7 +7,10 @@ export function useCurrencyFormatter(): Intl.NumberFormat {
   const { settings } = useSettings();
   return useMemo(() => {
     const code = (settings?.currencyCode ?? "usd").toUpperCase();
-    const decimals = settings?.decimalPlaces ?? 2;
+    const raw = Number(settings?.decimalPlaces);
+    const decimals = Number.isFinite(raw)
+      ? Math.min(Math.max(Math.round(raw), 0), 3)
+      : 2;
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: code,

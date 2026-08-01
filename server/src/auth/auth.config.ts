@@ -2,7 +2,22 @@ import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+function cappedDatabaseUrl(): string {
+  const url =
+    process.env.DIRECT_URL ||
+    process.env.DATABASE_URL ||
+    process.env.DATABASE_URL_POOLED;
+  if (!url) throw new Error('[auth.config] No database URL configured');
+  const parsed = new URL(url);
+  if (!parsed.searchParams.has('connection_limit')) {
+    parsed.searchParams.set('connection_limit', '4');
+  }
+  return parsed.toString();
+}
+
+const prisma = new PrismaClient({
+  datasources: { db: { url: cappedDatabaseUrl() } },
+});
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {

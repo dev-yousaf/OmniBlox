@@ -24,10 +24,14 @@ async function bootstrap() {
       '[main.ts] DATABASE_URL is not set. Skipping database connection check.',
     );
   } else {
+    const url = new URL(databaseUrl);
+    if (!url.searchParams.has('connection_limit')) {
+      url.searchParams.set('connection_limit', '2');
+    }
     const prisma = new PrismaClient({
       datasources: {
         db: {
-          url: databaseUrl,
+          url: url.toString(),
         },
       },
     });
