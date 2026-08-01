@@ -69,7 +69,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   if (isMutating && userRole === "OBSERVER") {
     return (
       <CommandMenuProvider>
-        <div className="flex h-screen overflow-hidden bg-background">
+        <div className="flex h-dvh overflow-hidden bg-background">
           <div className="hidden md:block h-full">{sidebar}</div>
           <div className="flex flex-1 flex-col overflow-hidden min-h-0">
             <AppHeader onMenuClick={() => setMobileNavOpen(true)} />
@@ -92,7 +92,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <CommandMenuProvider>
-      <div className="flex h-screen overflow-hidden bg-background">
+      <div className="flex h-dvh overflow-hidden bg-background">
         <div className="hidden md:block h-full">{sidebar}</div>
         <div className="flex flex-1 flex-col overflow-hidden min-h-0">
           <AppHeader onMenuClick={() => setMobileNavOpen(true)} />

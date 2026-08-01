@@ -35,7 +35,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="h-dvh flex flex-col bg-background">
       <MarketingNavbar />
       <main className="flex-1 overflow-y-auto">
         <motion.div
