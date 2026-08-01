@@ -61,7 +61,10 @@ export default function NewSalesReturnPage() {
     getSales({ limit: 100, paymentStatus: "PAID" })
       .then((res) => {
         const list = res?.sales || [];
-        setSales(list);
+        const available = list.filter(
+          (s: any) => s.returnStatus !== "ALL" && s.status !== "CANCELLED",
+        );
+        setSales(available);
       })
       .catch((err) => console.error("Failed to load sales:", err))
       .finally(() => setLoadingSales(false));
@@ -78,14 +81,20 @@ export default function NewSalesReturnPage() {
             warehouseId: sale.warehouseId || sale.warehouse?.id || "",
             reason: `Return for sale ${sale.invoiceNumber}`,
             saleId: sale.id,
-            items: sale.items.map((item: any) => ({
-              id: crypto.randomUUID(),
-              productId: item.productId,
-              quantity: item.quantity,
-              unitPrice: Number(item.unitPrice),
-              saleItemId: item.id,
-              maxQuantity: item.quantity,
-            })),
+            items: sale.items.map((item: any) => {
+              const remaining = Math.max(
+                0,
+                item.quantity - (item.returnedQuantity || 0),
+              );
+              return {
+                id: crypto.randomUUID(),
+                productId: item.productId,
+                quantity: remaining,
+                unitPrice: Number(item.unitPrice),
+                saleItemId: item.id,
+                maxQuantity: remaining,
+              };
+            }),
           });
         })
         .catch((err: any) => {
@@ -107,14 +116,20 @@ export default function NewSalesReturnPage() {
         warehouseId: sale.warehouseId || sale.warehouse?.id || "",
         reason: `Return for sale ${sale.invoiceNumber}`,
         saleId: sale.id,
-        items: sale.items.map((item: any) => ({
-          id: crypto.randomUUID(),
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: Number(item.unitPrice),
-          saleItemId: item.id,
-          maxQuantity: item.quantity,
-        })),
+        items: sale.items.map((item: any) => {
+          const remaining = Math.max(
+            0,
+            item.quantity - (item.returnedQuantity || 0),
+          );
+          return {
+            id: crypto.randomUUID(),
+            productId: item.productId,
+            quantity: remaining,
+            unitPrice: Number(item.unitPrice),
+            saleItemId: item.id,
+            maxQuantity: remaining,
+          };
+        }),
       });
     } catch (err) {
       toast({ title: "Error", description: "Failed to load sale details", variant: "destructive" });

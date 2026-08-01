@@ -71,7 +71,12 @@ export default function NewPurchaseReturnPage() {
     listPurchases()
       .then((res: any) => {
         const list = res || [];
-        setPurchases(list.filter((p: any) => p.status === "COMPLETED"));
+        setPurchases(
+          list.filter(
+            (p: any) =>
+              p.status === "COMPLETED" && p.returnStatus !== "ALL",
+          ),
+        );
       })
       .catch((err) => console.error("Failed to load purchases:", err))
       .finally(() => setLoadingPurchases(false));
@@ -89,14 +94,20 @@ export default function NewPurchaseReturnPage() {
             supplierId: purchase.supplier.id,
             reason: `Return for purchase ${purchase.referenceNumber}`,
             purchaseOrderId: purchase.id,
-            items: purchase.items?.map((item: any) => ({
-              id: crypto.randomUUID(),
-              productId: item.productId,
-              quantity: item.quantity,
-              unitPrice: Number(item.unitCost),
-              purchaseOrderItemId: item.id,
-              maxQuantity: item.quantity,
-            })) || [],
+            items: purchase.items?.map((item: any) => {
+              const remaining = Math.max(
+                0,
+                item.quantity - (item.returnedQuantity || 0),
+              );
+              return {
+                id: crypto.randomUUID(),
+                productId: item.productId,
+                quantity: remaining,
+                unitPrice: Number(item.unitCost),
+                purchaseOrderItemId: item.id,
+                maxQuantity: remaining,
+              };
+            }) || [],
           });
         })
         .catch((err: any) => {
@@ -119,14 +130,20 @@ export default function NewPurchaseReturnPage() {
         supplierId: purchase.supplier.id,
         reason: `Return for purchase ${purchase.referenceNumber}`,
         purchaseOrderId: purchase.id,
-        items: purchase.items?.map((item: any) => ({
-          id: crypto.randomUUID(),
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: Number(item.unitCost),
-          purchaseOrderItemId: item.id,
-          maxQuantity: item.quantity,
-        })) || [],
+        items: purchase.items?.map((item: any) => {
+          const remaining = Math.max(
+            0,
+            item.quantity - (item.returnedQuantity || 0),
+          );
+          return {
+            id: crypto.randomUUID(),
+            productId: item.productId,
+            quantity: remaining,
+            unitPrice: Number(item.unitCost),
+            purchaseOrderItemId: item.id,
+            maxQuantity: remaining,
+          };
+        }) || [],
       });
     } catch (err) {
       toast({ title: "Error", description: "Failed to load purchase details", variant: "destructive" });

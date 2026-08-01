@@ -82,12 +82,12 @@ export class DashboardService {
         },
         _sum: { totalAmount: true },
       }),
-      // Current period sales returns
+      // Current period sales returns (only completed returns affect books)
       this.prisma.salesReturn.aggregate({
         where: {
           companyId,
           returnDate: { gte: range.start, lte: range.end },
-          status: { not: 'CANCELLED' },
+          status: 'COMPLETED',
         },
         _sum: { totalAmount: true },
       }),
@@ -96,7 +96,7 @@ export class DashboardService {
         where: {
           companyId,
           returnDate: { gte: prevRange.start, lte: prevRange.end },
-          status: { not: 'CANCELLED' },
+          status: 'COMPLETED',
         },
         _sum: { totalAmount: true },
       }),
@@ -118,12 +118,12 @@ export class DashboardService {
         },
         _sum: { totalAmount: true },
       }),
-      // Current period purchase returns
+      // Current period purchase returns (only completed returns affect books)
       this.prisma.purchaseReturn.aggregate({
         where: {
           companyId,
           returnDate: { gte: range.start, lte: range.end },
-          status: { not: 'CANCELLED' },
+          status: 'COMPLETED',
         },
         _sum: { totalAmount: true },
       }),
@@ -132,7 +132,7 @@ export class DashboardService {
         where: {
           companyId,
           returnDate: { gte: prevRange.start, lte: prevRange.end },
-          status: { not: 'CANCELLED' },
+          status: 'COMPLETED',
         },
         _sum: { totalAmount: true },
       }),
@@ -240,13 +240,12 @@ export class DashboardService {
     const cogs = Number(cogsAgg[0]?.cogs || 0);
     const prevCogs = Number(prevCogsAgg[0]?.cogs || 0);
 
-    // Profit = revenue (net of returns) - cost of goods SOLD - expenses.
-    // Purchases are NOT expenses: they convert cash into inventory, so they
-    // must not reduce profit. COGS is derived from items actually sold
-    // (quantity minus returned quantity times the product's cost price).
-    const profit = sales - salesReturn - cogs - expenses;
+    // Profit = revenue (net of completed returns) - cost of goods SOLD - expenses.
+    // Received purchases auto-create an expense (purchases.service), so a
+    // completed purchase return credits that expense back into profit.
+    const profit = sales - salesReturn - cogs - expenses + purchaseReturn;
     const prevProfit =
-      prevSales - prevSalesReturn - prevCogs - prevExpenses;
+      prevSales - prevSalesReturn - prevCogs - prevExpenses + prevPurchaseReturn;
 
     const result: DashboardDataDto = {
       totalSales: sales,
