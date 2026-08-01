@@ -187,9 +187,9 @@ export default function ExpiredProductsPage() {
     <div className="space-y-0">
       {/* Header */}
       <div className="mb-5">
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-1">
           <h1 className="text-3xl font-semibold tracking-tight">Expired Products</h1>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-[1px]">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -240,8 +240,8 @@ export default function ExpiredProductsPage() {
 
       {/* Search + Toolbar */}
       <div className="border border-border rounded-[5px]">
-        <div className="border-b border-border px-[20px] py-[15px] flex items-center justify-between">
-          <div className="flex items-center gap-2 border border-border rounded-[5px] px-[8px] py-[4px] w-[200px]">
+        <div className="border-b border-border px-[20px] py-[15px] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2 border border-border rounded-[5px] px-[8px] py-[4px] w-full sm:w-[200px]">
             <Search className="w-[14px] h-[14px] text-muted-foreground shrink-0" />
             <input
               className="text-[14px] text-foreground bg-transparent border-none outline-none w-full placeholder:text-muted-foreground"
@@ -389,7 +389,7 @@ export default function ExpiredProductsPage() {
         )}
 
         {/* Pagination */}
-        <div className="border-t border-border px-[20px] py-[15px] flex items-center justify-between text-[14px] text-muted-foreground">
+        <div className="border-t border-border px-[20px] py-[15px] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[14px] text-muted-foreground">
           <div className="flex items-center gap-2">
             <span>Row Per Page</span>
             <div className="flex items-center gap-1 border border-border rounded-[5px] px-[8px] py-[6px] text-[12px]">
@@ -444,7 +444,7 @@ export default function ExpiredProductsPage() {
           </DialogHeader>
           {editingProduct && (
             <div className="space-y-4 py-2">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-[13px] text-muted-foreground">SKU</Label>
                   <p className="text-[14px] font-medium text-foreground mt-1">{editingProduct.sku}</p>
@@ -454,7 +454,7 @@ export default function ExpiredProductsPage() {
                   <p className="text-[14px] font-medium text-foreground mt-1">{editingProduct.name}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="mfg-date" className="text-[13px]">Manufactured Date</Label>
                   <Input

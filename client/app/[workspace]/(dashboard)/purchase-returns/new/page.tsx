@@ -202,7 +202,7 @@ export default function NewPurchaseReturnPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link href="/purchase-returns" className="flex items-center justify-center h-8 w-8 rounded-[5px] border hover:bg-accent transition-colors">
             <ArrowLeft className="h-4 w-4" />
@@ -212,7 +212,7 @@ export default function NewPurchaseReturnPage() {
             <p className="text-sm text-muted-foreground">Create a supplier return</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link href="/purchase-returns">
             <Button type="button" variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">Cancel</Button>
           </Link>
@@ -287,7 +287,7 @@ export default function NewPurchaseReturnPage() {
           {/* Return Items */}
           <div className="border rounded-[5px] bg-card shadow-sm">
             <div className="px-5 py-[15px] border-b">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-sm font-semibold text-foreground">Return Items</h2>
                   <p className="text-xs text-muted-foreground mt-0.5">Products being returned to the supplier</p>
@@ -304,7 +304,7 @@ export default function NewPurchaseReturnPage() {
                 <div className="space-y-3">
                   {formData.items.map((it) => (
                     <div key={it.id} className="flex items-start justify-between gap-4 border rounded-[5px] p-4">
-                      <div className="flex-1 grid gap-4 md:grid-cols-4">
+                      <div className="flex-1 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <div className="space-y-2">
                           <Label className="text-xs font-medium">Product</Label>
                           <Select value={it.productId} onValueChange={(v) => onProductSelected(it.id, v)} disabled={disabled}>

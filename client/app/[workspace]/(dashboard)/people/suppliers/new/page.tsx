@@ -55,7 +55,7 @@ export default function CreateSupplierPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link href="/people/suppliers" className="flex items-center justify-center h-8 w-8 rounded-[5px] border hover:bg-accent transition-colors">
             <ArrowLeft className="h-4 w-4" />
@@ -65,7 +65,7 @@ export default function CreateSupplierPage() {
             <p className="text-sm text-muted-foreground">Create a new supplier account</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link href="/people/suppliers">
             <Button type="button" variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">Cancel</Button>
           </Link>

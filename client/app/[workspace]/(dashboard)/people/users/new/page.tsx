@@ -142,8 +142,8 @@ export default function CreateUserPage() {
               <p className="text-xs text-muted-foreground">
                 Send this link via WhatsApp, email, or any messaging platform. The link expires in 48 hours.
               </p>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 relative">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex-1 min-w-[200px] relative">
                   <Link2 className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     readOnly
@@ -169,7 +169,7 @@ export default function CreateUserPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 pt-2">
+            <div className="flex flex-wrap items-center gap-2 pt-2">
               <Link href="/people/users">
                 <Button type="button" variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">
                   Back to Users
@@ -206,7 +206,7 @@ export default function CreateUserPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link href="/people/users" className="flex items-center justify-center h-8 w-8 rounded-[5px] border hover:bg-accent transition-colors">
             <ArrowLeft className="h-4 w-4" />
@@ -216,7 +216,7 @@ export default function CreateUserPage() {
             <p className="text-sm text-muted-foreground">Invite a new team member</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link href="/people/users">
             <Button type="button" variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">Cancel</Button>
           </Link>

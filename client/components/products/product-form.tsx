@@ -200,7 +200,7 @@ function PricingFields({
 }) {
   return (
     <>
-      <div className="flex gap-4">
+      <div className="flex flex-col md:flex-row gap-4">
         {includeQuantity && (
           <FormField label="Quantity" required fieldName="stock" error={errors.stock} className="flex-1">
             <Input type="number" placeholder="0" value={formData.stock}
@@ -263,7 +263,7 @@ function PricingFields({
         </FormField>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex flex-col md:flex-row gap-4">
         <FormField label="Reorder Level" fieldName="reorderLevel" error={errors.reorderLevel} className="flex-1">
           <Input type="number" placeholder="0" value={formData.reorderLevel}
             onChange={(e) => onInputChange("reorderLevel", e.target.value)}
@@ -607,7 +607,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
         {/* Product Information */}
         <CardSection icon={<Info className="h-4 w-4" />} title="Product Information">
           <div className="space-y-4">
-            <div className="flex gap-4">
+            <div className="flex flex-col md:flex-row gap-4">
               <FormField label="Product Name" required fieldName="name" error={errors.name} className="flex-1">
                 <Input placeholder="Enter product name" value={formData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)} required
@@ -620,7 +620,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
               </FormField>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col md:flex-row gap-4">
               <FormField label="SKU" required fieldName="sku" error={errors.sku} className="flex-1">
                 <div className="flex gap-2">
                   <Input placeholder="PRD-001" value={formData.sku}
@@ -651,7 +651,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
               </FormField>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col md:flex-row gap-4">
               <FormField label="Category" required fieldName="category" error={errors.category} className="flex-1">
                 <div>
                   <Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)}>
@@ -698,7 +698,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
               </FormField>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col md:flex-row gap-4">
               <FormField label="Brand" required fieldName="brand" error={errors.brand} className="flex-1">
                 <Select value={formData.brand} onValueChange={(value) => handleInputChange("brand", value)}>
                   <SelectTrigger className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]">
@@ -729,7 +729,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
               </FormField>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col md:flex-row gap-4">
               <FormField label="Item Code" className="flex-1">
                 <Input placeholder="Alternative product code" value={formData.itemCode}
                   onChange={(e) => handleInputChange("itemCode", e.target.value)}
@@ -767,7 +767,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
               <Label className="text-[14px] font-medium text-[#212b36] dark:text-card-foreground leading-[21px] mb-2 block">
                 Product Type
               </Label>
-              <div className="flex items-center gap-6 mt-1">
+              <div className="flex flex-wrap items-center gap-6 mt-1">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
@@ -860,7 +860,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
               </>
             )}
 
-            <div className="flex gap-4 pt-2">
+            <div className="flex flex-col md:flex-row gap-4 pt-2">
               <FormField label="Status" className="flex-1">
                 <Select value={formData.status}
                   onValueChange={(value: "ACTIVE" | "INACTIVE" | "DISCONTINUED") => handleInputChange("status", value)}>
@@ -920,7 +920,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
             </div>
 
             {(customFieldsEnabled.warranties || customFieldsEnabled.manufacturer) && (
-              <div className="flex gap-4">
+              <div className="flex flex-col md:flex-row gap-4">
                 {customFieldsEnabled.warranties && (
                   <FormField label="Warranty" required className="flex-1">
                     <Select value={formData.warranty} onValueChange={(value) => handleInputChange("warranty", value)}>
@@ -948,7 +948,7 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
             )}
 
             {customFieldsEnabled.expiry && (
-              <div className="flex gap-4">
+              <div className="flex flex-col md:flex-row gap-4">
                 <FormField label="Manufactured Date" required className="flex-1">
                   <div className="relative">
                     <Input type="date" value={formData.manufacturedDate}
@@ -978,11 +978,11 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
         {formData.type === "COMBO" && (
           <CardSection icon={<List className="h-4 w-4" />} title="Combo Items">
             <div className="space-y-4">
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input placeholder="Search products by name or SKU..." value={comboSearchQuery}
                   onChange={(e) => setComboSearchQuery(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleComboSearch(); } }}
-                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px]" />
+                  className="h-[38px] rounded-[5px] px-3 py-[7px] text-[14px] flex-1 min-w-0" />
                 <Button type="button" variant="outline" className="h-[38px] text-[13px]"
                   onClick={handleComboSearch} disabled={comboSearching}>
                   {comboSearching ? "..." : "Search"}
@@ -1028,11 +1028,11 @@ const ProductForm = forwardRef<HTMLFormElement, ProductFormProps>(
         )}
 
         {showSubmit && (
-          <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 pt-4 border-t border-border">
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="h-[34px] px-4 text-[13px] bg-[#092c4c] text-white hover:bg-[#092c4c]/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-[34px] px-4 text-[13px] w-full sm:w-auto bg-[#092c4c] text-white hover:bg-[#092c4c]/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>

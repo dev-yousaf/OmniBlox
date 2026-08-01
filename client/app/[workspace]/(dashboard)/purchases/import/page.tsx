@@ -56,7 +56,7 @@ export default function ImportPurchasesPage() {
             </Button>
           </div>
 
-          <div className="border-2 border-dashed rounded-lg p-12 text-center">
+          <div className="border-2 border-dashed rounded-lg p-6 sm:p-12 text-center">
             <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <div className="space-y-2">
               <p className="text-sm font-medium">Drop your CSV file here or click to browse</p>
@@ -93,7 +93,7 @@ export default function ImportPurchasesPage() {
             </div>
           )}
 
-          <div className="flex justify-end gap-4">
+          <div className="flex flex-wrap justify-end gap-2">
             <Button variant="outline" onClick={() => router.back()}>
               Cancel
             </Button>

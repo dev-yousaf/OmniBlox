@@ -256,8 +256,8 @@ export function ProductsTable({ products, onRefresh }: ProductsTableProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search products..."
@@ -321,7 +321,7 @@ export function ProductsTable({ products, onRefresh }: ProductsTableProps) {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="text-sm text-muted-foreground">
           {table.getFilteredRowModel().rows.length} product(s) total
         </div>

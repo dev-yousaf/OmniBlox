@@ -90,7 +90,7 @@ export default function CreateCustomerPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link
             href="/people/customers"
@@ -103,7 +103,7 @@ export default function CreateCustomerPage() {
             <p className="text-sm text-muted-foreground">Create a new customer account</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link href="/people/customers">
             <Button
               type="button"

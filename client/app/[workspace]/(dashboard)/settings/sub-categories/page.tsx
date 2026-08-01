@@ -244,13 +244,13 @@ export default function SubCategoriesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Sub Category</h1>
           <p className="text-muted-foreground">Manage your product sub categories</p>
         </div>
         {canManage && (
-          <Button onClick={openCreate}>
+          <Button onClick={openCreate} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Add Sub Category
           </Button>
@@ -259,11 +259,11 @@ export default function SubCategoriesPage() {
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle>All Sub Categories</CardTitle>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Select value={filterCategoryId} onValueChange={setFilterCategoryId}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-full sm:w-[200px]">
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent>
@@ -274,7 +274,7 @@ export default function SubCategoriesPage() {
                 </SelectContent>
               </Select>
               {canManage && selectedIds.size > 0 && (
-                <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
+                <Button variant="destructive" size="sm" className="w-full sm:w-auto" onClick={() => setBulkDeleteOpen(true)}>
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete ({selectedIds.size})
                 </Button>
@@ -292,6 +292,7 @@ export default function SubCategoriesPage() {
           ) : sorted.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">No sub categories found.</div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -353,6 +354,7 @@ export default function SubCategoriesPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -365,7 +367,7 @@ export default function SubCategoriesPage() {
               <DialogTitle>{editing ? "Edit Sub Category" : "Add Sub Category"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="sub-name">Sub Category Name</Label>
                   <Input id="sub-name" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Enter name" required maxLength={100} className="mt-1.5" />
@@ -388,7 +390,7 @@ export default function SubCategoriesPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="sub-code">Code (optional)</Label>
                   <Input id="sub-code" value={formCode} onChange={(e) => setFormCode(e.target.value)} placeholder="SC001" className="mt-1.5" />

@@ -21,7 +21,7 @@ export function NotificationBar({ visible, onDismiss, lowStockProducts }: Notifi
   const firstLow = lowStock[0] || outOfStock[0];
 
   return (
-    <div className="flex items-center justify-between bg-[#fcefea] dark:bg-[#3d2a23] rounded-lg px-[10px] py-[10px]">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-[#fcefea] dark:bg-[#3d2a23] rounded-lg px-[10px] py-[10px]">
       <div className="flex items-center gap-[10px]">
         <Info className="h-3.5 w-3.5 text-[#e04f16] shrink-0" />
         <p className="text-sm text-[#646b72] dark:text-[#c0c8d4]">

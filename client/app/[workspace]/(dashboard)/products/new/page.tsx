@@ -20,9 +20,9 @@ export default function NewProductPage() {
   return (
     <div className="max-w-[1440px] mx-auto">
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-1">
           <h1 className="text-3xl font-semibold tracking-tight">Add Product</h1>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button className="flex items-center justify-center w-4 h-4 text-muted-foreground hover:text-foreground" title="Refresh">
               <RefreshCw className="w-full h-full" />
             </button>

@@ -63,7 +63,7 @@ export function ReceivePurchaseDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Receive Purchase Order</DialogTitle>
           <DialogDescription>

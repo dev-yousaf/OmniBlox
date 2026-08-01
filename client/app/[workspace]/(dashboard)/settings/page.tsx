@@ -46,7 +46,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="company" className="space-y-6">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="company">Company</TabsTrigger>
           <TabsTrigger value="regional">Regional</TabsTrigger>
           <TabsTrigger value="currencies">Currencies</TabsTrigger>

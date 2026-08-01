@@ -17,7 +17,7 @@ export function SystemSettings() {
           <CardDescription>Basic company details and branding</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="companyName">Company Name</Label>
               <Input id="companyName" defaultValue="OmniBlox Corporation" />
@@ -31,7 +31,7 @@ export function SystemSettings() {
             <Label htmlFor="address">Address</Label>
             <Input id="address" defaultValue="123 Business St, Suite 100" />
           </div>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="city">City</Label>
               <Input id="city" defaultValue="San Francisco" />
@@ -57,7 +57,7 @@ export function SystemSettings() {
           <CardDescription>Configure regional preferences</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="currency">Currency</Label>
               <Select defaultValue="usd">
@@ -87,7 +87,7 @@ export function SystemSettings() {
               </Select>
             </div>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="dateFormat">Date Format</Label>
               <Select defaultValue="mdy">
@@ -128,7 +128,7 @@ export function SystemSettings() {
           <CardDescription>Configure invoice defaults</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="invoicePrefix">Invoice Prefix</Label>
               <Input id="invoicePrefix" defaultValue="INV-" />

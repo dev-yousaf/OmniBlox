@@ -118,12 +118,12 @@ export default function UsersPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[18px] font-bold text-foreground">Users</h1>
           <p className="text-sm text-muted-foreground">Manage system users and permissions</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="icon" className="h-[34px] w-[34px] rounded-[5px]" title="Export CSV" onClick={exportCSV}>
             <FileText className="h-4 w-4" />
           </Button>
@@ -134,8 +134,8 @@ export default function UsersPage() {
             <RefreshCw className="h-4 w-4" />
           </Button>
           {canCreateUser && (
-            <Link href="/people/users/new">
-              <Button className="h-[34px] rounded-[5px] bg-[#ff9025] hover:bg-[#ff9025]/90 text-white text-[13px] font-medium px-3">
+            <Link href="/people/users/new" className="w-full sm:w-auto">
+              <Button className="w-full h-[34px] rounded-[5px] bg-[#ff9025] hover:bg-[#ff9025]/90 text-white text-[13px] font-medium px-3">
                 <Plus className="mr-1.5 h-3.5 w-3.5" />Add User
               </Button>
             </Link>
@@ -144,7 +144,7 @@ export default function UsersPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Total Users</p>
           <p className="text-2xl font-bold">{stats?.totalUsers || 0}</p>
@@ -170,8 +170,8 @@ export default function UsersPage() {
       {/* Table */}
       <div className="border rounded-[5px] bg-card shadow-sm overflow-hidden">
         {/* Toolbar */}
-        <div className="flex items-center gap-4 px-5 py-[15px] border-b">
-          <div className="flex items-center gap-2 border rounded-[5px] px-2.5 py-1.5 w-[250px]">
+        <div className="flex flex-wrap items-center gap-4 px-5 py-[15px] border-b">
+          <div className="flex items-center gap-2 border rounded-[5px] px-2.5 py-1.5 w-full sm:w-[250px]">
             <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <input
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground min-w-0"
@@ -260,7 +260,7 @@ export default function UsersPage() {
 
         {/* Pagination */}
         {!loading && !error && filtered.length > 0 && (
-          <div className="flex items-center justify-between px-5 py-3 border-t">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-5 py-3 border-t">
             <p className="text-xs text-muted-foreground">
               Showing page {page} of {totalPages} ({filtered.length} total)
             </p>

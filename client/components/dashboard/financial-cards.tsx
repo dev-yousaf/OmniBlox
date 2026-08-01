@@ -21,7 +21,7 @@ interface FinancialCardsProps {
 
 export function FinancialCards({ amounts, changes, loading }: FinancialCardsProps) {
   return (
-    <div className="grid grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
       {FINANCIAL_CARDS.map((card, i) => {
         const Icon = CARD_ICONS[i];
         const amount = amounts[i] ?? 0;

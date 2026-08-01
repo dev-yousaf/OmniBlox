@@ -89,7 +89,7 @@ export default function SupplierDetailPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link href="/people/suppliers" className="flex items-center justify-center h-8 w-8 rounded-[5px] border hover:bg-accent transition-colors">
             <ArrowLeft className="h-4 w-4" />
@@ -102,7 +102,7 @@ export default function SupplierDetailPage() {
             <p className="text-sm text-muted-foreground">Supplier &middot; Created {format(new Date(supplier.createdAt), "MMM dd, yyyy")}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2">
           {(user?.role === "OWNER" || user?.role === "ADMIN") && (
             <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px] text-destructive" onClick={() => setDeleteOpen(true)}>
               <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete
@@ -119,7 +119,7 @@ export default function SupplierDetailPage() {
       </div>
 
       {/* Info Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <div className="flex items-center gap-2 mb-1">
             <CalendarDays className="h-4 w-4 text-muted-foreground" />
@@ -187,7 +187,7 @@ export default function SupplierDetailPage() {
         <div className="px-5 py-[15px] border-b">
           <h2 className="text-sm font-semibold text-foreground">Meta</h2>
         </div>
-        <div className="p-5 grid gap-4 md:grid-cols-3">
+        <div className="p-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <p className="text-xs text-muted-foreground">Created</p>
             <p className="text-sm font-semibold mt-0.5">{format(new Date(supplier.createdAt), "MMM dd, yyyy h:mm a")}</p>

@@ -126,7 +126,7 @@ export default function FeaturesPage() {
       {/* Hero */}
       <section className="pt-32 pb-16 text-center relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-background" />
-        <div className="relative mx-auto max-w-4xl px-6">
+        <div className="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <FadeIn>
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
               Powerful Features for{" "}
@@ -143,7 +143,7 @@ export default function FeaturesPage() {
 
       {/* Feature Groups */}
       <section className="pb-24">
-        <div className="mx-auto max-w-7xl px-6 space-y-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-24">
           {featureGroups.map((group, i) => (
             <FadeIn key={group.title} delay={i * 0.1}>
               <div className={`grid lg:grid-cols-2 gap-12 items-center ${i % 2 === 1 ? "lg:grid-flow-dense" : ""}`}>
@@ -180,7 +180,7 @@ export default function FeaturesPage() {
 
       {/* Additional Features */}
       <section className="py-24 bg-muted/30">
-        <div className="mx-auto max-w-7xl px-6">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <FadeIn>
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold">And So Much More</h2>
@@ -208,8 +208,8 @@ export default function FeaturesPage() {
       {/* CTA */}
       <section className="py-24">
         <FadeIn>
-          <div className="mx-auto max-w-4xl px-6 text-center">
-            <div className="rounded-3xl bg-gradient-to-br from-primary via-primary to-chart-4 p-12 md:p-16 relative overflow-hidden">
+          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
+            <div className="rounded-3xl bg-gradient-to-br from-primary via-primary to-chart-4 p-8 sm:p-12 md:p-16 relative overflow-hidden">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.15),transparent_60%)]" />
               <div className="relative">
                 <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Ready to Get Started?</h2>

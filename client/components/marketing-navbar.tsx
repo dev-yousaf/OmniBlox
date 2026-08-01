@@ -41,7 +41,7 @@ export function MarketingNavbar() {
           : "bg-transparent"
       )}
     >
-      <div className="mx-auto max-w-7xl flex items-center justify-between px-6 h-16">
+      <div className="mx-auto max-w-7xl flex items-center justify-between px-4 sm:px-6 h-16">
         <Link href="/" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-chart-4 text-white font-bold text-sm">
             N
@@ -103,7 +103,7 @@ export function MarketingNavbar() {
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden border-t bg-background overflow-hidden"
           >
-            <div className="px-6 py-4 space-y-3">
+            <div className="px-4 sm:px-6 py-4 space-y-3">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}

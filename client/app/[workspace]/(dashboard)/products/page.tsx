@@ -258,9 +258,9 @@ export default function ProductsPage() {
     <div className="space-y-0">
       {/* Page Info */}
       <div className="mb-5">
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-1">
           <h1 className="text-3xl font-semibold tracking-tight">Products</h1>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-[1px]">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -315,8 +315,8 @@ export default function ProductsPage() {
 
       {/* Import Dialog */}
       {importDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-2xl rounded-lg bg-card text-card-foreground p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-auto rounded-lg bg-card text-card-foreground p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold">Import Products from CSV</h2>
               <Button variant="ghost" size="sm" onClick={() => { setImportDialogOpen(false); setImportPreview(null); setImportResult(null); }}>X</Button>
@@ -365,7 +365,7 @@ export default function ProductsPage() {
       {/* Products Table */}
       <div className="border border-border rounded-lg overflow-hidden">
         {selectedIds.length > 0 && (
-          <div className="flex items-center gap-2 border-b border-border bg-muted/50 p-2 px-4">
+          <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/50 p-2 px-4">
             <span className="text-sm font-medium">{selectedIds.length} selected</span>
             <Button variant="outline" size="sm" onClick={() => setPriceUpdateDialogOpen(true)}>Update Price</Button>
             <Button variant="destructive" size="sm" onClick={async () => { await Promise.all(selectedIds.map((id) => deleteProduct(id))); setSelectedIds([]); loadProducts({ showSpinner: false }); }}>
@@ -505,7 +505,7 @@ export default function ProductsPage() {
             </TableBody>
           </Table>
         </div>
-        <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/50">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-3 border-t border-border bg-muted/50">
           <div className="text-[13px] text-muted-foreground">Page {page} of {totalPages}</div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>Previous</Button>

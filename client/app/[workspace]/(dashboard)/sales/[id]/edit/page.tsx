@@ -418,9 +418,9 @@ export default function EditSalePage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-[18px] font-bold text-foreground">Edit Sale</h1>
             <Badge variant="outline" className="font-medium text-xs">
               {sale.invoiceNumber}
@@ -428,7 +428,7 @@ export default function EditSalePage() {
           </div>
           <p className="text-sm text-muted-foreground">{sale.customerName}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link href={`/sales/${sale.id}`}>
             <Button
               type="button"
@@ -482,7 +482,7 @@ export default function EditSalePage() {
               <CardDescription className="text-xs">Update customer and invoice details</CardDescription>
             </CardHeader>
             <CardContent className="p-5 space-y-4">
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="customerName" className="text-xs font-medium">Customer Name *</Label>
                   <Input
@@ -541,7 +541,7 @@ export default function EditSalePage() {
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="paymentStatus" className="text-xs font-medium">Payment Status</Label>
                   <Select

@@ -64,8 +64,8 @@ export default function SuperadminPage() {
           loading={loading}
         />
 
-        <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div className="lg:col-span-3">
             <CompaniesChart
               data={data?.companiesChart ?? []}
               change={data?.companiesChartChange ?? 0}
@@ -75,7 +75,7 @@ export default function SuperadminPage() {
               loading={loading}
             />
           </div>
-          <div className="col-span-6">
+          <div className="lg:col-span-6">
             <RevenueCard
               chartData={data?.revenueChart ?? []}
               amount={data?.revenueAmount ?? 0}
@@ -86,19 +86,19 @@ export default function SuperadminPage() {
               loading={loading}
             />
           </div>
-          <div className="col-span-3">
+          <div className="lg:col-span-3">
             <PlansSection data={data?.plansDistribution ?? []} loading={loading} />
           </div>
         </div>
 
-        <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-4">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div className="lg:col-span-4">
             <RecentTransactions data={data?.recentTransactions ?? []} loading={loading} />
           </div>
-          <div className="col-span-4">
+          <div className="lg:col-span-4">
             <TopCompanies data={data?.topCompanies ?? []} loading={loading} />
           </div>
-          <div className="col-span-4">
+          <div className="lg:col-span-4">
             <ExpiringSubscriptions data={data?.expiringSubscriptions ?? []} loading={loading} />
           </div>
         </div>

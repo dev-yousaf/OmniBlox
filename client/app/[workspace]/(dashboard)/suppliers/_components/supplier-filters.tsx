@@ -9,8 +9,8 @@ import { SupplierFiltersProps } from "../_types"
 export function SupplierFilters({ filters, onFiltersChange }: SupplierFiltersProps) {
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div className="flex flex-1 items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-1 flex-wrap items-center gap-4">
+        <div className="relative w-full sm:flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
             placeholder="Search suppliers..."
@@ -29,7 +29,7 @@ export function SupplierFilters({ filters, onFiltersChange }: SupplierFiltersPro
             ...filters,
             statusFilter: e.target.value
           })}
-          className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-auto"
         >
           <option value="all">All Status</option>
           <option value="active">Active</option>
@@ -38,7 +38,7 @@ export function SupplierFilters({ filters, onFiltersChange }: SupplierFiltersPro
         </select>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button variant="outline" size="sm">
           <Download className="mr-2 h-4 w-4" />
           Export

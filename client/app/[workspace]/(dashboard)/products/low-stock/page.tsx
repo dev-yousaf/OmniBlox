@@ -176,9 +176,9 @@ export default function LowStockPage() {
     <div className="space-y-0">
       {/* Header */}
       <div className="mb-5">
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-1">
           <h1 className="text-3xl font-semibold tracking-tight">Low Stocks</h1>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-[1px]">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -222,7 +222,7 @@ export default function LowStockPage() {
 
       {/* Tabs + Notify */}
       <div className="border border-border rounded-[5px]">
-        <div className="border-b border-border px-[20px] py-[15px] flex items-center justify-between">
+        <div className="border-b border-border px-[20px] py-[15px] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-[1px] border border-border rounded-[5px] overflow-hidden">
               <button
@@ -402,7 +402,7 @@ export default function LowStockPage() {
         )}
 
         {/* Pagination */}
-        <div className="border-t border-border px-[20px] py-[15px] flex items-center justify-between text-[14px] text-muted-foreground">
+        <div className="border-t border-border px-[20px] py-[15px] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[14px] text-muted-foreground">
           <div className="flex items-center gap-2">
             <span>Row Per Page</span>
             <div className="flex items-center gap-1 border border-border rounded-[5px] px-[8px] py-[6px] text-[12px]">
@@ -461,7 +461,7 @@ export default function LowStockPage() {
                 <Label className="text-[13px] text-muted-foreground">Product</Label>
                 <p className="text-[14px] font-medium text-foreground mt-1">{editingItem.productName}</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="qty" className="text-[13px]">Quantity</Label>
                   <Input
@@ -481,7 +481,7 @@ export default function LowStockPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-[13px] text-muted-foreground">Warehouse</Label>
                   <p className="text-[14px] text-foreground mt-1">{editingItem.warehouseName}</p>

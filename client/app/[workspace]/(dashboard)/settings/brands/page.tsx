@@ -142,7 +142,7 @@ export default function BrandsPage() {
   return (
     <div className="space-y-5">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
             <span>Dashboard</span>
@@ -151,13 +151,13 @@ export default function BrandsPage() {
           </div>
           <h1 className="text-[18px] font-bold text-foreground">Brands</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="icon" className="h-[34px] w-[34px] rounded-[5px]" title="Export PDF"><FileText className="h-4 w-4" /></Button>
           <Button variant="outline" size="icon" className="h-[34px] w-[34px] rounded-[5px]" title="Export Excel"><FileSpreadsheet className="h-4 w-4" /></Button>
           <Button variant="outline" size="icon" className="h-[34px] w-[34px] rounded-[5px]" title="Refresh" onClick={load}><RefreshCw className="h-4 w-4" /></Button>
           <Button variant="outline" size="icon" className="h-[34px] w-[34px] rounded-[5px]" title="Collapse"><ChevronUp className="h-4 w-4" /></Button>
           {canManage && (
-            <Button className="h-[34px] rounded-[5px] bg-primary hover:bg-primary/90 text-primary-foreground text-[13px] font-medium px-3" onClick={openCreate}>
+            <Button className="w-full sm:w-auto h-[34px] rounded-[5px] bg-primary hover:bg-primary/90 text-primary-foreground text-[13px] font-medium px-3" onClick={openCreate}>
               <Plus className="mr-1.5 h-3.5 w-3.5" />Add Brand
             </Button>
           )}
@@ -167,8 +167,8 @@ export default function BrandsPage() {
       {/* Table */}
       <div className="border rounded-[5px] bg-card shadow-sm overflow-hidden">
         {/* Table Toolbar */}
-        <div className="flex items-center gap-4 px-5 py-[15px] border-b">
-          <div className="flex items-center gap-2 border rounded-[5px] px-2.5 py-1.5 w-[200px]">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 px-5 py-[15px] border-b">
+          <div className="flex items-center gap-2 border rounded-[5px] px-2.5 py-1.5 w-full sm:w-[200px]">
             <Search className="h-3.5 w-3.5 text-muted-foreground" />
             <input
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
@@ -177,7 +177,7 @@ export default function BrandsPage() {
               onChange={e => { setSearch(e.target.value); setPage(1); }}
             />
           </div>
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
             <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
               <SelectTrigger className="h-[34px] w-[100px] text-sm rounded-[5px]">
                 <SelectValue placeholder="Status" />
@@ -188,7 +188,7 @@ export default function BrandsPage() {
                 <SelectItem value="INACTIVE">Inactive</SelectItem>
               </SelectContent>
             </Select>
-            <div className="flex items-center gap-1.5 text-sm text-foreground font-semibold">
+            <div className="flex flex-wrap items-center gap-1.5 text-sm text-foreground font-semibold">
               Sort By :
               <Select defaultValue="last7">
                 <SelectTrigger className="h-[34px] w-[130px] text-sm rounded-[5px]">
@@ -281,7 +281,7 @@ export default function BrandsPage() {
 
         {/* Table Footer */}
         {!isLoading && paged.length > 0 && (
-          <div className="flex items-center justify-between px-5 py-[15px] border-t">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-5 py-[15px] border-t">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Row Per Page</span>
               <Select defaultValue="10">
@@ -296,7 +296,7 @@ export default function BrandsPage() {
               </Select>
               <span>Entries</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-end">
               <button
                 className="disabled:opacity-30"
                 disabled={page <= 1}
@@ -351,7 +351,7 @@ export default function BrandsPage() {
           <form onSubmit={handleSave}>
             <DialogHeader><DialogTitle className="text-lg font-bold">{editing ? "Edit Brand" : "Add Brand"}</DialogTitle></DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <Label className="text-sm font-medium">Brand Name</Label>
                   <Input value={fName} onChange={e => setFName(e.target.value)} placeholder="Enter brand name" required maxLength={100} className="mt-1.5 h-[38px] rounded-[5px]" />

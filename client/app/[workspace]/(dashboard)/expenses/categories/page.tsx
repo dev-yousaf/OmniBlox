@@ -187,7 +187,7 @@ export default function ExpenseCategoriesPage() {
 
   return (
     <div className="space-y-6 ">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
@@ -201,7 +201,7 @@ export default function ExpenseCategoriesPage() {
             </p>
           </div>
         </div>
-        <Button onClick={() => handleOpenDialog()}>
+        <Button onClick={() => handleOpenDialog()} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Add Category
         </Button>
@@ -219,7 +219,7 @@ export default function ExpenseCategoriesPage() {
       </Card>
 
       <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1 max-w-sm w-full">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search categories..."

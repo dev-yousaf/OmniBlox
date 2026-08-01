@@ -160,7 +160,7 @@ export default function PurchaseDetailPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Link href="/purchases">
             <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -202,7 +202,7 @@ export default function PurchaseDetailPage() {
             <p className="text-sm text-muted-foreground">{purchase.supplier?.name}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {canManage && (
             <>
               {status === "PENDING" && (
@@ -261,7 +261,7 @@ export default function PurchaseDetailPage() {
       )}
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Items</p>
           <p className="text-2xl font-bold">{purchase.items?.length ?? 0}</p>

@@ -29,7 +29,7 @@ export function ExpiringSubscriptions({ data, loading }: ExpiringSubscriptionsPr
         ) : (
           <div className="flex flex-col gap-0">
             {data.map((p) => (
-              <div key={p.id} className="flex items-center justify-between py-[10px] border-b border-border last:border-b-0">
+              <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-[10px] border-b border-border last:border-b-0">
                 <div className="flex items-center gap-[8px]">
                   <div className="w-[36px] h-[36px] bg-[#f4f6f8] dark:bg-[#1e2a3a] rounded-full flex items-center justify-center">
                     <Package className="h-4 w-4 text-[#646b72]" />

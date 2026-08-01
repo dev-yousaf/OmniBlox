@@ -281,13 +281,13 @@ export default function StockTransferPage() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
           {/* Main: Item Editor */}
           <div className="border rounded-[5px] bg-card shadow-sm overflow-hidden">
             {/* Warehouse Selection */}
             <div className="border-b px-5 py-[15px]">
               <h2 className="text-sm font-semibold text-foreground mb-3">Transfer Between Warehouses</h2>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <Label className="text-xs font-medium">From Warehouse <span className="text-destructive">*</span></Label>
                   <Select value={fromWarehouseId} onValueChange={(v) => { setFromWarehouseId(v); if (v === toWarehouseId) setToWarehouseId(""); }}>
@@ -336,7 +336,7 @@ export default function StockTransferPage() {
             </div>
 
             {/* Items Header */}
-            <div className="flex items-center justify-between px-5 py-[15px] border-b">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-5 py-[15px] border-b">
               <div>
                 <h2 className="text-sm font-semibold text-foreground">Transfer Items</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -347,7 +347,7 @@ export default function StockTransferPage() {
                 type="button"
                 onClick={addItem}
                 size="sm"
-                className="h-[34px] rounded-[5px] text-[13px]"
+                className="w-full sm:w-auto h-[34px] rounded-[5px] text-[13px]"
                 disabled={products.length === 0 || !fromWarehouseId}
               >
                 <Plus className="mr-1.5 h-3.5 w-3.5" />Add Item
@@ -532,7 +532,7 @@ export default function StockTransferPage() {
 
       {/* Transfer History Section */}
       <div className="border rounded-[5px] bg-card shadow-sm overflow-hidden mt-8">
-        <div className="flex items-center justify-between px-5 py-[15px] border-b">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-5 py-[15px] border-b">
           <div>
             <h2 className="text-sm font-semibold text-foreground">Transfer History</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -542,7 +542,7 @@ export default function StockTransferPage() {
           <Button
             variant="outline"
             size="sm"
-            className="h-[34px] rounded-[5px] text-[13px]"
+            className="w-full sm:w-auto h-[34px] rounded-[5px] text-[13px]"
             onClick={() => loadHistory(historyPage)}
             disabled={historyLoading}
           >
@@ -616,7 +616,7 @@ export default function StockTransferPage() {
 
             {/* History Pagination */}
             {historyPages > 1 && (
-              <div className="flex items-center justify-between px-5 py-[15px] border-t">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-5 py-[15px] border-t">
                 <div className="text-sm text-muted-foreground">
                   Page {historyPage} of {historyPages} ({historyTotal} total)
                 </div>

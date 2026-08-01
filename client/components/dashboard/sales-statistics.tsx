@@ -51,7 +51,7 @@ export function SalesStatistics() {
 
   return (
     <div className="border border-border rounded-lg h-full">
-      <div className="border-b border-border px-5 py-[15px] flex items-center gap-2">
+      <div className="border-b border-border px-5 py-[15px] flex flex-wrap items-center gap-2">
         <div className="bg-[#ffede9] dark:bg-[#3d1f1a] rounded-lg p-2">
           <AlertTriangle className="h-4 w-4 text-[#e04f16]" />
         </div>

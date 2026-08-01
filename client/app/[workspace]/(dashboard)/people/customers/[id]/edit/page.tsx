@@ -133,7 +133,7 @@ export default function EditCustomerPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link
             href={`/people/customers/${customer.id}`}
@@ -146,7 +146,7 @@ export default function EditCustomerPage() {
             <p className="text-sm text-muted-foreground">{customer.name}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link href={`/people/customers/${customer.id}`}>
             <Button
               type="button"

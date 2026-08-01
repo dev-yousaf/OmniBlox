@@ -133,7 +133,7 @@ export default function WarehouseDetailPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link href="/inventory/warehouses" className="flex items-center justify-center h-8 w-8 rounded-[5px] border hover:bg-accent transition-colors">
             <ArrowLeft className="h-4 w-4" />
@@ -148,15 +148,15 @@ export default function WarehouseDetailPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2">
           {(user?.role === "OWNER" || user?.role === "ADMIN") && (
-            <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px] text-destructive" onClick={() => setDeleteOpen(true)}>
+            <Button variant="outline" size="sm" className="w-full sm:w-auto h-[34px] rounded-[5px] text-[13px] text-destructive" onClick={() => setDeleteOpen(true)}>
               <Trash2 className="mr-1.5 h-3.5 w-3.5" />Delete
             </Button>
           )}
           {canManage && (
             <Link href={`/inventory/warehouses/${warehouse.id}/edit`}>
-              <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">
+              <Button variant="outline" size="sm" className="w-full sm:w-auto h-[34px] rounded-[5px] text-[13px]">
                 <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
               </Button>
             </Link>
@@ -165,7 +165,7 @@ export default function WarehouseDetailPage() {
       </div>
 
       {/* Info Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <div className="flex items-center gap-2 mb-1">
             <Package className="h-4 w-4 text-muted-foreground" />
@@ -193,9 +193,9 @@ export default function WarehouseDetailPage() {
       </div>
 
       {/* Details + Inventory sections */}
-      <div className="grid gap-5 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Warehouse Details */}
-        <div className="md:col-span-1 border rounded-[5px] bg-card shadow-sm">
+        <div className="lg:col-span-1 border rounded-[5px] bg-card shadow-sm">
           <div className="px-5 py-[15px] border-b">
             <h2 className="text-sm font-semibold text-foreground">Warehouse Details</h2>
           </div>
@@ -228,7 +228,7 @@ export default function WarehouseDetailPage() {
         </div>
 
         {/* Inventory */}
-        <div className="md:col-span-2 border rounded-[5px] bg-card shadow-sm overflow-hidden">
+        <div className="lg:col-span-2 border rounded-[5px] bg-card shadow-sm overflow-hidden">
           <div className="px-5 py-[15px] border-b">
             <h2 className="text-sm font-semibold text-foreground">Current Inventory</h2>
           </div>

@@ -454,12 +454,12 @@ export default function NewSalePage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[18px] font-bold text-foreground">New Sale</h1>
           <p className="text-sm text-muted-foreground">Create a new sales invoice</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link href="/sales">
             <Button
               type="button"
@@ -718,7 +718,7 @@ export default function NewSalePage() {
                 />
               </div>
 
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="paymentStatus" className="text-xs font-medium">Payment Status</Label>
                   <Select

@@ -32,7 +32,7 @@ export function SuperadminWelcomeHeader({ adminName, loading, storeName, totalUs
   }, [onPeriodChange]);
 
   return (
-    <div className="pt-6 pb-0 flex items-center justify-between">
+    <div className="pt-6 pb-0 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         {loading ? (
           <div className="space-y-2">

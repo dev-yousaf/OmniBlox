@@ -249,7 +249,7 @@ export default function QuotationDetailPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Link href="/quotations">
             <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -266,12 +266,12 @@ export default function QuotationDetailPage() {
             <p className="text-sm text-muted-foreground">{quotation.customer?.name}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2">
           {quotation.status === "PENDING" && (
             <>
               <Button
                 size="sm"
-                className="h-[34px] rounded-[5px] text-[13px]"
+                className="w-full sm:w-auto h-[34px] rounded-[5px] text-[13px]"
                 disabled={actionLoading}
                 onClick={handleAccept}
               >
@@ -284,7 +284,7 @@ export default function QuotationDetailPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-[34px] rounded-[5px] text-[13px] text-destructive hover:text-destructive"
+                className="w-full sm:w-auto h-[34px] rounded-[5px] text-[13px] text-destructive hover:text-destructive"
                 disabled={actionLoading}
                 onClick={handleReject}
               >
@@ -299,7 +299,7 @@ export default function QuotationDetailPage() {
           {quotation.status === "COMPLETED" && (
             <Button
               size="sm"
-              className="h-[34px] rounded-[5px] text-[13px] bg-emerald-600 hover:bg-emerald-700"
+              className="w-full sm:w-auto h-[34px] rounded-[5px] text-[13px] bg-emerald-600 hover:bg-emerald-700"
               disabled={actionLoading}
               onClick={handleShowConvertDialog}
             >
@@ -317,7 +317,7 @@ export default function QuotationDetailPage() {
             <Button
               variant="outline"
               size="sm"
-              className="h-[34px] rounded-[5px] text-[13px]"
+              className="w-full sm:w-auto h-[34px] rounded-[5px] text-[13px]"
             >
               <Edit className="mr-1.5 h-3.5 w-3.5" /> Edit
             </Button>
@@ -325,7 +325,7 @@ export default function QuotationDetailPage() {
           <Button
             variant="outline"
             size="sm"
-            className="h-[34px] rounded-[5px] text-[13px] text-destructive hover:text-destructive"
+            className="w-full sm:w-auto h-[34px] rounded-[5px] text-[13px] text-destructive hover:text-destructive"
             onClick={() => setDeleteOpen(true)}
           >
             <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
@@ -340,7 +340,7 @@ export default function QuotationDetailPage() {
       )}
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Items</p>
           <p className="text-2xl font-bold">{items.length}</p>
@@ -366,7 +366,7 @@ export default function QuotationDetailPage() {
       </div>
 
       {/* Main Content: Two Columns */}
-      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
         {/* Left: Customer Info & Items */}
         <div className="border rounded-[5px] bg-card shadow-sm overflow-hidden">
           <div className="px-5 py-[15px] border-b">

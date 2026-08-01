@@ -56,7 +56,7 @@ export function ChartsTab({
 
 	return (
 		<div role="tabpanel" id="panel-charts" aria-labelledby="tab-charts" className="space-y-6">
-			<div className="grid gap-4 md:grid-cols-3">
+			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 				<Card>
 					<CardHeader className="pb-2">
 						<CardTitle className="text-sm font-medium text-muted-foreground">Current Stock</CardTitle>

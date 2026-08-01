@@ -55,11 +55,11 @@ export function QuickCreateProductDialog({
           </DialogDescription>
         </DialogHeader>
         <ProductForm formId={formId} onSuccess={handleSuccess} hideWarehouse showSubmit={false} onSubmittingChange={setIsSubmitting} />
-        <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t">
-          <Button variant="outline" size="sm" onClick={() => setOpen(false)} disabled={isSubmitting}>
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-2 mt-4 pt-4 border-t">
+          <Button variant="outline" size="sm" onClick={() => setOpen(false)} disabled={isSubmitting} className="w-full sm:w-auto">
             Cancel
           </Button>
-          <Button type="submit" form={formId} size="sm" disabled={isSubmitting}>
+          <Button type="submit" form={formId} size="sm" disabled={isSubmitting} className="w-full sm:w-auto">
             {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : "Save Product & Select"}
           </Button>
         </div>

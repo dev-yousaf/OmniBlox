@@ -86,7 +86,7 @@ export default function TransferDetailPage() {
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Items</p>
           <p className="text-2xl font-bold">{transfer.totalItems}</p>
@@ -114,8 +114,8 @@ export default function TransferDetailPage() {
         <div className="flex items-center justify-between px-5 py-[15px] border-b">
           <h2 className="text-sm font-semibold text-foreground">Transfer Route</h2>
         </div>
-        <div className="grid md:grid-cols-2 gap-0">
-          <div className="p-5 border-r border-b md:border-b-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+          <div className="p-5 border-b md:border-b-0 md:border-r">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">From</p>
             <div className="flex items-center gap-2.5">
               <div className="bg-muted rounded-[5px] size-[34px] flex items-center justify-center shrink-0">

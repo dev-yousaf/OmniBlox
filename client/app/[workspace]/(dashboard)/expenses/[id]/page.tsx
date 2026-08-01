@@ -96,7 +96,7 @@ export default function ExpenseDetailPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
@@ -115,14 +115,14 @@ export default function ExpenseDetailPage() {
           </div>
         </div>
         <Link href={`/expenses/${expense.id}/edit`}>
-          <Button variant="outline" className="h-[34px] rounded-[5px] text-[13px]">
+          <Button variant="outline" className="w-full sm:w-auto h-[34px] rounded-[5px] text-[13px]">
             <Pencil className="mr-1.5 h-3.5 w-3.5" />Edit
           </Button>
         </Link>
       </div>
 
       {/* Info Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Amount</p>
           <p className="text-2xl font-bold">{formatCurrency.format(expense.amount)}</p>
@@ -153,7 +153,7 @@ export default function ExpenseDetailPage() {
       {(expense.purchaseOrderId || expense.saleId) && (
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Linked To</p>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             {expense.purchaseOrderId && (
               <Link href={`/purchases/${expense.purchaseOrderId}`}>
                 <Button variant="outline" size="sm" className="h-[30px] rounded-[5px] text-xs">

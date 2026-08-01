@@ -133,7 +133,7 @@ export default function SupplierDetailPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Link href="/suppliers">
             <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -147,7 +147,7 @@ export default function SupplierDetailPage() {
             <h1 className="text-[18px] font-bold text-foreground">{supplier.name}</h1>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2">
           {canManage && (
             <>
               <Link href={`/suppliers/${supplier.id}/edit`}>
@@ -179,7 +179,7 @@ export default function SupplierDetailPage() {
       )}
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Email</p>
           <p className="text-sm font-semibold truncate">{supplier.email || "—"}</p>

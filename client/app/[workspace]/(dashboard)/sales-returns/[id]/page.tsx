@@ -130,13 +130,13 @@ export default function SalesReturnDetailPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link href="/sales-returns" className="flex items-center justify-center h-8 w-8 rounded-[5px] border hover:bg-accent transition-colors">
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
-            <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-[18px] font-bold text-foreground">{sr.referenceNumber}</h1>
               <Badge variant="outline" className={`font-medium text-xs ${statusConfig[curStatus]?.className || ""}`}>{statusLabel}</Badge>
               <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700 font-medium text-xs">Customer Return</Badge>
@@ -180,7 +180,7 @@ export default function SalesReturnDetailPage() {
       )}
 
       {/* Overview Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Reference</p>
           <p className="text-lg font-semibold">{sr.referenceNumber}</p>

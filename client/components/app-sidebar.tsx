@@ -154,6 +154,7 @@ const allSidebarItems: SidebarItem[] = sections.flatMap((s) => s.items);
 type AppSidebarProps = {
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
+  onNavigate?: () => void;
 };
 
 function filterItems(items: SidebarItem[], role: Role, isSuperadmin?: boolean): SidebarItem[] {
@@ -202,7 +203,7 @@ function getInitials(name: string | null | undefined, fallback: string): string 
     .toUpperCase();
 }
 
-export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
+export function AppSidebar({ collapsed, onCollapsedChange, onNavigate }: AppSidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -246,7 +247,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
         collapsed ? "justify-center px-0" : "justify-between px-4"
       )}>
         {!collapsed && (
-          <Link href={`/${ws}/dashboard`} className="flex items-center gap-2">
+          <Link href={`/${ws}/dashboard`} className="flex items-center gap-2" onClick={onNavigate}>
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-sidebar-accent-foreground text-sidebar-accent font-bold text-sm">
               N
             </div>
@@ -259,7 +260,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 shrink-0 text-sidebar-muted hover:text-sidebar-foreground"
+          className="hidden h-8 w-8 shrink-0 text-sidebar-muted hover:text-sidebar-foreground md:inline-flex"
           onClick={() => onCollapsedChange(!collapsed)}
         >
           {collapsed ? (
@@ -293,7 +294,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
 
                   if (collapsed) {
                     return (
-                      <Link key={item.id} href={`/${ws}${item.href}`} title={item.name}>
+                      <Link key={item.id} href={`/${ws}${item.href}`} title={item.name} onClick={onNavigate}>
                         <Button
                           variant="ghost"
                           className={cn(
@@ -310,7 +311,7 @@ export function AppSidebar({ collapsed, onCollapsedChange }: AppSidebarProps) {
                   }
 
                   return (
-                    <Link key={item.id} href={`/${ws}${item.href}`}>
+                    <Link key={item.id} href={`/${ws}${item.href}`} onClick={onNavigate}>
                       <div
                         className={cn(
                           "flex items-center gap-2 px-3 py-2 rounded-lg transition-colors",

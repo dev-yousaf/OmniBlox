@@ -25,7 +25,7 @@ const footerLinks = {
 export function MarketingFooter() {
   return (
     <footer className="border-t bg-muted/30">
-      <div className="mx-auto max-w-7xl px-6 py-10">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-10">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-3">

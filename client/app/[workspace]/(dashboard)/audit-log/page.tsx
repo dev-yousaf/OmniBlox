@@ -85,12 +85,12 @@ export default function AuditLogPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[18px] font-bold text-foreground">Audit Log</h1>
           <p className="text-sm text-muted-foreground">{total} total entries</p>
         </div>
-        <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]" onClick={fetchLogs} disabled={loading}>
+        <Button variant="outline" size="sm" className="w-full sm:w-auto h-[34px] rounded-[5px] text-[13px]" onClick={fetchLogs} disabled={loading}>
           <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
         </Button>
       </div>
@@ -163,7 +163,7 @@ export default function AuditLogPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-sm text-muted-foreground">
           <span>Page {page} of {totalPages} ({total} entries)</span>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" className="h-[30px] rounded-[5px] text-xs" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>

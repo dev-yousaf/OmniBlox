@@ -11,7 +11,7 @@ interface PlansSectionProps {
 
 export function PlansSection({ data, loading }: PlansSectionProps) {
   if (loading) {
-    return <Skeleton className="h-[323px] w-[267px] rounded-[5px]" />;
+    return <Skeleton className="h-[323px] w-full max-w-[267px] rounded-[5px]" />;
   }
 
   const total = data.reduce((s, d) => s + d.count, 0);

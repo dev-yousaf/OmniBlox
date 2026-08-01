@@ -32,7 +32,7 @@ export function TransferTab({ transfers, transfersLoading, transfersError }: Tra
 	return (
 		<div role="tabpanel" id="panel-transfer" className="space-y-5">
 			{/* Stats */}
-			<div className="grid gap-4 md:grid-cols-2">
+			<div className="grid gap-4 sm:grid-cols-2">
 				<div className="border rounded-[5px] bg-card shadow-sm p-5">
 					<p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Total Transfers</p>
 					<p className="text-2xl font-bold">{transfers.length}</p>
@@ -46,8 +46,8 @@ export function TransferTab({ transfers, transfersLoading, transfersError }: Tra
 			{/* Table Card */}
 			<div className="border rounded-[5px] bg-card shadow-sm overflow-hidden">
 				{/* Toolbar */}
-				<div className="flex items-center gap-4 px-5 py-[15px] border-b">
-					<div className="flex items-center gap-2 border rounded-[5px] px-2.5 py-1.5 w-[250px]">
+				<div className="flex flex-wrap items-center gap-4 px-5 py-[15px] border-b">
+					<div className="flex items-center gap-2 border rounded-[5px] px-2.5 py-1.5 w-full sm:w-[250px]">
 						<Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
 						<input
 							className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground min-w-0"
@@ -106,7 +106,7 @@ export function TransferTab({ transfers, transfersLoading, transfersError }: Tra
 						</div>
 
 						{/* Pagination */}
-						<div className="flex items-center justify-between px-5 py-3 border-t">
+						<div className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-3 border-t gap-2">
 							<p className="text-xs text-muted-foreground">
 								Showing page {page} of {totalPages} ({filtered.length} total)
 							</p>

@@ -313,7 +313,7 @@ export default function EditQuotationPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Link href={`/quotations/${quotation.id}`}>
             <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -330,13 +330,13 @@ export default function EditQuotationPage() {
             <p className="text-sm text-muted-foreground">{quotation.customer?.name}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link href={`/quotations/${quotation.id}`}>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="h-[34px] rounded-[5px] text-[13px]"
+              className="w-full sm:w-auto h-[34px] rounded-[5px] text-[13px]"
               disabled={saving}
             >
               Cancel
@@ -347,7 +347,7 @@ export default function EditQuotationPage() {
             form="edit-quotation-form"
             disabled={items.length === 0 || saving}
             size="sm"
-            className="h-[34px] rounded-[5px] text-[13px] gap-1.5"
+            className="w-full sm:w-auto h-[34px] rounded-[5px] text-[13px] gap-1.5"
           >
             {saving ? (
               <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving...</>
@@ -364,7 +364,7 @@ export default function EditQuotationPage() {
         </Alert>
       )}
 
-      <form id="edit-quotation-form" onSubmit={handleSubmit} className="grid gap-5 lg:grid-cols-[1fr_320px]">
+      <form id="edit-quotation-form" onSubmit={handleSubmit} className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px]">
         {/* Left Column */}
         <div className="space-y-5">
           {/* Quotation Information Card */}
@@ -390,7 +390,7 @@ export default function EditQuotationPage() {
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[400px] p-0">
+                  <PopoverContent className="w-[min(400px,calc(100vw-2rem))] p-0">
                     <Command>
                       <CommandInput
                         placeholder="Search customers..."
@@ -427,7 +427,7 @@ export default function EditQuotationPage() {
                 </Popover>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="quoteDate" className="text-xs font-medium">Quote Date *</Label>
                   <Input
@@ -489,7 +489,7 @@ export default function EditQuotationPage() {
           {/* Quotation Items Card */}
           <Card className="border rounded-[5px] bg-card shadow-sm">
             <CardHeader className="px-5 py-[15px] border-b">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <CardTitle className="text-sm font-semibold">Quotation Items</CardTitle>
                   <CardDescription className="text-xs">Manage the products in this quotation</CardDescription>
@@ -497,7 +497,7 @@ export default function EditQuotationPage() {
                 <Button
                   type="button"
                   size="sm"
-                  className="h-[34px] rounded-[5px] text-[13px] gap-1.5"
+                  className="w-full sm:w-auto h-[34px] rounded-[5px] text-[13px] gap-1.5"
                   onClick={addItem}
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -515,9 +515,9 @@ export default function EditQuotationPage() {
                   {items.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-start justify-between gap-4 border rounded-[5px] p-4"
+                      className="flex flex-col sm:flex-row items-start justify-between gap-4 border rounded-[5px] p-4"
                     >
-                      <div className="flex-1 grid gap-4 md:grid-cols-4">
+                      <div className="flex-1 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <div className="space-y-2">
                           <Label className="text-xs font-medium">Product *</Label>
                           <Select
@@ -585,7 +585,7 @@ export default function EditQuotationPage() {
                         size="icon"
                         onClick={() => removeItem(item.id)}
                         disabled={items.length === 1}
-                        className="mt-6 h-[34px] w-[34px] rounded-[5px] text-destructive hover:text-destructive"
+                        className="sm:mt-6 h-[34px] w-[34px] rounded-[5px] text-destructive hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

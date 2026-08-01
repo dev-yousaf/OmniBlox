@@ -97,12 +97,12 @@ export default function InvoicesPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[18px] font-bold text-foreground">Invoices</h1>
           <p className="text-sm text-muted-foreground">{total} invoice(s)</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]" onClick={() => { setPage(1); fetchInvoices(1); }}>
             <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Refresh
           </Button>
@@ -117,7 +117,7 @@ export default function InvoicesPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
             <DollarSign className="h-4 w-4" /> Total Revenue
@@ -139,19 +139,19 @@ export default function InvoicesPage() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+        <div className="relative flex-1 max-w-sm w-full">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search by invoice or customer..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
-            className="h-[34px] rounded-[5px] pl-9 text-sm"
+            className="h-[34px] rounded-[5px] pl-9 text-sm w-full"
           />
         </div>
         <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-          <SelectTrigger className="h-[34px] rounded-[5px] text-sm w-[140px]">
+          <SelectTrigger className="h-[34px] rounded-[5px] text-sm w-full sm:w-[140px]">
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
           <SelectContent>
@@ -161,7 +161,7 @@ export default function InvoicesPage() {
             <SelectItem value="PARTIAL">Partial</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="secondary" size="sm" className="h-[34px] rounded-[5px] text-[13px]" onClick={handleSearch}>
+        <Button variant="secondary" size="sm" className="h-[34px] rounded-[5px] text-[13px] w-full sm:w-auto" onClick={handleSearch}>
           <Search className="mr-1.5 h-3.5 w-3.5" /> Search
         </Button>
       </div>
@@ -235,9 +235,9 @@ export default function InvoicesPage() {
 
       {/* Pagination */}
       {pages > 1 && (
-        <div className="flex items-center justify-between text-sm">
+        <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="text-muted-foreground">{total} invoice(s)</div>
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-1">
             <Button variant="outline" size="icon" className="h-7 w-7" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
               <ChevronLeft className="h-3.5 w-3.5" />
             </Button>

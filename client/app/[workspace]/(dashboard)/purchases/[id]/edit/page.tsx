@@ -403,7 +403,7 @@ export default function EditPurchasePage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link href={`/purchases/${purchase.id}`}>
             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -420,7 +420,7 @@ export default function EditPurchasePage() {
             <p className="text-sm text-muted-foreground">{purchase.supplier?.name}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link href={`/purchases/${purchase.id}`}>
             <Button
               type="button"
@@ -497,7 +497,7 @@ export default function EditPurchasePage() {
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[400px] p-0">
+                  <PopoverContent className="w-[400px] max-w-[calc(100vw-2rem)] p-0">
                     <Command>
                       <CommandInput
                         placeholder="Search suppliers..."
@@ -616,7 +616,7 @@ export default function EditPurchasePage() {
           {/* Purchase Items Card */}
           <Card className="border rounded-[5px] bg-card shadow-sm">
             <CardHeader className="px-5 py-[15px] border-b">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <CardTitle className="text-sm font-semibold">Purchase Items</CardTitle>
                   <CardDescription className="text-xs">Manage the products in this purchase order</CardDescription>
@@ -644,7 +644,7 @@ export default function EditPurchasePage() {
                       key={item.id}
                       className="flex items-start justify-between gap-4 border rounded-[5px] p-4"
                     >
-                      <div className="flex-1 grid gap-4 md:grid-cols-4">
+                      <div className="flex-1 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <div className="space-y-2">
                           <Label className="text-xs font-medium">Product</Label>
                           <div className="flex items-center gap-2">

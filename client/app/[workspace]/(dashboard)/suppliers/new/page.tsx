@@ -88,7 +88,7 @@ export default function CreateSupplierPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link
             href="/suppliers"
@@ -101,7 +101,7 @@ export default function CreateSupplierPage() {
             <p className="text-sm text-muted-foreground">Create a new supplier account</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link href="/suppliers">
             <Button
               type="button"

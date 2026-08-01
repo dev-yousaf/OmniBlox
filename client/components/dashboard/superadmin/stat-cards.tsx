@@ -97,7 +97,7 @@ export function SuperadminStatCards({
 
   if (loading) {
     return (
-      <div className="grid grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="bg-card border border-border rounded-[5px] p-[20px]">
             <Skeleton className="h-[36px] w-[36px] rounded-[5px] mb-4" />
@@ -110,7 +110,7 @@ export function SuperadminStatCards({
   }
 
   return (
-    <div className="grid grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
       {cards.map((card) => {
         const Icon = card.icon;
         const isPositive = card.change >= 0;

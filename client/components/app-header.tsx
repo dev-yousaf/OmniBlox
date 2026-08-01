@@ -15,7 +15,7 @@ import {
   Users,
   Building,
   Calculator,
-  Loader2,
+  Menu,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useCommandMenu } from "./command-menu-provider";
@@ -39,7 +39,9 @@ import { useAuth } from "@/contexts/auth-context";
 import { useWorkspace } from "@/hooks/use-workspace";
 import Link from "next/link";
 
-type AppHeaderProps = Record<string, never>;
+type AppHeaderProps = {
+  onMenuClick?: () => void;
+};
 
 function ThemeToggleIcon() {
   const { theme, setTheme } = useTheme();
@@ -161,7 +163,7 @@ function CalculatorPopover() {
   );
 }
 
-export function AppHeader(_props: AppHeaderProps) {
+export function AppHeader({ onMenuClick }: AppHeaderProps) {
   const { setOpen } = useCommandMenu();
   const { logout, user } = useAuth();
   const ws = useWorkspace();
@@ -175,10 +177,20 @@ export function AppHeader(_props: AppHeaderProps) {
     .slice(0, 2) || "OB";
 
   return (
-    <header className="flex h-[65px] items-center gap-3 border-b border-header-border bg-header-bg px-6">
+    <header className="flex h-[65px] items-center gap-2 border-b border-header-border bg-header-bg px-3 md:gap-3 md:px-6">
+
+      {/* Mobile menu toggle */}
+      <button
+        type="button"
+        onClick={onMenuClick}
+        className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-header-icon-bg text-header-icon-color md:hidden"
+        aria-label="Open navigation"
+      >
+        <Menu className="h-4 w-4" />
+      </button>
 
       {/* Search Bar */}
-      <div className="flex items-center gap-2 border border-header-search-border bg-header-search-bg rounded-lg px-3 py-2 w-[229px]">
+      <div className="hidden md:flex items-center gap-2 border border-header-search-border bg-header-search-bg rounded-lg px-3 py-2 w-[229px]">
         <Search className="h-3.5 w-3.5 text-header-search-placeholder shrink-0" />
         <Input
           placeholder="Search"
@@ -194,14 +206,24 @@ export function AppHeader(_props: AppHeaderProps) {
         </div>
       </div>
 
+      {/* Mobile search icon */}
+      <div
+        className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-header-icon-bg text-header-icon-color cursor-pointer md:hidden"
+        onClick={() => setOpen(true)}
+        role="button"
+        aria-label="Search"
+      >
+        <Search className="h-4 w-4" />
+      </div>
+
       {/* Right side */}
-      <div className="flex flex-1 items-center justify-end gap-3">
+      <div className="flex flex-1 items-center justify-end gap-2 md:gap-3">
         {/* Store/Company Selector */}
-        <div className="flex items-center gap-2 border border-header-dropdown-border bg-header-dropdown-bg rounded-lg px-3 py-1.5 h-[34px]">
-          <div className="flex h-4 w-4 items-center justify-center rounded-[4px] bg-header-primary text-header-primary-text text-[9px] font-bold">
+        <div className="hidden sm:flex items-center gap-2 border border-header-dropdown-border bg-header-dropdown-bg rounded-lg px-3 py-1.5 h-[34px] max-w-[180px]">
+          <div className="flex h-4 w-4 items-center justify-center rounded-[4px] bg-header-primary text-header-primary-text text-[9px] font-bold shrink-0">
             {initials[0]}
           </div>
-          <span className="text-sm text-header-dropdown-text">
+          <span className="text-sm text-header-dropdown-text truncate">
             {companyName}
           </span>
         </div>
@@ -210,9 +232,9 @@ export function AppHeader(_props: AppHeaderProps) {
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <div className="flex items-center gap-1.5 bg-header-primary rounded-[5px] px-3 py-1.5 cursor-pointer">
+              <div className="flex items-center gap-1.5 bg-header-primary rounded-[5px] px-2 py-1.5 cursor-pointer md:px-3">
                 <Plus className="h-3.5 w-3.5 text-header-primary-text" />
-                <span className="text-[13px] font-medium text-header-primary-text leading-[19.5px]">
+                <span className="hidden md:inline text-[13px] font-medium text-header-primary-text leading-[19.5px]">
                   Add New
                 </span>
               </div>
@@ -240,13 +262,13 @@ export function AppHeader(_props: AppHeaderProps) {
         </div>
 
         {/* Vertical Divider */}
-        <div className="h-[34px] w-px bg-header-border" />
+        <div className="h-[34px] w-px bg-header-border hidden sm:block" />
 
         {/* Icon Group */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 md:gap-2">
           {/* Fullscreen */}
           <div
-            className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-header-icon-bg text-header-icon-color cursor-pointer"
+            className="hidden lg:flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-header-icon-bg text-header-icon-color cursor-pointer"
             onClick={() => {
               if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen();
@@ -287,7 +309,7 @@ export function AppHeader(_props: AppHeaderProps) {
         </div>
 
         {/* User Avatar */}
-        <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-header-secondary text-header-secondary-text text-xs font-semibold">
+        <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-header-secondary text-header-secondary-text text-xs font-semibold shrink-0">
           {user?.name
             ?.split(" ")
             .map((n) => n[0])

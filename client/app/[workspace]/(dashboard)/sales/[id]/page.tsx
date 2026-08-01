@@ -105,7 +105,7 @@ export default function SaleDetailPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Link href="/sales">
             <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -113,7 +113,7 @@ export default function SaleDetailPage() {
             </Button>
           </Link>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-[18px] font-bold text-foreground">{sale.invoiceNumber}</h1>
               <Badge variant="outline" className={`font-medium text-xs ${statusStyles[status] || ""}`}>
                 {statusLabel}
@@ -147,7 +147,7 @@ export default function SaleDetailPage() {
             <p className="text-sm text-muted-foreground">{sale.customerName}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {canManage && (
             <>
               <Button
@@ -214,7 +214,7 @@ export default function SaleDetailPage() {
       )}
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Items</p>
           <p className="text-2xl font-bold">{sale.items.length}</p>
@@ -246,7 +246,7 @@ export default function SaleDetailPage() {
           </div>
           <div className="p-5 space-y-5">
             {/* Customer Info */}
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Customer</p>
                 <p className="font-semibold text-foreground">{sale.customerName}</p>

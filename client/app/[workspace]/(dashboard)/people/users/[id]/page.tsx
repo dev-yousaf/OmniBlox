@@ -110,13 +110,13 @@ export default function UserDetailPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link href="/people/users" className="flex items-center justify-center h-8 w-8 rounded-[5px] border hover:bg-accent transition-colors">
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-[18px] font-bold text-foreground">{user.name}</h1>
               <Badge variant="outline" className={`font-medium text-xs ${roleInfo.className}`}>
                 <RoleIcon className="h-3 w-3 mr-1" />
@@ -129,7 +129,7 @@ export default function UserDetailPage() {
             <p className="text-sm text-muted-foreground">{user.email} &middot; Joined {formatDate(user.createdAt)}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2">
           {canManage && (
             <>
               <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px] text-destructive" onClick={() => setDeleteOpen(true)}>
@@ -146,7 +146,7 @@ export default function UserDetailPage() {
       </div>
 
       {/* Info Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <div className="flex items-center gap-2 mb-1">
             <Calendar className="h-4 w-4 text-muted-foreground" />

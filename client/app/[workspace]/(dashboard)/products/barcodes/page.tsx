@@ -230,7 +230,7 @@ export default function BarcodesPage() {
   return (
     <div className="space-y-5">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
             <span>Dashboard</span>
@@ -239,7 +239,7 @@ export default function BarcodesPage() {
           </div>
           <h1 className="text-[18px] font-bold text-foreground">Print Barcode</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="icon" className="h-[34px] w-[34px] rounded-[5px]" title="Refresh" onClick={loadProducts}>
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -297,6 +297,7 @@ export default function BarcodesPage() {
           <div className="bg-muted/50 rounded-[5px] p-4 w-full">
             {/* Table Header */}
             <div className="bg-muted rounded-tl-[5px] rounded-tr-[5px] px-[15px] py-[15px]">
+              <div className="overflow-x-auto">
               <div className="flex items-center gap-[44px]">
                 <div className="flex items-center w-[245px] gap-2">
                   <Checkbox
@@ -309,10 +310,12 @@ export default function BarcodesPage() {
                 <span className="text-[14px] font-semibold text-foreground w-[151px]">Code</span>
                 <span className="text-[14px] font-semibold text-foreground w-[404px]">Qty</span>
               </div>
+              </div>
             </div>
 
             {/* Table Body */}
             <div className="relative min-h-[70px]">
+              <div className="overflow-x-auto">
               {loading ? (
                 <div className="flex items-center justify-center py-10">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -359,11 +362,12 @@ export default function BarcodesPage() {
                   ))}
                 </div>
               )}
+              </div>
             </div>
           </div>
 
           {/* Row 3: Paper Size + Toggles */}
-          <div className="flex gap-6 items-end">
+          <div className="flex flex-col lg:flex-row gap-6 lg:items-end">
             <div className="flex-1 max-w-[538px] space-y-[4px]">
               <label className="text-[14px] font-medium text-foreground">
                 Paper Size <span className="text-red-500">*</span>
@@ -379,7 +383,7 @@ export default function BarcodesPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex gap-[25px] items-end">
+            <div className="flex flex-wrap gap-[25px] items-end">
               <div className="flex flex-col gap-[4px] w-[196px]">
                 <span className="text-[14px] font-medium text-foreground">Show Store Name</span>
                 <Switch checked={showStoreName} onCheckedChange={setShowStoreName} />
@@ -399,7 +403,7 @@ export default function BarcodesPage() {
           <hr className="border-t border-border" />
 
           {/* Buttons */}
-          <div className="flex items-center justify-end gap-[15px]">
+          <div className="flex flex-wrap items-center justify-end gap-[15px]">
             <Button
               onClick={handleGenerateQR}
               disabled={selectedProducts.length === 0}

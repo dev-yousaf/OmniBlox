@@ -49,7 +49,7 @@ export function SalesPurchaseChart() {
   return (
     <div className="border border-border rounded-lg h-full">
       <div className="border-b border-border px-5 py-[15px]">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <div className="bg-[#fff6ee] dark:bg-[#3d2a20] rounded-lg p-2">
               <BarChart3 className="h-3.5 w-3.5 text-[#fe9f43]" />
@@ -74,7 +74,7 @@ export function SalesPurchaseChart() {
         </div>
       </div>
       <div className="p-5">
-        <div className="flex items-center gap-6 mt-3 mb-4">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-6 mt-3 mb-4">
           <div className="flex items-center gap-2">
             <CircleDot className="h-3 w-3 text-blue-500 fill-blue-500" />
             <span className="text-sm text-muted-foreground">Total Purchase</span>

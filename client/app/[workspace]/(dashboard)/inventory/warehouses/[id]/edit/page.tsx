@@ -76,7 +76,7 @@ export default function WarehouseEditPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link href={`/inventory/warehouses/${warehouse.id}`} className="flex items-center justify-center h-8 w-8 rounded-[5px] border hover:bg-accent transition-colors">
             <ArrowLeft className="h-4 w-4" />
@@ -86,11 +86,11 @@ export default function WarehouseEditPage() {
             <p className="text-sm text-muted-foreground">{warehouse.name}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link href={`/inventory/warehouses/${warehouse.id}`}>
-            <Button type="button" variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">Cancel</Button>
+            <Button type="button" variant="outline" size="sm" className="w-full sm:w-auto h-[34px] rounded-[5px] text-[13px]">Cancel</Button>
           </Link>
-          <Button type="submit" form="edit-warehouse-form" disabled={submitting} size="sm" className="h-[34px] rounded-[5px] bg-[#ff9025] hover:bg-[#ff9025]/90 text-white text-[13px] font-medium px-3 gap-1.5">
+          <Button type="submit" form="edit-warehouse-form" disabled={submitting} size="sm" className="w-full sm:w-auto h-[34px] rounded-[5px] bg-[#ff9025] hover:bg-[#ff9025]/90 text-white text-[13px] font-medium px-3 gap-1.5">
             {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             {submitting ? "Saving..." : "Save Changes"}
           </Button>
@@ -104,7 +104,7 @@ export default function WarehouseEditPage() {
             <h2 className="text-sm font-semibold text-foreground">Warehouse Details</h2>
           </div>
           <div className="p-5 space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-xs font-medium">Warehouse Name *</Label>
                 <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Main Warehouse" required className="h-[34px] rounded-[5px] text-sm" />

@@ -281,7 +281,7 @@ export default function StockAdjustmentPage() {
         <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
           {/* Main: Item Editor */}
           <div className="border rounded-[5px] bg-card shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-[15px] border-b">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-[15px] border-b">
               <div>
                 <h2 className="text-sm font-semibold text-foreground">Adjustment Items</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -432,7 +432,7 @@ export default function StockAdjustmentPage() {
             )}
 
             {items.length > 0 && (
-              <div className="flex items-center justify-between px-5 py-[15px] border-t text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-[15px] border-t text-sm">
                 <span className="text-muted-foreground">{items.length} item(s)</span>
                 <span className="font-semibold">
                   Net change:{" "}

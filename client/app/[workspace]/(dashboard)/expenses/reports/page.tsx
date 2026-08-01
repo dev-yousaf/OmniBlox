@@ -28,7 +28,7 @@ export default function ExpenseReportsPage() {
       </div>
 
       {/* Feature Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card
           className="cursor-pointer hover:border-primary transition-colors"
           onClick={() => router.push(`/${ws}/expenses/reports/new`)}
@@ -153,7 +153,7 @@ export default function ExpenseReportsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="flex gap-3">
               <PieChart className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               <div>

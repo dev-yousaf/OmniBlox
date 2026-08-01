@@ -172,7 +172,7 @@ export default function SalesPage() {
   return (
     <div className="space-y-5">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
             <span>Dashboard</span>
@@ -181,7 +181,7 @@ export default function SalesPage() {
           </div>
           <h1 className="text-[18px] font-bold text-foreground">Sales & Invoices</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="icon" className="h-[34px] w-[34px] rounded-[5px]" title="Export CSV" onClick={exportCSV}>
             <FileText className="h-4 w-4" />
           </Button>
@@ -202,7 +202,7 @@ export default function SalesPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <div className="flex items-center justify-between mb-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Sales</p>
@@ -247,7 +247,7 @@ export default function SalesPage() {
       <div className="border rounded-[5px] bg-card shadow-sm overflow-hidden">
         {/* Table Toolbar */}
         <div className="flex items-center gap-4 px-5 py-[15px] border-b flex-wrap">
-          <div className="flex items-center gap-2 border rounded-[5px] px-2.5 py-1.5 w-[200px]">
+          <div className="flex items-center gap-2 border rounded-[5px] px-2.5 py-1.5 w-full sm:w-[200px]">
             <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <input
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground min-w-0"
@@ -258,13 +258,13 @@ export default function SalesPage() {
           </div>
           <div className="flex items-center gap-2 ml-auto flex-wrap">
             {/* Date Range */}
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <CalendarIcon className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground w-full sm:w-auto">
+              <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
               <Input
                 type="date"
                 value={filters.dateFrom ?? ""}
                 onChange={(e) => { setFilters({ dateFrom: e.target.value || undefined }); setPage(1); }}
-                className="h-[34px] w-[140px] rounded-[5px] text-xs"
+                className="h-[34px] w-full sm:w-[140px] rounded-[5px] text-xs"
                 placeholder="From"
               />
               <span className="text-muted-foreground">-</span>
@@ -272,7 +272,7 @@ export default function SalesPage() {
                 type="date"
                 value={filters.dateTo ?? ""}
                 onChange={(e) => { setFilters({ dateTo: e.target.value || undefined }); setPage(1); }}
-                className="h-[34px] w-[140px] rounded-[5px] text-xs"
+                className="h-[34px] w-full sm:w-[140px] rounded-[5px] text-xs"
                 placeholder="To"
               />
             </div>
@@ -282,7 +282,7 @@ export default function SalesPage() {
               value={filters.warehouseId || "ALL"}
               onValueChange={(v) => { setFilters({ warehouseId: v === "ALL" ? undefined : v }); setPage(1); }}
             >
-              <SelectTrigger className="h-[34px] w-[150px] text-sm rounded-[5px]">
+              <SelectTrigger className="h-[34px] w-full sm:w-[150px] text-sm rounded-[5px]">
                 <Warehouse className="mr-1 h-3.5 w-3.5 text-muted-foreground" />
                 <SelectValue placeholder="Warehouse" />
               </SelectTrigger>
@@ -299,7 +299,7 @@ export default function SalesPage() {
               value={filters.status || "ALL"}
               onValueChange={(v) => { setFilters({ status: v as any }); setPage(1); }}
             >
-              <SelectTrigger className="h-[34px] w-[130px] text-sm rounded-[5px]">
+              <SelectTrigger className="h-[34px] w-full sm:w-[130px] text-sm rounded-[5px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -314,7 +314,7 @@ export default function SalesPage() {
               value={filters.paymentStatus || "ALL"}
               onValueChange={(v) => { setFilters({ paymentStatus: v as any }); setPage(1); }}
             >
-              <SelectTrigger className="h-[34px] w-[140px] text-sm rounded-[5px]">
+              <SelectTrigger className="h-[34px] w-full sm:w-[140px] text-sm rounded-[5px]">
                 <SelectValue placeholder="Payment" />
               </SelectTrigger>
               <SelectContent>
@@ -499,7 +499,7 @@ export default function SalesPage() {
 
         {/* Pagination */}
         {!loading && sales.length > 0 && (
-          <div className="flex items-center justify-between px-5 py-[15px] border-t">
+          <div className="flex flex-col gap-3 px-5 py-[15px] border-t sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">
               Showing page {page} of {pages} ({total} total)
             </div>

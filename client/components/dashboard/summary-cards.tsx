@@ -19,7 +19,7 @@ interface SummaryCardsProps {
 
 export function SummaryCards({ amounts, changes, loading }: SummaryCardsProps) {
   return (
-    <div className="grid grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
       {SUMMARY_CARDS.map((card, i) => {
         const Icon = card.icon;
         const amount = amounts[i] ?? 0;

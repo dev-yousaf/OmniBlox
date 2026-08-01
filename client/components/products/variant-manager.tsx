@@ -74,7 +74,7 @@ function AttributeEditor({
 }) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-[14px] font-medium text-[#212b36] dark:text-card-foreground shrink-0">
           Attributes
         </span>
@@ -109,7 +109,7 @@ function AttributeEditor({
         </div>
       </div>
       {attributes.map((attr, index) => (
-        <div key={index} className="flex items-start gap-2 rounded border p-3">
+        <div key={index} className="flex flex-col sm:flex-row sm:items-start gap-2 rounded border p-3">
           <div className="flex-1 space-y-1">
             <Label className="text-xs text-muted-foreground">Attribute Name</Label>
             <Input
@@ -497,7 +497,7 @@ export function VariantManager({
     <div className="space-y-4">
       {mode === "edit" && (
         <>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-[14px] font-medium text-[#212b36] dark:text-card-foreground">
               Existing Variants ({variants.rows.length})
             </span>

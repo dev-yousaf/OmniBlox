@@ -267,9 +267,9 @@ export default function PurchaseOrderForm() {
     <FormProvider {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="grid gap-6 md:grid-cols-3"
+        className="grid gap-6 lg:grid-cols-3"
       >
-        <div className="md:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Purchase Details</CardTitle>
@@ -353,7 +353,7 @@ export default function PurchaseOrderForm() {
 
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <CardTitle>Line Items</CardTitle>
                   <CardDescription>
@@ -388,7 +388,7 @@ export default function PurchaseOrderForm() {
                       className="border border-border rounded-lg p-4 space-y-4"
                     >
                       <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 grid gap-4 md:grid-cols-4">
+                        <div className="flex-1 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                           <div className="space-y-2">
                             <Label>Product</Label>
                             <Controller

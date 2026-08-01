@@ -130,7 +130,7 @@ export default function PurchaseReturnDetailPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link href="/purchase-returns" className="flex items-center justify-center h-8 w-8 rounded-[5px] border hover:bg-accent transition-colors">
             <ArrowLeft className="h-4 w-4" />
@@ -144,7 +144,7 @@ export default function PurchaseReturnDetailPage() {
             <p className="text-sm text-muted-foreground">{pr.supplier?.name || "Supplier Return"}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {canManage && pr.status !== "COMPLETED" && pr.status !== "CANCELLED" && (
             <>
               <Link href={`/purchase-returns/${pr.id}/edit`}>
@@ -180,7 +180,7 @@ export default function PurchaseReturnDetailPage() {
       )}
 
       {/* Overview Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Reference</p>
           <p className="text-lg font-semibold">{pr.referenceNumber}</p>

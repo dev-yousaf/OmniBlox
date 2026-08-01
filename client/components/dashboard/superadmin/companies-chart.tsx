@@ -25,13 +25,13 @@ export function CompaniesChart({ data, change, changeText, loading, period, onPe
 
   if (loading) {
     return (
-      <Skeleton className="h-[323px] w-[267px] rounded-[5px]" />
+      <Skeleton className="h-[323px] w-full max-w-[267px] rounded-[5px]" />
     );
   }
 
   return (
     <div className="border border-border rounded-[5px] flex flex-col h-full">
-      <div className="bg-card border-b border-border flex items-center gap-[10px] px-[20px] py-[15px] rounded-tl-[5px] rounded-tr-[5px]">
+      <div className="bg-card border-b border-border flex flex-wrap items-center gap-[10px] px-[20px] py-[15px] rounded-tl-[5px] rounded-tr-[5px]">
         <p className="flex-1 text-[16px] font-semibold text-[#212b36] dark:text-[#f1f3f4] leading-[24px]">
           Activity
         </p>

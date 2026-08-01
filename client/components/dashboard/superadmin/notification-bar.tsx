@@ -11,7 +11,7 @@ export function SuperadminNotificationBar({ newCompaniesToday, visible, onDismis
   if (!visible) return null;
 
   return (
-    <div className="bg-[#fe9f43] rounded-[5px] p-[40px] relative overflow-hidden flex items-center gap-[10px]">
+    <div className="bg-[#fe9f43] rounded-[5px] p-5 sm:p-[40px] relative overflow-hidden flex items-center gap-[10px]">
       <div className="flex-1">
         <p className="text-[24px] font-bold text-white leading-[36px]">
           Welcome Back

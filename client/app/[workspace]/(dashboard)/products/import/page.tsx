@@ -113,7 +113,7 @@ export default function ImportProductsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <Link href="/products">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
@@ -238,11 +238,11 @@ export default function ImportProductsPage() {
                     </TableBody>
                   </Table>
                 </div>
-                <div className="flex gap-2 justify-end">
-                  <Button variant="outline" onClick={resetForm}>
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                  <Button variant="outline" onClick={resetForm} className="w-full sm:w-auto">
                     Cancel
                   </Button>
-                  <Button onClick={handleImport} disabled={uploading}>
+                  <Button onClick={handleImport} disabled={uploading} className="w-full sm:w-auto">
                     {uploading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

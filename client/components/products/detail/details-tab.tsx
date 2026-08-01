@@ -41,10 +41,10 @@ export function DetailsTab({
 	return (
 		<div role="tabpanel" id="panel-details" aria-labelledby="tab-details" className="space-y-4">
 			{/* TOP ROW: Product Image+Info Card + Sale Price */}
-			<div className="grid gap-4 lg:grid-cols-[1fr_300px]">
+			<div className="grid gap-4 md:grid-cols-[1fr_300px]">
 				{/* LEFT: Image + Info */}
 				<div className="border border-border rounded-[5px] bg-card">
-					<div className="p-[28px] flex gap-[28px] items-start">
+					<div className="p-[28px] flex flex-col sm:flex-row gap-6 sm:gap-[28px] items-start">
 						{/* Dynamic Image Section */}
 						<div className="shrink-0">
 							{product.imageUrl ? (
@@ -139,7 +139,7 @@ export function DetailsTab({
 						<p className="text-[32px] font-bold leading-none mb-0.5">${product.salePrice.toFixed(2)}</p>
 						<p className="text-[12px] text-[#8babc4] dark:text-white/60">/ {product.unit || "unit"}</p>
 					</div>
-					<div className="grid grid-cols-2 gap-3 mt-6">
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
 						<div className="bg-white/10 rounded-[5px] px-3 py-3">
 							<p className="text-[11px] text-[#8babc4] dark:text-white/60 mb-0.5">Current Stock</p>
 							<p className="text-[16px] font-bold">{product.stock} <span className="text-[11px] font-normal text-[#8babc4] dark:text-white/60">Pc</span></p>
@@ -153,7 +153,7 @@ export function DetailsTab({
 			</div>
 
 			{/* BOTTOM ROW: 3 Cards */}
-			<div className="grid gap-4 lg:grid-cols-3">
+			<div className="grid gap-4 md:grid-cols-3">
 				{/* Inventory Details Card */}
 				<div className="border border-border rounded-[5px] bg-card">
 					<div className="border-b border-border px-[16px] py-[12px]">
@@ -207,7 +207,7 @@ export function DetailsTab({
 						<Info className="w-4 h-4 text-muted-foreground" />
 						<h3 className="text-[15px] font-semibold text-card-foreground">Technical Specifications</h3>
 					</div>
-					<div className="p-[20px] grid grid-cols-2 gap-x-8 gap-y-4">
+					<div className="p-[20px] grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
 						{inventory.length > 0 && (
 							<div>
 								<p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">Store / Warehouse</p>
@@ -372,10 +372,11 @@ export function DetailsTab({
 						<p className="text-[13px] text-muted-foreground">History of stock movements</p>
 					</div>
 					<div className="p-[20px]">
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>Date</TableHead>
+						<div className="overflow-x-auto">
+							<Table>
+								<TableHeader>
+									<TableRow>
+										<TableHead>Date</TableHead>
 									<TableHead>Type</TableHead>
 									<TableHead>Quantity</TableHead>
 									<TableHead>Balance</TableHead>
@@ -398,6 +399,7 @@ export function DetailsTab({
 								))}
 							</TableBody>
 						</Table>
+						</div>
 					</div>
 				</div>
 			)}

@@ -127,7 +127,7 @@ export default function LandingPage() {
       <section className="relative pt-32 pb-24 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-background" />
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-primary/5 blur-3xl" />
-        <div className="relative mx-auto max-w-7xl px-6 text-center">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
           <FadeIn>
             <div className="inline-flex items-center gap-2 rounded-full border bg-muted/50 px-4 py-1.5 text-sm text-muted-foreground mb-8">
               <Zap className="h-3.5 w-3.5 text-primary" />
@@ -189,7 +189,7 @@ export default function LandingPage() {
 
       {/* Features Grid */}
       <section className="py-24 bg-muted/30">
-        <div className="mx-auto max-w-7xl px-6">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <FadeIn>
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold">
@@ -226,7 +226,7 @@ export default function LandingPage() {
 
       {/* Why Choose */}
       <section className="py-24">
-        <div className="mx-auto max-w-7xl px-6">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <FadeIn direction="left">
               <div>
@@ -259,7 +259,7 @@ export default function LandingPage() {
               </div>
             </FadeIn>
             <FadeIn direction="right">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
                   {
                     icon: Zap,
@@ -301,7 +301,7 @@ export default function LandingPage() {
 
       {/* Testimonials */}
       <section className="py-24 bg-muted/30">
-        <div className="mx-auto max-w-7xl px-6">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <FadeIn>
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold">
@@ -347,8 +347,8 @@ export default function LandingPage() {
       {/* CTA */}
       <section className="py-24">
         <FadeIn>
-          <div className="mx-auto max-w-4xl px-6 text-center">
-            <div className="rounded-3xl bg-gradient-to-br from-primary via-primary to-chart-4 p-12 md:p-16 relative overflow-hidden">
+          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
+            <div className="rounded-3xl bg-gradient-to-br from-primary via-primary to-chart-4 p-8 sm:p-12 md:p-16 relative overflow-hidden">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.15),transparent_60%)]" />
               <div className="relative">
                 <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">

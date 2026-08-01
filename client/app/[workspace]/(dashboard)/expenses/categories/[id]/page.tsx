@@ -76,7 +76,7 @@ export default function ExpenseCategoryDetailPage() {
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-5 w-5" />
@@ -89,6 +89,7 @@ export default function ExpenseCategoryDetailPage() {
         <Button
           variant="outline"
           onClick={() => router.push(`/${ws}/expenses/categories`)}
+          className="w-full sm:w-auto"
         >
           Back to Categories
         </Button>

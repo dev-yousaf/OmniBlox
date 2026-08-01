@@ -160,13 +160,13 @@ export default function EditSalesReturnPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <Link href={`/sales-returns/${sr.id}`} className="flex items-center justify-center h-8 w-8 rounded-[5px] border hover:bg-accent transition-colors">
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
-            <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-[18px] font-bold text-foreground">Edit Sales Return</h1>
               <Badge variant="outline" className="font-medium text-xs">{sr.referenceNumber}</Badge>
             </div>
@@ -192,7 +192,7 @@ export default function EditSalesReturnPage() {
               <p className="text-xs text-muted-foreground mt-0.5">Update the return details</p>
             </div>
             <div className="p-5 space-y-4">
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs font-medium">Reference</Label>
                   <Input value={sr.referenceNumber} disabled className="h-[34px] rounded-[5px] text-sm" />

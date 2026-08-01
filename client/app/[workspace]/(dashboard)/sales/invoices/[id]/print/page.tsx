@@ -51,7 +51,7 @@ export default function PrintInvoicePage() {
           <span className="mx-1">/</span>
           <span className="text-foreground">Print</span>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <Link href="/sales/invoices" className="flex items-center justify-center h-8 w-8 rounded-[5px] border hover:bg-accent transition-colors">
               <ArrowLeft className="h-4 w-4" />
@@ -68,7 +68,7 @@ export default function PrintInvoicePage() {
       </div>
 
       {/* Invoice Document */}
-      <div className="my-6 mx-auto max-w-[210mm] bg-white shadow-sm border rounded-[5px] p-8 print:shadow-none print:border-0 print:rounded-none print:p-0" style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
+      <div className="my-6 mx-auto max-w-[210mm] w-full bg-white shadow-sm border rounded-[5px] p-4 sm:p-8 print:shadow-none print:border-0 print:rounded-none print:p-0" style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
         {/* Header */}
         <div className="flex justify-between items-start border-b pb-6 mb-6">
           <div>
@@ -82,7 +82,7 @@ export default function PrintInvoicePage() {
         </div>
 
         {/* Info */}
-        <div className="grid grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 mb-8">
           <div>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Bill To</p>
             <p className="font-medium text-gray-900">{sale.customerName || sale.customer?.name || "N/A"}</p>
@@ -109,7 +109,8 @@ export default function PrintInvoicePage() {
         </div>
 
         {/* Items Table */}
-        <table className="w-full mb-6" style={{ borderCollapse: "collapse" }}>
+        <div className="overflow-x-auto">
+          <table className="w-full mb-6" style={{ borderCollapse: "collapse" }}>
           <thead>
             <tr className="border-b border-gray-300">
               <th className="text-left py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">#</th>
@@ -133,7 +134,8 @@ export default function PrintInvoicePage() {
               );
             })}
           </tbody>
-        </table>
+          </table>
+        </div>
 
         {/* Totals */}
         <div className="flex justify-end mb-8">

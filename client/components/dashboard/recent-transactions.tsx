@@ -38,7 +38,7 @@ export function RecentTransactions({ sales, loading }: RecentTransactionsProps) 
       </div>
 
       <div className="border-b border-border">
-        <div className="flex px-4 py-2.5 gap-2">
+        <div className="flex flex-wrap px-4 py-2.5 gap-2">
           {TABS.map((tab) => (
             <button
               key={tab}

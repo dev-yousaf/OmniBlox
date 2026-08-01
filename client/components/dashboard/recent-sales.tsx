@@ -30,7 +30,7 @@ export function RecentSales() {
   return (
     <div className="border border-border rounded-lg h-full">
       <div className="border-b border-border px-5 py-[15px]">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <div className="bg-[#e7f0ff] dark:bg-[#1a2a4a] rounded-lg p-2">
               <ShoppingBag className="h-4 w-4 text-[#2d7aff] dark:text-[#6b9fff]" />

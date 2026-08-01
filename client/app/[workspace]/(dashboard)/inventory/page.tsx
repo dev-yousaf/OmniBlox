@@ -203,7 +203,7 @@ export default function ManageStockPage() {
   return (
     <div className="space-y-5">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
             <span>Dashboard</span>
@@ -212,7 +212,7 @@ export default function ManageStockPage() {
           </div>
           <h1 className="text-[18px] font-bold text-foreground">Manage Stock</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="icon" className="h-[34px] w-[34px] rounded-[5px]" title="Export CSV" onClick={exportCSV}>
             <FileText className="h-4 w-4" />
           </Button>
@@ -230,7 +230,7 @@ export default function ManageStockPage() {
           </Button>
           {canManage && (
             <Link href="/products/adjustment">
-              <Button className="h-[34px] rounded-[5px] bg-[#ff9025] hover:bg-[#ff9025]/90 text-white text-[13px] font-medium px-3">
+              <Button className="w-full sm:w-auto h-[34px] rounded-[5px] bg-[#ff9025] hover:bg-[#ff9025]/90 text-white text-[13px] font-medium px-3">
                 <Plus className="mr-1.5 h-3.5 w-3.5" />Stock Adjustment
               </Button>
             </Link>
@@ -239,19 +239,19 @@ export default function ManageStockPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Link href="/inventory/transfer">
-          <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">
+          <Button variant="outline" size="sm" className="w-full sm:w-auto h-[34px] rounded-[5px] text-[13px]">
             <ArrowLeftRight className="mr-1.5 h-3.5 w-3.5" />Transfer Stock
           </Button>
         </Link>
         <Link href="/inventory/warehouses">
-          <Button variant="outline" size="sm" className="h-[34px] rounded-[5px] text-[13px]">
+          <Button variant="outline" size="sm" className="w-full sm:w-auto h-[34px] rounded-[5px] text-[13px]">
             <Warehouse className="mr-1.5 h-3.5 w-3.5" />Manage Warehouses
           </Button>
         </Link>
         {selectedIds.size > 0 && (
-          <span className="text-sm text-muted-foreground ml-2">{selectedIds.size} selected</span>
+          <span className="text-sm text-muted-foreground w-full sm:w-auto sm:ml-2">{selectedIds.size} selected</span>
         )}
       </div>
 
@@ -260,7 +260,7 @@ export default function ManageStockPage() {
         <div className="border rounded-[5px] bg-card shadow-sm overflow-hidden">
           {/* Table Toolbar */}
           <div className="flex items-center gap-4 px-5 py-[15px] border-b flex-wrap">
-            <div className="flex items-center gap-2 border rounded-[5px] px-2.5 py-1.5 w-[200px]">
+            <div className="flex items-center gap-2 border rounded-[5px] px-2.5 py-1.5 w-full sm:w-[200px]">
               <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <input
                 className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground min-w-0"
@@ -419,7 +419,7 @@ export default function ManageStockPage() {
 
           {/* Table Footer */}
           {!isLoading && paged.length > 0 && (
-            <div className="flex items-center justify-between px-5 py-[15px] border-t">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-5 py-[15px] border-t">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span>Row Per Page</span>
                 <Select defaultValue="10">

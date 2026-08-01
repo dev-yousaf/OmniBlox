@@ -79,11 +79,11 @@ export default function DashboardPage() {
         <SummaryCards amounts={summaryAmounts} changes={summaryChanges} loading={loading} />
         <FinancialCards amounts={financialAmounts} changes={financialChanges} loading={loading} />
 
-        <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-8">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
+          <div className="md:col-span-8">
             <SalesPurchaseChart />
           </div>
-          <div className="col-span-4">
+          <div className="md:col-span-4">
             <OverallInfo
               suppliersCount={data?.suppliersCount ?? 0}
               customersCount={data?.customersCount ?? 0}
@@ -97,23 +97,23 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-4">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div className="lg:col-span-4">
             <TopSellingProducts />
           </div>
-          <div className="col-span-4">
+          <div className="lg:col-span-4">
             <LowStockProducts products={data?.lowStockProducts ?? []} loading={loading} />
           </div>
-          <div className="col-span-4">
+          <div className="lg:col-span-4">
             <RecentSales />
           </div>
         </div>
 
-        <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-7">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
+          <div className="md:col-span-7">
             <SalesStatistics />
           </div>
-          <div className="col-span-5">
+          <div className="md:col-span-5">
             <RecentTransactions sales={data?.recentSales} loading={loading} />
           </div>
         </div>

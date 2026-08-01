@@ -218,7 +218,7 @@ export default function ExpenseCategoriesPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.15),transparent_60%)]" />
         <div className="absolute -bottom-6 -right-6 h-32 w-32 rounded-full bg-white/5 blur-2xl" />
         <div className="absolute -top-4 -left-4 h-24 w-24 rounded-full bg-white/5 blur-xl" />
-        <div className="relative flex items-center justify-between">
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-white/80 text-sm font-medium">
               <FolderTree className="h-4 w-4" />
@@ -232,7 +232,7 @@ export default function ExpenseCategoriesPage() {
           {canManage && (
             <Button
               onClick={openCreate}
-              className="h-10 bg-white text-primary shadow-lg hover:bg-white/90 hover:shadow-xl transition-all"
+              className="w-full sm:w-auto h-10 bg-white text-primary shadow-lg hover:bg-white/90 hover:shadow-xl transition-all"
             >
               <Plus className="mr-2 h-4 w-4" />
               Add Category
@@ -330,6 +330,7 @@ export default function ExpenseCategoriesPage() {
               )}
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -423,6 +424,7 @@ export default function ExpenseCategoriesPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

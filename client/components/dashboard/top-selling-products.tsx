@@ -32,7 +32,7 @@ export function TopSellingProducts() {
   return (
     <div className="border border-border rounded-lg h-full">
       <div className="p-5">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
           <div className="flex items-center gap-2">
             <Box className="h-5 w-5 text-pink-500" />
             <h3 className="text-base font-semibold text-card-foreground">

@@ -151,7 +151,7 @@ export default function EditExpensePage() {
         </div>
         <div className="p-5">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="reference">Reference <span className="text-destructive">*</span></Label>
                 <Input
@@ -248,11 +248,11 @@ export default function EditExpensePage() {
               />
             </div>
 
-            <div className="flex justify-end gap-4">
-              <Button type="button" variant="outline" onClick={() => router.back()} disabled={submitting}>
+            <div className="flex flex-wrap justify-end gap-4">
+              <Button type="button" variant="outline" onClick={() => router.back()} disabled={submitting} className="w-full sm:w-auto">
                 Cancel
               </Button>
-              <Button type="submit" disabled={submitting} className="bg-[#ff9025] hover:bg-[#ff9025]/90">
+              <Button type="submit" disabled={submitting} className="w-full sm:w-auto bg-[#ff9025] hover:bg-[#ff9025]/90">
                 {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 <Save className="h-4 w-4 mr-2" />
                 Save Changes

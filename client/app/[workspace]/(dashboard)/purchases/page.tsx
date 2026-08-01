@@ -123,12 +123,12 @@ export default function PurchasesPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[18px] font-bold text-foreground">All Purchases</h1>
           <p className="text-sm text-muted-foreground">View and manage purchase orders</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="icon" className="h-[34px] w-[34px] rounded-[5px]" title="Export CSV" onClick={exportCSV}>
             <FileText className="h-4 w-4" />
           </Button>
@@ -149,7 +149,7 @@ export default function PurchasesPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="border rounded-[5px] bg-card shadow-sm p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Total Purchases</p>
           <p className="text-2xl font-bold">{stats.total}</p>
@@ -176,8 +176,8 @@ export default function PurchasesPage() {
       {/* Table */}
       <div className="border rounded-[5px] bg-card shadow-sm overflow-hidden">
         {/* Toolbar */}
-        <div className="flex items-center gap-4 px-5 py-[15px] border-b">
-          <div className="flex items-center gap-2 border rounded-[5px] px-2.5 py-1.5 w-[250px]">
+        <div className="flex flex-wrap items-center gap-4 px-5 py-[15px] border-b">
+          <div className="flex items-center gap-2 border rounded-[5px] px-2.5 py-1.5 w-full sm:w-[250px]">
             <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <input
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground min-w-0"
@@ -292,11 +292,11 @@ export default function PurchasesPage() {
 
         {/* Pagination */}
         {!loading && !error && filtered.length > 0 && (
-          <div className="flex items-center justify-between px-5 py-3 border-t">
+          <div className="flex flex-col gap-2 px-5 py-3 border-t sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">
               Showing page {page} of {totalPages} ({filtered.length} total)
             </p>
-            <div className="flex items-center gap-1">
+            <div className="flex flex-wrap items-center justify-center gap-1">
               <Button
                 variant="outline" size="icon" className="h-[30px] w-[30px] rounded-[5px]"
                 disabled={page <= 1}
